@@ -1,7 +1,7 @@
 // app/blog/page.tsx
 import { createClient } from '@/lib/supabase-server';
 import Link from 'next/link';
-import Image from 'next/image'; // Optional: if you want to switch to Next.js's <Image />
+
 
 // Define an interface to type the blog post data.
 interface BlogPost {

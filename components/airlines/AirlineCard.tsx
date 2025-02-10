@@ -1,65 +1,30 @@
-// components/airlines/AirlineCard.tsx
-import React from 'react';
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+"use client";
 
-type Airline = {
-  id: number;
-  airline: string;
-  country: string;
-  pets_in_cabin: boolean;
-  pets_in_cargo: boolean;
-  crate_carrier_size_max: string;
-  weight_limit: number;
-  breed_restrictions: string;
-  health_cert: string;
-  fees_usd: number;
-  additional_details: string;
-};
+import React from "react";
+import type { Airline } from "@/types/supabase";
 
-type AirlineCardProps = {
+interface AirlineCardProps {
   airline: Airline;
-};
+}
 
-export default function AirlineCard({ airline }: AirlineCardProps) {
+/**
+ * AirlineCard Component
+ *
+ * Renders a card view for a single airline.
+ */
+const AirlineCard: React.FC<AirlineCardProps> = ({ airline }) => {
   return (
     <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-      <h2 className="text-xl font-semibold">{airline.airline}</h2>
-      <p className="text-sm text-gray-500">{airline.country}</p>
-      
-      <div className="mt-2">
-        <p className="text-sm">
-          Pets in Cabin:{" "}
-          {airline.pets_in_cabin ? (
-            <span className="inline-flex items-center text-green-600">
-              <CheckCircleIcon className="w-4 h-4 mr-1" /> Yes
-            </span>
-          ) : (
-            <span className="inline-flex items-center text-red-600">
-              <XCircleIcon className="w-4 h-4 mr-1" /> No
-            </span>
-          )}
-        </p>
-        <p className="text-sm">
-          Pets in Cargo:{" "}
-          {airline.pets_in_cargo ? (
-            <span className="inline-flex items-center text-green-600">
-              <CheckCircleIcon className="w-4 h-4 mr-1" /> Yes
-            </span>
-          ) : (
-            <span className="inline-flex items-center text-red-600">
-              <XCircleIcon className="w-4 h-4 mr-1" /> No
-            </span>
-          )}
-        </p>
-      </div>
-
-      <p className="mt-2 text-sm">Fee: ${airline.fees_usd}</p>
-
-      {airline.additional_details && (
-        <p className="mt-2 text-sm text-gray-700">
-          {airline.additional_details}
-        </p>
+      <h2 className="text-xl font-semibold">{airline.airline_name}</h2>
+      {airline.country_scope && (
+        <p className="text-sm text-gray-500">Country: {airline.country_scope}</p>
       )}
+      {airline.pet_policy && (
+        <p className="text-sm">Pet Policy: {airline.pet_policy}</p>
+      )}
+      {/* Add additional fields as needed */}
     </div>
   );
-}
+};
+
+export default AirlineCard;
