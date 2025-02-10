@@ -4,16 +4,25 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase-server";
 
-// This component is a server component—no "use client" directive needed.
+// Define an interface to type the blog post data.
+interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  published_at: string;
+  featured_image?: string;
+}
+
 export default async function FeaturedBlog() {
-  // Create a Supabase server client instance
+  // Create a Supabase server client instance.
   const supabase = await createClient();
 
-  // Query for the 3 most recent featured blog posts
+  // Query for the 3 most recent featured blog posts.
   const { data: posts, error } = await supabase
     .from("blog_posts")
     .select("id, title, slug, excerpt, published_at, featured_image")
-    .eq("is_featured", true) // Assumes a boolean column "is_featured" exists
+    .eq("is_featured", true) // Assumes a boolean column "is_featured" exists.
     .order("published_at", { ascending: false })
     .limit(3);
 
@@ -45,7 +54,7 @@ export default async function FeaturedBlog() {
       <div className="max-w-7xl mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">From Our Blog</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {posts.map((post: any) => (
+          {posts.map((post: BlogPost) => (
             <div
               key={post.id}
               className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
