@@ -1,10 +1,27 @@
 /**
- * Interface for a Hotel record (from your hotels table).
+ * Interface for an Airline record (example from earlier)
  */
-export interface Hotel {
+export interface Airline {
     id: number;
-    hotel_chain: string;                // For now, used as the hotel name.
-    country_scope?: string;             // May be a comma-separated list of countries.
+    airline: string;
+    country?: string;
+    pets_in_cabin: boolean;
+    pets_in_cargo: boolean;
+    crate_carrier_size_max?: string;
+    weight_limit?: number;
+    breed_restrictions?: string;
+    health_cert?: string;
+    fees_usd?: number;
+    additional_details?: string;
+  }
+  
+  /**
+   * Interface for a Hotel record (example from earlier)
+   */
+  export interface Hotel {
+    id: number;
+    hotel_chain: string;
+    country_scope?: string;
     pet_fees?: string;
     weight_limits?: string;
     breed_restrictions?: string;
@@ -16,31 +33,52 @@ export interface Hotel {
     additional_notes?: string;
   }
   
-  /**
-   * Interface for an Airline record (from your airlines table).
-   * Adjust these fields to match your actual airlines table schema.
-   */
-  export interface Airline {
+
+/**
+ * Interface for a Policy record from your pet import policies table.
+ *
+ * Spreadsheet columns:
+ * - Country
+ * - Pet Type
+ * - Medical Requirements
+ * - Time Constraints
+ * - Quarantine
+ * - Fees
+ * - Pet Passports
+ * - Duration of Stay
+ * - Aggregated Sources
+ */
+export interface Policy {
     id: number;
-    airline_name: string;
-    country_scope?: string;
-    pet_policy?: string;
-    // Add other fields as needed.
+    country: string;
+    pet_type: string;
+    medical_requirements?: string;
+    time_constraints?: string;
+    quarantine?: string;
+    fees?: string;
+    pet_passports?: string;
+    duration_of_stay?: string;
+    aggregated_sources?: string;
   }
   
   /**
-   * Database type that maps table names to their record types.
+   * The Database type maps table names to their record shapes.
    */
   export type Database = {
+    airlines: {
+      Row: Airline;
+      Insert: Omit<Airline, "id">;
+      Update: Partial<Airline>;
+    };
     hotels: {
       Row: Hotel;
       Insert: Omit<Hotel, "id">;
       Update: Partial<Hotel>;
     };
-    airlines: {
-      Row: Airline;
-      Insert: Omit<Airline, "id">;
-      Update: Partial<Airline>;
+    policies: {
+        Row: Policy;
+        Insert: Omit<Policy, "id">;
+        Update: Partial<Policy>;
     };
   };
   

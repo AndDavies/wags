@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import type { Hotel } from "@/types/supabase"; // Centralized Hotel type
+import type { Hotel } from "@/types/supabase";
 import HotelCard from "./HotelCard";
 
 interface HotelListProps {
@@ -11,16 +11,16 @@ interface HotelListProps {
 /**
  * HotelList Component
  *
- * Displays a list of hotels with interactive filtering.
- * - Filters by country (parsed from the country_scope field).
- * - Filters by hotel name (using the hotel_chain field).
+ * Displays a list of hotels with filtering capabilities:
+ * - Filter by country (parsed from the country_scope field)
+ * - Search by hotel name (using the hotel_chain field)
  */
 const HotelList: React.FC<HotelListProps> = ({ hotels }) => {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [searchText, setSearchText] = useState<string>("");
 
-  // Compute a unique list of countries by parsing the country_scope field.
-  // We assume that country_scope may contain comma-separated country names.
+  // Create a unique list of countries from the country_scope field.
+  // If country_scope contains a comma-separated list, split and trim it.
   const allCountries = useMemo(() => {
     const countriesSet = new Set<string>();
     hotels.forEach((hotel) => {
@@ -36,41 +36,35 @@ const HotelList: React.FC<HotelListProps> = ({ hotels }) => {
     return Array.from(countriesSet).sort();
   }, [hotels]);
 
-  // Filter hotels by selected country and hotel name search text.
+  // Filter hotels based on selected country and hotel name search.
   const filteredHotels = useMemo(() => {
     return hotels.filter((hotel) => {
-      // Check for country match.
       let matchesCountry = true;
       if (selectedCountry) {
-        // Split country_scope into individual countries and check if any matches.
-        matchesCountry = hotel.country_scope
-          ?.split(",")
-          .map((c) => c.trim().toLowerCase())
-          .includes(selectedCountry.toLowerCase()) || false;
+        // Handle comma-separated country_scope values.
+        matchesCountry =
+          hotel.country_scope
+            ?.split(",")
+            .map((c) => c.trim().toLowerCase())
+            .includes(selectedCountry.toLowerCase()) || false;
       }
-
-      // Check for hotel chain (name) search.
       let matchesSearch = true;
       if (searchText) {
         matchesSearch = hotel.hotel_chain
           .toLowerCase()
           .includes(searchText.toLowerCase());
       }
-
       return matchesCountry && matchesSearch;
     });
   }, [hotels, selectedCountry, searchText]);
 
   return (
     <div>
-      {/* Filter Controls */}
+      {/* Filtering Controls */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
-        {/* Country Filter */}
+        {/* Country Filter Dropdown */}
         <div className="flex flex-col">
-          <label
-            htmlFor="countryFilter"
-            className="mb-1 text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="countryFilter" className="mb-1 text-sm font-medium text-gray-700">
             Filter by Country
           </label>
           <select
@@ -88,12 +82,9 @@ const HotelList: React.FC<HotelListProps> = ({ hotels }) => {
           </select>
         </div>
 
-        {/* Search by Hotel Name */}
+        {/* Search by Hotel Name Input */}
         <div className="flex flex-col">
-          <label
-            htmlFor="searchText"
-            className="mb-1 text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="searchText" className="mb-1 text-sm font-medium text-gray-700">
             Search by Hotel Name
           </label>
           <input
@@ -106,7 +97,7 @@ const HotelList: React.FC<HotelListProps> = ({ hotels }) => {
           />
         </div>
 
-        {/* Reset Button */}
+        {/* Reset Filters Button */}
         <div className="flex items-end">
           <button
             onClick={() => {
@@ -120,7 +111,7 @@ const HotelList: React.FC<HotelListProps> = ({ hotels }) => {
         </div>
       </div>
 
-      {/* Render Filtered Hotels */}
+      {/* Render the Filtered Hotels */}
       {filteredHotels.length === 0 ? (
         <p className="text-gray-500">No hotels match your filters.</p>
       ) : (

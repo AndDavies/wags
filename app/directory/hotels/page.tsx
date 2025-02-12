@@ -1,26 +1,29 @@
-import React from 'react';
-import { createClient } from '@/lib/supabase-server';
-import HotelList from '@/components/hotels/HotelList';
-import type { Database } from '@/types/supabase';
+// /pet-travel-hub/app/directory/hotels/page.tsx
+import React from "react";
+import { createClient } from "@/lib/supabase-server";
+import HotelList from "@/components/hotels/HotelList";
+import type { Database } from "@/types/supabase";
 
 /**
  * HotelsPage Component
  *
- * This server component fetches hotel data from Supabase and renders the HotelList component.
+ * This server component fetches hotel data from Supabase
+ * and renders the HotelList component.
  */
 export default async function HotelsPage() {
   const supabase = await createClient();
 
-  // Use two generic parameters: the table name as a literal ('hotels') and the row type.
+  // Fetch hotel data from the "hotels" table.
+  // Note: The first generic argument is the table name ('hotels'),
+  // and the second is the row type from our Database type.
   const { data: hotels, error } = await supabase
-    .from<'hotels', Database['hotels']['Row']>('hotels')
-    .select('*');
+    .from<"hotels", Database["hotels"]["Row"]>("hotels")
+    .select("*");
 
   if (error) {
-    console.error('Error fetching hotels:', error);
+    console.error("Error fetching hotels:", error);
   }
 
-  // Ensure we have an array (default to an empty array if hotels is null).
   const hotelsData = hotels ?? [];
 
   return (

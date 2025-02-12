@@ -11,18 +11,19 @@ interface AirlineListProps {
 /**
  * AirlineList Component
  *
- * Displays a list of airlines with filters for country and airline name.
+ * Displays a list of airlines with interactive filtering.
  */
 const AirlineList: React.FC<AirlineListProps> = ({ airlines }) => {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [searchText, setSearchText] = useState<string>("");
 
-  // Compute a unique list of countries from the country_scope field.
+  // Build a unique list of countries from the "country" field.
   const allCountries = useMemo(() => {
     const countriesSet = new Set<string>();
     airlines.forEach((airline) => {
-      if (airline.country_scope) {
-        airline.country_scope.split(",").forEach((c) => {
+      if (airline.country) {
+        // If country is comma-separated, split it
+        airline.country.split(",").forEach((c) => {
           const trimmed = c.trim();
           if (trimmed) countriesSet.add(trimmed);
         });
@@ -31,21 +32,21 @@ const AirlineList: React.FC<AirlineListProps> = ({ airlines }) => {
     return Array.from(countriesSet).sort();
   }, [airlines]);
 
-  // Filter airlines by selected country and search text.
+  // Filter airlines based on the selected country and search text.
   const filteredAirlines = useMemo(() => {
     return airlines.filter((airline) => {
       let matchesCountry = true;
       if (selectedCountry) {
+        // Split the country field (if it contains multiple values) and check for a match.
         matchesCountry =
-          airline.country_scope
+          airline.country
             ?.split(",")
             .map((c) => c.trim().toLowerCase())
             .includes(selectedCountry.toLowerCase()) || false;
       }
-
       let matchesSearch = true;
       if (searchText) {
-        matchesSearch = airline.airline_name
+        matchesSearch = airline.airline
           .toLowerCase()
           .includes(searchText.toLowerCase());
       }

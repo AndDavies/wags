@@ -16,11 +16,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.className}>
       <Head>
-        <title>Wags Travel Hub</title>
+        <meta charSet="utf-8" />
+        <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="Your all-in-one pet travel services hub" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Wags Travel Hub</title>
       </Head>
-      <body className="bg-white text-offblack">
+      <body className="bg-white text-offblack dark:bg-neutral-900">
         <Navbar />
         {/* Add top padding so content isn’t hidden behind the fixed header */}
         <main className="pt-20">{children}</main>

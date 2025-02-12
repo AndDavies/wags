@@ -6,14 +6,14 @@ import type { Database } from "@/types/supabase";
 /**
  * AirlinesPage Component
  *
- * A server component that fetches airline data from Supabase and renders a list.
+ * Fetches airline data from Supabase and renders the AirlineList component.
  */
 export default async function AirlinesPage() {
   const supabase = await createClient();
 
   // Use two generic parameters:
   //  - First: the table name as a literal ('airlines')
-  //  - Second: the row type (from our Database type)
+  //  - Second: the row type from our Database type.
   const { data: airlines, error } = await supabase
     .from<"airlines", Database["airlines"]["Row"]>("airlines")
     .select("*");
