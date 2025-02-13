@@ -116,7 +116,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Social Sharing */}
         <div className="p-4 border rounded-lg">
           <h2 className="text-xl font-semibold mb-2">Share This Article</h2>
-          <ShareButtons url={`https://yourdomain.com/blog/${post.slug}`} title={post.title} />
+          <ShareButtons url={`https://wagsandwanders.com/blog/${post.slug}`} title={post.title} />
         </div>
 
         {/* Recent Posts by This Author */}
