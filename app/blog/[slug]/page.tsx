@@ -1,7 +1,9 @@
-import { createClient } from '@/lib/supabase-server';
-import Image from 'next/image';
-import Link from 'next/link';
-import ShareButtons from '@/components/ShareButtons';
+import { createClient } from "@/lib/supabase-server";
+import Image from "next/image";
+import Link from "next/link";
+import ShareButtons from "@/components/ShareButtons";
+import Breadcrumbs from "@/components/Breadcrumbs";
+//import CommentForm from "@/components/CommentForm";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -22,9 +24,9 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   // Fetch the post by slug
   const { data: post, error } = await supabase
-    .from('blog_posts')
-    .select('*')
-    .eq('slug', slug)
+    .from("blog_posts")
+    .select("*")
+    .eq("slug", slug)
     .single();
 
   if (error || !post) {
@@ -35,9 +37,9 @@ export default async function BlogPostPage({ params }: PageProps) {
   let author = null;
   if (post.author_id) {
     const { data: authorData, error: authorError } = await supabase
-      .from('authors')
-      .select('id, name, avatar_url')
-      .eq('id', post.author_id)
+      .from("authors")
+      .select("id, name, avatar_url")
+      .eq("id", post.author_id)
       .single();
     if (!authorError) {
       author = authorData;
@@ -48,24 +50,34 @@ export default async function BlogPostPage({ params }: PageProps) {
   let recentPosts: RecentPost[] = [];
   if (post.author_id) {
     const { data: postsData, error: postsError } = await supabase
-      .from('blog_posts')
-      .select('id, title, slug')
-      .eq('author_id', post.author_id)
-      .neq('id', post.id)
-      .order('created_at', { ascending: false })
+      .from("blog_posts")
+      .select("id, title, slug")
+      .eq("author_id", post.author_id)
+      .neq("id", post.id)
+      .order("created_at", { ascending: false })
       .limit(8);
     if (!postsError && postsData) {
       recentPosts = postsData;
     }
   }
 
+  // Breadcrumbs: Home / Blog / [Post Title]
+  const breadcrumbs = [
+    { label: "Home", href: "/" },
+    { label: "Blog", href: "/blog" },
+    { label: post.title },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-16 flex flex-col md:flex-row gap-8">
       {/* Main Content Column */}
       <article className="flex-1">
-        <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={breadcrumbs} />
+
+        {/* Featured Image Above Title */}
         {post.featured_image && (
-          <div className="relative h-64 mb-8">
+          <div className="relative h-64 mb-4">
             <Image
               src={post.featured_image}
               alt={post.title}
@@ -74,13 +86,15 @@ export default async function BlogPostPage({ params }: PageProps) {
             />
           </div>
         )}
+
+        <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
         {/* Render article content with refined typography */}
         <div
           className="prose prose-sm leading-snug text-gray-700"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
-        {/* Display Tags if available */}
+        {/* Display Tags */}
         {post.tags && post.tags.length > 0 && (
           <div className="mt-4">
             <span className="font-bold mr-2">Tags:</span>
@@ -98,6 +112,12 @@ export default async function BlogPostPage({ params }: PageProps) {
         <div className="mt-8 text-sm text-gray-500">
           Published on: {new Date(post.published_at).toLocaleDateString()}
         </div>
+
+        {/* Comments Section (requires user authentication) */}
+        {/* <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-4">Comments</h2>
+          <CommentForm postId={post.id} />
+        </div> */}
       </article>
 
       {/* Sidebar Column */}
