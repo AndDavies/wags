@@ -16,14 +16,13 @@ interface RecentPost {
   slug: string;
 }
 
-// Generate dynamic metadata for SEO.
 export async function generateMetadata({
   params,
 }: {
   params: { slug: string };
 }) {
   const supabase = await createClient();
-  // Fetch minimal data for metadata
+  // Fetch minimal data for metadata.
   const { data: post } = await supabase
     .from("blog_posts")
     .select("title, meta_description, featured_image")
@@ -105,7 +104,9 @@ export default async function BlogPostPage({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
-    datePublished: post.published_at ? new Date(post.published_at).toISOString().slice(0, 10) : undefined,
+    datePublished: post.published_at
+      ? new Date(post.published_at).toISOString().slice(0, 10)
+      : undefined,
     author: author ? { "@type": "Person", name: author.name } : undefined,
     image: post.featured_image,
     description: post.meta_description || post.excerpt,
@@ -133,7 +134,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Breadcrumbs under the featured image */}
         <Breadcrumbs items={breadcrumbs} />
 
-        {/* Two-column layout: Article content on left, Author & Sharing on right */}
+        {/* Two-column layout: Article content on left, Sidebar on right */}
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left Column: Article Content */}
           <article className="flex-1">
@@ -162,8 +163,9 @@ export default async function BlogPostPage({ params }: PageProps) {
             </div>
           </article>
 
-          {/* Right Column: Author & Sharing Details */}
+          {/* Right Column: Author & Sharing Details, and Recent Posts */}
           <aside className="w-full md:w-1/3 space-y-8">
+            {/* Author Info */}
             <div className="p-4 border rounded-lg">
               <h2 className="text-xl font-semibold mb-2">About the Author</h2>
               {author ? (
@@ -183,9 +185,13 @@ export default async function BlogPostPage({ params }: PageProps) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Author information not available.</p>
+                <p className="text-sm text-gray-500">
+                  Author information not available.
+                </p>
               )}
             </div>
+
+            {/* Social Sharing */}
             <div className="p-4 border rounded-lg">
               <h2 className="text-xl font-semibold mb-2">Share This Article</h2>
               <ShareButtons
@@ -193,6 +199,24 @@ export default async function BlogPostPage({ params }: PageProps) {
                 title={post.title}
               />
             </div>
+
+            {/* Recent Posts by This Author */}
+            {recentPosts.length > 0 && (
+              <div className="p-4 border rounded-lg">
+                <h2 className="text-xl font-semibold mb-2">
+                  Recent Posts by {author ? author.name : "Author"}
+                </h2>
+                <ul className="space-y-2">
+                  {recentPosts.map((recentPost) => (
+                    <li key={recentPost.id}>
+                      <Link href={`/blog/${recentPost.slug}`} className="text-blue-500 hover:underline">
+                        {recentPost.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </aside>
         </div>
       </div>
