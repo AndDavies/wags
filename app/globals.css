@@ -35,6 +35,17 @@ html {
   margin-bottom: 0.75rem;
 }
 
+/* Optionally style <figure> and <figcaption> */
+figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+figcaption {
+  font-size: 0.875rem;
+  color: #6b7280; /* Tailwind gray-500 */
+  margin-top: 0.5rem;
+}
+
 /* Example of a custom fadeIn animation */
 @keyframes fadeIn {
   from {

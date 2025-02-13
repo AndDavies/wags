@@ -33,7 +33,11 @@ export default async function BlogPostPage({ params }: PageProps) {
           />
         </div>
       )}
-      <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: post.content }} />
+      {/* Wrap the content in a container with typography classes */}
+      <div
+        className="prose prose-lg text-gray-700"
+        dangerouslySetInnerHTML={{ __html: post.content }}
+      />
       <div className="mt-8 text-sm text-gray-500">
         Published on: {new Date(post.published_at).toLocaleDateString()}
       </div>
