@@ -9,6 +9,32 @@ html {
   overflow-y: scroll;
 }
 
+/* Custom Typography Overrides */
+.prose p {
+  margin-bottom: 1rem;
+}
+
+.prose blockquote {
+  border-left: 4px solid #ccc;
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.prose h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.prose h2 {
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
 /* Example of a custom fadeIn animation */
 @keyframes fadeIn {
   from {
