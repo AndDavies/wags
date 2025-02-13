@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 // app/blog/[slug]/page.tsx
 import { createClient } from "@/lib/supabase-server";
 import Image from "next/image";
@@ -19,40 +17,8 @@ interface RecentPost {
   slug: string;
 }
 
-// Use a synchronous type for params.
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const supabase = await createClient();
-  // Fetch minimal data for metadata.
-  const { data: post } = await supabase
-    .from("blog_posts")
-    .select("title, meta_description, featured_image")
-    .eq("slug", params.slug)
-    .single();
-
-  return {
-    title: post?.title || "Blog Post",
-    description: post?.meta_description || "Read our latest blog post.",
-    openGraph: {
-      title: post?.title || "Blog Post",
-      description: post?.meta_description || "Read our latest blog post.",
-      url: `https://wagsandwanders.com/blog/${params.slug}`,
-      images: post?.featured_image ? [{ url: post.featured_image }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post?.title,
-      description: post?.meta_description,
-    },
-  };
-}
-
 export default async function BlogPostPage({ params }: PageProps) {
-  const { slug } = params;
-
+  const { slug } = await params;
   const supabase = await createClient();
 
   // Fetch the post by slug.
@@ -106,7 +72,9 @@ export default async function BlogPostPage({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
-    datePublished: post.published_at ? new Date(post.published_at).toISOString().slice(0, 10) : undefined,
+    datePublished: post.published_at
+      ? new Date(post.published_at).toISOString().slice(0, 10)
+      : undefined,
     author: author ? { "@type": "Person", name: author.name } : undefined,
     image: post.featured_image,
     description: post.meta_description || post.excerpt,
@@ -143,6 +111,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               className="prose prose-sm leading-snug text-gray-700"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
+
             {/* Display Tags as clickable links */}
             {post.tags && post.tags.length > 0 && (
               <div className="mt-4">
@@ -156,6 +125,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 ))}
               </div>
             )}
+
             <div className="mt-8 text-sm text-gray-500">
               Published on: {new Date(post.published_at).toLocaleDateString()}
             </div>
@@ -182,7 +152,9 @@ export default async function BlogPostPage({ params }: PageProps) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Author information not available.</p>
+                <p className="text-sm text-gray-500">
+                  Author information not available.
+                </p>
               )}
             </div>
             <div className="p-4 border rounded-lg">
@@ -192,6 +164,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 title={post.title}
               />
             </div>
+            {/* Optionally, you can render recent posts here */}
           </aside>
         </div>
       </div>
