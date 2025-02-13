@@ -1,3 +1,4 @@
+// app/blog/[slug]/page.tsx
 import { createClient } from "@/lib/supabase-server";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import Head from "next/head";
 import JsonLd from "@/components/JsonLd";
 
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }
 
 interface RecentPost {
@@ -16,6 +17,7 @@ interface RecentPost {
   slug: string;
 }
 
+// Use a synchronous type for params.
 export async function generateMetadata({
   params,
 }: {
@@ -47,9 +49,7 @@ export async function generateMetadata({
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  // Await params before using its properties.
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
+  const { slug } = params;
 
   const supabase = await createClient();
 
@@ -104,9 +104,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
-    datePublished: post.published_at
-      ? new Date(post.published_at).toISOString().slice(0, 10)
-      : undefined,
+    datePublished: post.published_at ? new Date(post.published_at).toISOString().slice(0, 10) : undefined,
     author: author ? { "@type": "Person", name: author.name } : undefined,
     image: post.featured_image,
     description: post.meta_description || post.excerpt,
@@ -143,7 +141,6 @@ export default async function BlogPostPage({ params }: PageProps) {
               className="prose prose-sm leading-snug text-gray-700"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
-
             {/* Display Tags as clickable links */}
             {post.tags && post.tags.length > 0 && (
               <div className="mt-4">
@@ -157,15 +154,13 @@ export default async function BlogPostPage({ params }: PageProps) {
                 ))}
               </div>
             )}
-
             <div className="mt-8 text-sm text-gray-500">
               Published on: {new Date(post.published_at).toLocaleDateString()}
             </div>
           </article>
 
-          {/* Right Column: Author & Sharing Details, and Recent Posts */}
+          {/* Right Column: Author & Sharing Details */}
           <aside className="w-full md:w-1/3 space-y-8">
-            {/* Author Info */}
             <div className="p-4 border rounded-lg">
               <h2 className="text-xl font-semibold mb-2">About the Author</h2>
               {author ? (
@@ -185,13 +180,9 @@ export default async function BlogPostPage({ params }: PageProps) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">
-                  Author information not available.
-                </p>
+                <p className="text-sm text-gray-500">Author information not available.</p>
               )}
             </div>
-
-            {/* Social Sharing */}
             <div className="p-4 border rounded-lg">
               <h2 className="text-xl font-semibold mb-2">Share This Article</h2>
               <ShareButtons
@@ -199,24 +190,6 @@ export default async function BlogPostPage({ params }: PageProps) {
                 title={post.title}
               />
             </div>
-
-            {/* Recent Posts by This Author */}
-            {recentPosts.length > 0 && (
-              <div className="p-4 border rounded-lg">
-                <h2 className="text-xl font-semibold mb-2">
-                  Recent Posts by {author ? author.name : "Author"}
-                </h2>
-                <ul className="space-y-2">
-                  {recentPosts.map((recentPost) => (
-                    <li key={recentPost.id}>
-                      <Link href={`/blog/${recentPost.slug}`} className="text-blue-500 hover:underline">
-                        {recentPost.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </aside>
         </div>
       </div>
