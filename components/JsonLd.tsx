@@ -1,4 +1,3 @@
-// components/JsonLd.tsx
 "use client";
 
 import React from "react";

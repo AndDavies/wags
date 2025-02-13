@@ -16,20 +16,18 @@ interface RecentPost {
   slug: string;
 }
 
+// Generate dynamic metadata for SEO.
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }) {
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
-
   const supabase = await createClient();
   // Fetch minimal data for metadata
   const { data: post } = await supabase
     .from("blog_posts")
     .select("title, meta_description, featured_image")
-    .eq("slug", slug)
+    .eq("slug", params.slug)
     .single();
 
   return {
@@ -38,10 +36,8 @@ export async function generateMetadata({
     openGraph: {
       title: post?.title || "Blog Post",
       description: post?.meta_description || "Read our latest blog post.",
-      url: `https://wagsandwanders.com/blog/${slug}`,
-      images: post?.featured_image
-        ? [{ url: post.featured_image }]
-        : undefined,
+      url: `https://wagsandwanders.com/blog/${params.slug}`,
+      images: post?.featured_image ? [{ url: post.featured_image }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
@@ -50,7 +46,6 @@ export async function generateMetadata({
     },
   };
 }
-
 
 export default async function BlogPostPage({ params }: PageProps) {
   // Await params before using its properties.
@@ -109,12 +104,12 @@ export default async function BlogPostPage({ params }: PageProps) {
   const jsonLdData = {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": post.title,
-    "datePublished": post.published_at ? new Date(post.published_at).toISOString().slice(0, 10) : undefined,
-    "author": author ? { "@type": "Person", "name": author.name } : undefined,
-    "image": post.featured_image,
-    "description": post.meta_description || post.excerpt,
-    "url": `https://wagsandwanders.com/blog/${post.slug}`,
+    headline: post.title,
+    datePublished: post.published_at ? new Date(post.published_at).toISOString().slice(0, 10) : undefined,
+    author: author ? { "@type": "Person", name: author.name } : undefined,
+    image: post.featured_image,
+    description: post.meta_description || post.excerpt,
+    url: `https://wagsandwanders.com/blog/${post.slug}`,
   };
 
   return (
@@ -138,7 +133,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Breadcrumbs under the featured image */}
         <Breadcrumbs items={breadcrumbs} />
 
-        {/* Main Content & Sidebar Layout */}
+        {/* Two-column layout: Article content on left, Author & Sharing on right */}
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left Column: Article Content */}
           <article className="flex-1">
@@ -169,7 +164,6 @@ export default async function BlogPostPage({ params }: PageProps) {
 
           {/* Right Column: Author & Sharing Details */}
           <aside className="w-full md:w-1/3 space-y-8">
-            {/* Author Info */}
             <div className="p-4 border rounded-lg">
               <h2 className="text-xl font-semibold mb-2">About the Author</h2>
               {author ? (
@@ -192,8 +186,6 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <p className="text-sm text-gray-500">Author information not available.</p>
               )}
             </div>
-
-            {/* Social Sharing */}
             <div className="p-4 border rounded-lg">
               <h2 className="text-xl font-semibold mb-2">Share This Article</h2>
               <ShareButtons
