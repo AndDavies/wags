@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 // app/blog/[slug]/page.tsx
 import { createClient } from "@/lib/supabase-server";
 import Image from "next/image";

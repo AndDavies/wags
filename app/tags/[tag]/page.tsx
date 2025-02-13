@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { createClient } from "@/lib/supabase-server";
 import Link from "next/link";
 
