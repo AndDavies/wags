@@ -1,9 +1,23 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
     siteUrl: 'https://wagsandwanders.com',
-    generateRobotsTxt: true, // This will automatically generate a robots.txt file
-    // Optional: Exclude specific paths if needed
-    // exclude: ['/admin', '/login'],
-    // Optional: Additional configuration options can be added here
+    generateRobotsTxt: true,
+    additionalPaths: async (config) => {
+      // Define your static routes
+      const staticPaths = ['/', '/about', '/contact'];
+  
+      // Optionally, fetch dynamic routes (for example, blog posts)
+      // Replace this with your own data source/API call
+      const blogData = await fetch('https://your-api.com/blog-slugs')
+        .then((res) => res.json())
+        .catch(() => []);
+      const blogPaths = blogData.map((slug) => `/blog/${slug}`);
+  
+      // Combine static and dynamic paths, then transform them as required by next-sitemap
+      return [
+        ...staticPaths.map((path) => config.transform(config, path)),
+        ...blogPaths.map((path) => config.transform(config, path)),
+      ];
+    },
   }
   
