@@ -1,3 +1,4 @@
+// app/blog/[slug]/page.tsx
 import { createClient } from "@/lib/supabase-server"
 import Image from "next/image"
 import Link from "next/link"
@@ -11,8 +12,11 @@ import { Badge } from "@/components/ui/badge"
 import ShareButtons from "@/components/ShareButtons"
 import Breadcrumbs from "@/components/Breadcrumbs"
 
+// Fix: define `params` as a Promise
+type BlogParams = Promise<{ slug: string }>
+
 interface PageProps {
-  params: { slug: string }
+  params: BlogParams
 }
 
 interface RecentPost {
@@ -22,10 +26,17 @@ interface RecentPost {
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  const { slug } = await params
+  // Await the params before accessing slug.
+  const resolvedParams = await params
+  const { slug } = resolvedParams
+
   const supabase = await createClient()
 
-  const { data: post, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).single()
+  const { data: post, error } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .eq("slug", slug)
+    .single()
 
   if (error || !post) {
     notFound()
@@ -49,7 +60,11 @@ export default async function BlogPostPage({ params }: PageProps) {
     .order("created_at", { ascending: false })
     .limit(5)
 
-  const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Blog", href: "/blog" }, { label: post.title }]
+  const breadcrumbs = [
+    { label: "Home", href: "/" },
+    { label: "Blog", href: "/blog" },
+    { label: post.title },
+  ]
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,8 +91,13 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
           <article className="lg:col-span-2 space-y-8">
-            {!post.featured_image && <h1 className="text-4xl font-bold">{post.title}</h1>}
-            <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
+            {!post.featured_image && (
+              <h1 className="text-4xl font-bold">{post.title}</h1>
+            )}
+            <div
+              className="prose prose-lg max-w-none"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
 
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -129,7 +149,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                  {(recentPosts || []).map((recentPost: RecentPost) => (
+                    {(recentPosts || []).map((recentPost: RecentPost) => (
                       <li key={recentPost.id}>
                         <Link href={`/blog/${recentPost.slug}`} className="text-primary hover:underline">
                           {recentPost.title}
@@ -166,6 +186,5 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
       </footer>
     </div>
-  )
+  );
 }
-
