@@ -2,60 +2,74 @@ import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plane, Hotel, MapPin } from 'lucide-react'
+import { Plane, Hotel, FileText, ArrowRight } from "lucide-react"
 
 const FeaturedDirectory = () => {
-  const features = [
+  const directories = [
     {
-      title: "Airline Deals",
-      description: "Exclusive offers on pet-friendly flights.",
-      icon: <Plane className="h-6 w-6" />,
-      image: "/placeholders/placeholder_image_18.jpg",
+      title: "Pet-Friendly Airlines",
+      description: "Comprehensive guide to airline policies for pet travel.",
+      icon: <Plane className="h-8 w-8 text-blue-500" />,
+      image: "/placeholders/Pet_Friendly_Airlines.png",
       link: "/directory/airlines",
+      features: ["Cabin policies", "Cargo regulations", "Breed restrictions"],
     },
     {
-      title: "Hotel Deals",
-      description: "Stay at pet-friendly hotels around the world.",
-      icon: <Hotel className="h-6 w-6" />,
-      image: "/placeholders/placeholder_image_24.jpg",
+      title: "Pet-Friendly Hotels",
+      description: "Find accommodations that welcome your furry companions.",
+      icon: <Hotel className="h-8 w-8 text-green-500" />,
+      image: "/placeholders/Pet_Friendly_Hotels.png",
       link: "/directory/hotels",
+      features: ["Pet amenities", "Size restrictions", "Additional fees"],
     },
     {
-      title: "Activities",
-      description: "Adventure activities perfect for pet travelers.",
-      icon: <MapPin className="h-6 w-6" />,
-      image: "/placeholders/placeholder_image_13.jpg",
-      link: "/directory/activities",
+      title: "Country Import Policies",
+      description: "Navigate international pet travel requirements with ease.",
+      icon: <FileText className="h-8 w-8 text-purple-500" />,
+      image: "/placeholders/Pet_Travel_Policies.png",
+      link: "/directory/policies",
+      features: ["Vaccination requirements", "Quarantine info", "Necessary paperwork"],
     },
   ]
 
   return (
-    <section className="py-16">
+    <section className="py-16 bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12">Featured Deals & Destinations</h2>
+        <h2 className="text-3xl font-bold text-center mb-4">Your Pet Travel Resource Hub</h2>
+        <p className="text-center text-gray-600 dark:text-gray-300 mb-12 max-w-2xl mx-auto">
+          Comprehensive directories to guide you through every aspect of traveling with your pet.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <Card key={index} className="overflow-hidden">
+          {directories.map((directory, index) => (
+            <Card key={index} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg">
               <div className="relative h-48">
                 <Image
-                  src={feature.image || "/placeholder.svg"}
-                  alt={feature.title}
+                  src={directory.image || "/placeholder.svg"}
+                  alt={directory.title}
                   fill
                   className="object-cover"
                 />
+                <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                  {directory.icon}
+                </div>
               </div>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {feature.icon}
-                  {feature.title}
-                </CardTitle>
+                <CardTitle className="text-xl font-bold">{directory.title}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{feature.description}</p>
+              <CardContent className="flex-grow">
+                <p className="text-gray-600 dark:text-gray-300 mb-4">{directory.description}</p>
+                <ul className="space-y-2">
+                  {directory.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                      <ArrowRight className="h-4 w-4 mr-2 text-primary" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
               <CardFooter>
-                <Button asChild variant="link">
-                  <Link href={feature.link}>Explore</Link>
+                <Button asChild className="w-full">
+                  <Link href={directory.link}>Explore {directory.title}</Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -67,3 +81,4 @@ const FeaturedDirectory = () => {
 }
 
 export default FeaturedDirectory
+
