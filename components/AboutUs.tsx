@@ -29,7 +29,7 @@ const AboutUs = () => {
           <div className="space-y-6">
             <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl">
               <Image
-                src="/placeholders/bagsy_travel_2.jpg"
+                src="/placeholders/bagsy_family_travel.jpeg"
                 alt="Baggo, our rescue dog, enjoying travel adventures"
                 fill
                 className="object-cover"
