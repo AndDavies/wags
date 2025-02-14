@@ -16,20 +16,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <head>
-        {/* Load the Google Analytics script */}
+        {/* Google Analytics tag */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-20NRHFS1RE"
+          src="https://www.googletagmanager.com/gtag/js?id=G-BF9YNEQ2CH"
           strategy="afterInteractive"
         />
-        {/* Initialize Google Analytics */}
         <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
-            function gtag(){ dataLayer.push(arguments); }
+            function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-20NRHFS1RE', {
-              page_path: window.location.pathname,
-            });
+            gtag('config', 'G-BF9YNEQ2CH');
           `}
         </Script>
       </head>
