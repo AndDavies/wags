@@ -1,41 +1,66 @@
-// components/Hero.tsx
-"use client";
-
-import React from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import Image from "next/image"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { PawPrint } from "lucide-react"
 
 const Hero = () => {
   return (
-    <section className="relative h-[calc(100vh-106px)] overflow-hidden bg-gray-100 dark:bg-neutral-800">
-      {/* Background Image with Gradient Overlay */}
-      <div className="absolute inset-0">
+    <section className="relative h-[70vh] min-h-[600px] overflow-hidden">
+      {/* Base landscape image */}
+      <Image src="/placeholders/hero-landscape.png" alt="Wags and Wanders Travel Destinations and Pet Policies" fill className="object-cover" />
+
+      {/* Dark overlay for better text visibility */}
+      <div className="absolute inset-0 bg-black opacity-40" />
+
+      {/* Pattern overlay */}
+      <div
+        className="absolute inset-0 bg-repeat opacity-40"
+        style={{
+          backgroundImage: 'url("/paw-print-pattern.png")',
+          backgroundSize: "100px",
+        }}
+      />
+
+      {/* Silhouette image */}
+      <div className="absolute right-0 bottom-0 h-4/5 w-1/3">
         <Image
-          src="/wags_and_wanders_hero.png"
-          alt="Scenic pet travel background"
+          src="/person-dog-silhouette.png"
+          alt="Person walking a dog"
           fill
-          className="object-cover opacity-30 transition-opacity duration-500"
+          className="object-contain object-bottom"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
       </div>
-      <div className="relative z-10 flex flex-col justify-center h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl">
-          <h1 className="text-5xl sm:text-6xl font-extrabold text-white drop-shadow-lg mb-6">
-            Explore Pet-Friendly Adventures
-          </h1>
-          <p className="text-xl sm:text-2xl text-gray-200 mb-8">
-            Discover travel experiences that welcome you and your furry friend.
-          </p>
-          <Link href="/directory">
-            <Button variant="default" className="py-3 px-6 text-lg transition-transform duration-300 hover:scale-105">
-              Find Your Next Trip
-            </Button>
-          </Link>
+
+      {/* Content */}
+      <div className="relative z-10 h-full flex items-center">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-6 drop-shadow-lg">
+              <PawPrint className="inline-block mr-2 h-12 w-12" />
+              Explore Pet-Friendly Adventures
+            </h1>
+            <p className="text-xl text-white mb-8 drop-shadow">
+              Discover travel experiences that welcome you and your furry friend.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button asChild size="lg" variant="default" className="bg-white text-blue-600 hover:bg-blue-50">
+                <Link href="/directory">Find Your Next Trip</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="bg-transparent text-white border-white hover:bg-white/20"
+              >
+                <Link href="/how-it-works">How It Works</Link>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
-  );
-};
+  )
+}
 
-export default Hero;
+export default Hero
+

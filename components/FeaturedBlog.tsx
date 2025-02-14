@@ -1,86 +1,68 @@
-// components/FeaturedBlog.tsx
-import React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { createClient } from "@/lib/supabase-server";
+import Link from "next/link"
+import Image from "next/image"
+import { createClient } from "@/lib/supabase-server"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 interface BlogPost {
-  id: number;
-  title: string;
-  slug: string;
-  excerpt: string;
-  published_at: string;
-  featured_image?: string;
+  id: number
+  title: string
+  slug: string
+  excerpt: string
+  published_at: string
+  featured_image?: string
 }
 
 export default async function FeaturedBlog() {
-  const supabase = await createClient();
+  const supabase = await createClient()
   const { data: posts, error } = await supabase
     .from("blog_posts")
     .select("id, title, slug, excerpt, published_at, featured_image")
     .eq("is_featured", true)
     .order("published_at", { ascending: false })
-    .limit(3);
+    .limit(3)
 
   if (error) {
-    console.error("Error loading featured blog posts:", error);
-    return (
-      <section className="py-16 bg-gray-50 dark:bg-neutral-900">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8 text-black dark:text-white">From Our Blog</h2>
-          <p className="text-center text-gray-600 dark:text-neutral-300">Error loading blog posts.</p>
-        </div>
-      </section>
-    );
+    console.error("Error loading featured blog posts:", error)
+    return <div>Error loading blog posts.</div>
   }
 
   if (!posts || posts.length === 0) {
-    return (
-      <section className="py-16 bg-gray-50 dark:bg-neutral-900">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8 text-black dark:text-white">From Our Blog</h2>
-          <p className="text-center text-gray-600 dark:text-neutral-300">No featured posts available.</p>
-        </div>
-      </section>
-    );
+    return <div>No featured posts available.</div>
   }
 
   return (
-    <section className="py-16 bg-gray-50 dark:bg-neutral-900">
-      <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-8 text-black dark:text-white">From Our Blog</h2>
+    <section className="py-16">
+      <div className="container mx-auto px-4">
+        <h2 className="text-3xl font-bold text-center mb-12">From Our Blog</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {posts.map((post: BlogPost) => (
-            <div
-              key={post.id}
-              className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
-            >
-              {post.featured_image ? (
-                <div className="relative w-full h-48 overflow-hidden rounded-t-2xl">
+            <Card key={post.id} className="overflow-hidden">
+              {post.featured_image && (
+                <div className="relative h-48">
                   <Image
-                    src={post.featured_image}
+                    src={post.featured_image || "/placeholder.svg"}
                     alt={post.title}
                     fill
-                    className="object-cover transition-transform duration-500 ease-in-out"
+                    className="object-cover"
                   />
                 </div>
-              ) : (
-                <div className="relative w-full h-48 bg-gray-200 rounded-t-2xl" />
               )}
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2 text-black dark:text-white">{post.title}</h3>
-                <p className="text-sm mb-4 text-gray-600 dark:text-neutral-300">{post.excerpt}</p>
-                <Link
-                  href={`/blog/${post.slug}`}
-                  className="text-primary font-medium hover:underline"
-                >
-                  Read More
-                </Link>
-              </div>
-            </div>
+              <CardHeader>
+                <CardTitle>{post.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{post.excerpt}</p>
+              </CardContent>
+              <CardFooter>
+                <Button asChild variant="link">
+                  <Link href={`/blog/${post.slug}`}>Read More</Link>
+                </Button>
+              </CardFooter>
+            </Card>
           ))}
         </div>
       </div>
     </section>
-  );
+  )
 }

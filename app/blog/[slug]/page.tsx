@@ -1,178 +1,171 @@
-import { createClient } from "@/lib/supabase-server";
-import Image from "next/image";
-import Link from "next/link";
-import ShareButtons from "@/components/ShareButtons";
-import Breadcrumbs from "@/components/Breadcrumbs";
-//import CommentForm from "@/components/CommentForm";
+import { createClient } from "@/lib/supabase-server"
+import Image from "next/image"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { format } from "date-fns"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import ShareButtons from "@/components/ShareButtons"
+import Breadcrumbs from "@/components/Breadcrumbs"
 
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: { slug: string }
 }
 
 interface RecentPost {
-  id: string;
-  title: string;
-  slug: string;
+  id: string
+  title: string
+  slug: string
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  // Await params before using its properties
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
+  const { slug } = await params
+  const supabase = await createClient()
 
-  const supabase = await createClient();
-
-  // Fetch the post by slug
-  const { data: post, error } = await supabase
-    .from("blog_posts")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  const { data: post, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).single()
 
   if (error || !post) {
-    return <div>Post not found.</div>;
+    notFound()
   }
 
-  // Fetch author data (assuming an "authors" table exists)
-  let author = null;
+  let author = null
   if (post.author_id) {
-    const { data: authorData, error: authorError } = await supabase
+    const { data: authorData } = await supabase
       .from("authors")
-      .select("id, name, avatar_url")
+      .select("id, name, avatar_url, bio")
       .eq("id", post.author_id)
-      .single();
-    if (!authorError) {
-      author = authorData;
-    }
+      .single()
+    author = authorData
   }
 
-  // Fetch 8 recent posts by the same author
-  let recentPosts: RecentPost[] = [];
-  if (post.author_id) {
-    const { data: postsData, error: postsError } = await supabase
-      .from("blog_posts")
-      .select("id, title, slug")
-      .eq("author_id", post.author_id)
-      .neq("id", post.id)
-      .order("created_at", { ascending: false })
-      .limit(8);
-    if (!postsError && postsData) {
-      recentPosts = postsData;
-    }
-  }
+  const { data: recentPosts = [] } = await supabase
+    .from("blog_posts")
+    .select("id, title, slug")
+    .eq("author_id", post.author_id)
+    .neq("id", post.id)
+    .order("created_at", { ascending: false })
+    .limit(5)
 
-  // Breadcrumbs: Home / Blog / [Post Title]
-  const breadcrumbs = [
-    { label: "Home", href: "/" },
-    { label: "Blog", href: "/blog" },
-    { label: post.title },
-  ];
+  const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Blog", href: "/blog" }, { label: post.title }]
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16 flex flex-col md:flex-row gap-8">
-      {/* Main Content Column */}
-      <article className="flex-1">
-        {/* Breadcrumbs */}
+    <div className="min-h-screen bg-background">
+      {post.featured_image && (
+        <div className="relative w-full h-[40vh] md:h-[50vh] lg:h-[60vh]">
+          <Image
+            src={post.featured_image || "/placeholder.svg"}
+            alt={post.title}
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-40" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center max-w-4xl px-4">
+              {post.title}
+            </h1>
+          </div>
+        </div>
+      )}
+
+      <main className="container mx-auto px-4 py-8">
         <Breadcrumbs items={breadcrumbs} />
 
-        {/* Featured Image Above Title */}
-        {post.featured_image && (
-          <div className="relative h-64 mb-4">
-            <Image
-              src={post.featured_image}
-              alt={post.title}
-              fill
-              className="object-cover rounded-lg"
-            />
-          </div>
-        )}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <article className="lg:col-span-2 space-y-8">
+            {!post.featured_image && <h1 className="text-4xl font-bold">{post.title}</h1>}
+            <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
 
-        <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
-        {/* Render article content with refined typography */}
-        <div
-          className="prose prose-sm leading-snug text-gray-700"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
-
-        {/* Display Tags */}
-        {post.tags && post.tags.length > 0 && (
-          <div className="mt-4">
-            <span className="font-bold mr-2">Tags:</span>
-            {post.tags.map((tag: string, index: number) => (
-              <span
-                key={index}
-                className="inline-block bg-blue-100 text-blue-800 px-2 py-1 mr-1 rounded text-sm"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-8 text-sm text-gray-500">
-          Published on: {new Date(post.published_at).toLocaleDateString()}
-        </div>
-
-        {/* Comments Section (requires user authentication) */}
-        {/* <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-4">Comments</h2>
-          <CommentForm postId={post.id} />
-        </div> */}
-      </article>
-
-      {/* Sidebar Column */}
-      <aside className="w-full md:w-1/3 space-y-8">
-        {/* Author Info */}
-        <div className="p-4 border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">About the Author</h2>
-          {author ? (
-            <div className="flex items-center space-x-4">
-              {author.avatar_url && (
-                <div className="relative w-16 h-16">
-                  <Image
-                    src={author.avatar_url}
-                    alt={author.name}
-                    fill
-                    className="rounded-full object-cover"
-                  />
-                </div>
-              )}
-              <div>
-                <p className="font-bold">{author.name}</p>
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map((tag: string) => (
+                  <Badge key={tag} variant="secondary">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">Author information not available.</p>
-          )}
-          <div className="mt-4 text-sm text-gray-500">
-            <p>{new Date(post.published_at).toLocaleDateString()}</p>
-          </div>
+            )}
+          </article>
+
+          <aside className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>About the Author</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {author ? (
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={author.avatar_url} alt={author.name} />
+                      <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{author.name}</p>
+                      <p className="text-sm text-muted-foreground">{author.bio}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Author information not available.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Share This Article</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ShareButtons url={`https://wagsandwanders.com/blog/${post.slug}`} title={post.title} />
+              </CardContent>
+            </Card>
+
+            {(recentPosts || []).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Posts by {author?.name || "Author"}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                  {(recentPosts || []).map((recentPost: RecentPost) => (
+                      <li key={recentPost.id}>
+                        <Link href={`/blog/${recentPost.slug}`} className="text-primary hover:underline">
+                          {recentPost.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </aside>
         </div>
 
-        {/* Social Sharing */}
-        <div className="p-4 border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Share This Article</h2>
-          <ShareButtons url={`https://wagsandwanders.com/blog/${post.slug}`} title={post.title} />
+        <div className="mt-12 flex justify-between">
+          <Button variant="outline" asChild>
+            <Link href="/blog" className="flex items-center">
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Blog
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="#" className="flex items-center">
+              Next Article
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
+      </main>
 
-        {/* Recent Posts by This Author */}
-        {recentPosts.length > 0 && (
-          <div className="p-4 border rounded-lg">
-            <h2 className="text-xl font-semibold mb-2">
-              Recent Posts by {author ? author.name : "Author"}
-            </h2>
-            <ul className="space-y-2">
-              {recentPosts.map((recentPost) => (
-                <li key={recentPost.id}>
-                  <Link href={`/blog/${recentPost.slug}`} className="text-blue-500 hover:underline">
-                    {recentPost.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </aside>
+      <footer className="bg-muted mt-16 py-8">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>Published on: {format(new Date(post.published_at), "MMMM d, yyyy")}</p>
+          <p className="mt-2">&copy; 2023 Wags Travel Hub. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
-  );
+  )
 }
+
