@@ -29,7 +29,7 @@ export function DatePicker({ id, selected, onSelect }: DatePickerProps) {
           variant="outline"
           className={cn(
             "w-[240px] justify-start text-left font-normal",
-            !selected && "text-muted-foreground"
+            !selected && "text-gray-500"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
@@ -40,7 +40,7 @@ export function DatePicker({ id, selected, onSelect }: DatePickerProps) {
         <Calendar
           mode="single"
           selected={selected || undefined}
-          onSelect={(day) => onSelect(day || null)}
+          onSelect={(day: Date | undefined) => onSelect(day || null)}
           initialFocus
         />
       </PopoverContent>
