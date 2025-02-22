@@ -5,7 +5,7 @@ import DirectoryItemCard from "@/components/DirectoryItemCard";
 import { getAirlines } from "@/lib/directory";
 
 // Use a different icon import – for example, using "Airplane" if available
-import { Airplane } from "lucide-react";
+import { Airplay } from "lucide-react";
 
 export default async function AirlinesSearchPage() {
   const airlines = await getAirlines();
@@ -22,7 +22,7 @@ export default async function AirlinesSearchPage() {
       <h1 className="text-3xl font-bold mb-4">Airlines Search</h1>
       {/* Optionally display the Airplane icon */}
       <div className="mb-4">
-        <Airplane className="h-8 w-8 text-blue-500" />
+        <Airplay className="h-8 w-8 text-blue-500" />
       </div>
       <div className="flex flex-col md:flex-row gap-4">
         <FilterSidebarAirlines countries={filterCounts.countries} />

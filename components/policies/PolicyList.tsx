@@ -1,12 +1,33 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import type { Policy } from "@/types/supabase";
+import type { Policy as PolicyRow } from "@/types/supabase";
+// Note: Our returned policy rows now come from pet_policies, which do not have a "country" field;
+// instead, the joined "countries" field holds the country information.
 import PolicyCard from "./PolicyCard";
 
 interface PolicyListProps {
-  policies: Policy[];
+  policies: PolicyRow[];
 }
+
+/**
+ * Extracts a country name from a policy row.
+ * The joined data from the countries table is assumed to be in a property "countries".
+ * If present, it can be either an array (with at least one object having a "country_name" field)
+ * or a single object.
+ */
+const getPolicyCountry = (policy: PolicyRow): string => {
+  // We use a type-cast because our PolicyRow type does not include the join.
+  const joined = (policy as any).countries;
+  if (joined) {
+    if (Array.isArray(joined)) {
+      return (joined[0]?.country_name as string) || "Unknown";
+    } else if (typeof joined === "object" && joined.country_name) {
+      return joined.country_name as string;
+    }
+  }
+  return "Unknown";
+};
 
 /**
  * PolicyList Component
@@ -14,20 +35,15 @@ interface PolicyListProps {
  * Displays a list of policies with interactive filtering.
  */
 const PolicyList: React.FC<PolicyListProps> = ({ policies }) => {
-  // Local filtering state for country and pet type.
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [searchPetType, setSearchPetType] = useState<string>("");
 
-  // Build a unique list of countries from the "country" field.
+  // Build a unique list of countries from the joined "countries" data.
   const allCountries = useMemo(() => {
     const countriesSet = new Set<string>();
     policies.forEach((policy) => {
-      if (policy.country) {
-        policy.country.split(",").forEach((c) => {
-          const trimmed = c.trim();
-          if (trimmed) countriesSet.add(trimmed);
-        });
-      }
+      const countryName = getPolicyCountry(policy).trim();
+      if (countryName) countriesSet.add(countryName);
     });
     return Array.from(countriesSet).sort();
   }, [policies]);
@@ -37,16 +53,12 @@ const PolicyList: React.FC<PolicyListProps> = ({ policies }) => {
     return policies.filter((policy) => {
       let matchesCountry = true;
       if (selectedCountry) {
-        matchesCountry =
-          policy.country
-            .toLowerCase()
-            .includes(selectedCountry.toLowerCase());
+        const countryName = getPolicyCountry(policy).toLowerCase();
+        matchesCountry = countryName.includes(selectedCountry.toLowerCase());
       }
       let matchesPetType = true;
       if (searchPetType) {
-        // Use includes to handle multiple values or extra spaces.
-        matchesPetType =
-          policy.pet_type.toLowerCase().includes(searchPetType.toLowerCase());
+        matchesPetType = policy.pet_type.toLowerCase().includes(searchPetType.toLowerCase());
       }
       return matchesCountry && matchesPetType;
     });
@@ -115,7 +127,7 @@ const PolicyList: React.FC<PolicyListProps> = ({ policies }) => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {filteredPolicies.map((policy) => (
-            <PolicyCard key={policy.id} policy={policy} />
+            <PolicyCard key={policy.id} policy={policy} countryName={getPolicyCountry(policy)} />
           ))}
         </div>
       )}

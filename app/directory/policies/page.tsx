@@ -1,27 +1,29 @@
-import { Suspense } from "react"
-import { createClient } from "@/lib/supabase-server"
-import PolicyList from "@/components/policies/PolicyList"
-import type { Database } from "@/types/supabase"
-import { FileText } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import Link from "next/link"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Suspense } from "react";
+import { createClient } from "@/lib/supabase-server";
+import PolicyList from "@/components/policies/PolicyList";
+import type { Database } from "@/types/supabase";
+import { FileText } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
+// Note: we now query the pet_policies table and join the countries table to retrieve the country name.
 async function getPolicies() {
-  const supabase = await createClient()
+  const supabase = await createClient();
   const { data, error } = await supabase
-    .from<"policies", Database["policies"]["Row"]>("policies")
-    .select("*")
-    .order("country", { ascending: true })
-
+    .from<"pet_policies", Database["pet_policies"]["Row"]>("pet_policies")
+    .select("*, countries(country_name)")
+    // If you wish to order by country name from the joined table, you could try:
+    // .order("countries->>country_name", { ascending: true })
+    .order("id", { ascending: true });
+    
   if (error) {
-    console.error("Error fetching policies:", error)
-    throw new Error("Failed to fetch policies")
+    console.error("Error fetching policies:", error);
+    throw new Error("Failed to fetch policies");
   }
-
-  return data
+  return data;
 }
 
 function PolicyListSkeleton() {
@@ -39,7 +41,7 @@ function PolicyListSkeleton() {
         </Card>
       ))}
     </div>
-  )
+  );
 }
 
 export default async function PoliciesPage() {
@@ -73,20 +75,19 @@ export default async function PoliciesPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 async function PolicyListContent() {
   try {
-    const policies = await getPolicies()
-    return <PolicyList policies={policies} />
+    const policies = await getPolicies();
+    return <PolicyList policies={policies} />;
   } catch (error) {
     return (
       <Alert variant="destructive">
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>Failed to load policy data. Please try again later.</AlertDescription>
       </Alert>
-    )
+    );
   }
 }
-

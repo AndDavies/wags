@@ -1,16 +1,18 @@
 "use client";
 
 import React from "react";
-import type { Policy } from "@/types/supabase";
+import type { Policy as PolicyRow } from "@/types/supabase";
 
 interface PolicyCardProps {
-  policy: Policy;
+  policy: PolicyRow;
+  // We now pass the resolved country name as a separate prop.
+  countryName: string;
 }
 
-const PolicyCard: React.FC<PolicyCardProps> = ({ policy }) => {
+const PolicyCard: React.FC<PolicyCardProps> = ({ policy, countryName }) => {
   return (
     <div className="bg-white border rounded-lg p-6 hover:shadow-xl transition-shadow duration-300 animate-fadeIn">
-      <h2 className="text-2xl font-bold mb-1">{policy.country}</h2>
+      <h2 className="text-2xl font-bold mb-1">{countryName}</h2>
       <p className="text-sm text-gray-600 mb-2">Pet Type: {policy.pet_type}</p>
       <div className="space-y-2 text-sm">
         {policy.medical_requirements && (
