@@ -1,9 +1,8 @@
+// components/policies/PolicyList.tsx
 "use client";
 
 import React, { useState, useMemo } from "react";
 import type { Policy as PolicyRow } from "@/types/supabase";
-// Note: Our returned policy rows now come from pet_policies, which do not have a "country" field;
-// instead, the joined "countries" field holds the country information.
 import PolicyCard from "./PolicyCard";
 
 interface PolicyListProps {
@@ -13,27 +12,15 @@ interface PolicyListProps {
 /**
  * Extracts a country name from a policy row.
  * The joined data from the countries table is assumed to be in a property "countries".
- * If present, it can be either an array (with at least one object having a "country_name" field)
- * or a single object.
  */
 const getPolicyCountry = (policy: PolicyRow): string => {
-  // We use a type-cast because our PolicyRow type does not include the join.
-  const joined = (policy as any).countries;
-  if (joined) {
-    if (Array.isArray(joined)) {
-      return (joined[0]?.country_name as string) || "Unknown";
-    } else if (typeof joined === "object" && joined.country_name) {
-      return joined.country_name as string;
-    }
+  const joined = policy.countries as Array<{ country_name: string }> | undefined;
+  if (joined && joined.length > 0) {
+    return joined[0].country_name || "Unknown";
   }
   return "Unknown";
 };
 
-/**
- * PolicyList Component
- *
- * Displays a list of policies with interactive filtering.
- */
 const PolicyList: React.FC<PolicyListProps> = ({ policies }) => {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [searchPetType, setSearchPetType] = useState<string>("");

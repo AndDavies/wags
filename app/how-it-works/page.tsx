@@ -1,4 +1,5 @@
-import type React from "react"
+// app/how-it-works/page.tsx
+import React from "react";
 import {
   Rocket,
   Globe,
@@ -10,17 +11,19 @@ import {
   MapPin,
   Dog,
   AlertCircle,
-} from "lucide-react"
+} from "lucide-react";
 
 const HowItWorks: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-4xl font-bold text-center mb-8">How It Works – Travel Smart with Wags and Wanders</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">
+        How It Works &#8211; Travel Smart with Wags and Wanders
+      </h1>
 
       <p className="text-lg mb-8">
         Wags and Wanders is your AI-powered pet travel companion, designed to eliminate stress, confusion, and
-        last-minute surprises. Our intuitive platform guides you through every step of traveling with your pet—whether
-        you're flying internationally, crossing borders, or planning a road trip.
+        last-minute surprises. Our intuitive platform guides you through every step of traveling with your pet&#8212;whether
+        you&#8217;re flying internationally, crossing borders, or planning a road trip.
       </p>
 
       <div className="space-y-12">
@@ -30,11 +33,11 @@ const HowItWorks: React.FC = () => {
             title: "Step 1: Enter Your Trip Details",
             content: (
               <>
-                <p className="mb-4">Tell us where you're traveling! Simply input:</p>
+                <p className="mb-4">Tell us where you&#8217;re traveling! Simply input:</p>
                 <ul className="space-y-2">
                   {[
                     "Origin & Destination (city, country, airline)",
-                    "Your Pet's Details (species, breed, weight, vaccination status)",
+                    "Your Pet&#8217;s Details (species, breed, weight, vaccination status)",
                     "Travel Date & Mode (flight, train, car, ferry)",
                   ].map((item, index) => (
                     <li key={index} className="flex items-start">
@@ -72,14 +75,14 @@ const HowItWorks: React.FC = () => {
                 </ul>
                 <p className="mt-4">
                   <AlertCircle className="inline-block mr-2 h-5 w-5 text-yellow-500" />
-                  No more scrambling through outdated airline websites—we handle the research for you!
+                  No more scrambling through outdated airline websites&#8212;we handle the research for you!
                 </p>
               </>
             ),
           },
           {
             icon: <Calendar className="w-10 h-10 text-blue-500" />,
-            title: "Step 3: Track Your Pet's Travel Timeline",
+            title: "Step 3: Track Your Pet&#8217;s Travel Timeline",
             content: (
               <>
                 <p className="mb-4">Our automated reminders ensure you never miss a step:</p>
@@ -97,7 +100,7 @@ const HowItWorks: React.FC = () => {
                 </ul>
                 <p className="mt-4">
                   <Dog className="inline-block mr-2 h-5 w-5 text-green-500" />
-                  Stay on track with real-time updates & alerts right on your phone.
+                  Stay on track with real-time updates &amp; alerts right on your phone.
                 </p>
               </>
             ),
@@ -121,7 +124,7 @@ const HowItWorks: React.FC = () => {
                 </ul>
                 <p className="mt-4">
                   <Users className="inline-block mr-2 h-5 w-5 text-blue-500" />
-                  Because the best travel advice comes from those who've been there!
+                  Because the best travel advice comes from those who&#8217;ve been there!
                 </p>
               </>
             ),
@@ -132,7 +135,7 @@ const HowItWorks: React.FC = () => {
             content: (
               <>
                 <p className="mb-4">
-                  With Wags and Wanders, you're never caught off guard. Our AI-powered platform ensures:
+                  With Wags and Wanders, you&#8217;re never caught off guard. Our AI-powered platform ensures:
                 </p>
                 <ul className="space-y-2">
                   {[
@@ -148,7 +151,7 @@ const HowItWorks: React.FC = () => {
                 </ul>
                 <p className="mt-4">
                   <Dog className="inline-block mr-2 h-5 w-5 text-green-500" />
-                  Travel confidently with your pet—because every journey is better together.
+                  Travel confidently with your pet&#8212;because every journey is better together.
                 </p>
               </>
             ),
@@ -167,13 +170,14 @@ const HowItWorks: React.FC = () => {
       <div className="mt-12 text-center">
         <p className="text-xl font-semibold mb-4">
           <Rocket className="inline-block mr-2 h-6 w-6 text-blue-500" />
-          Ready to plan your pet's next adventure? Let's get started!
+          Ready to plan your pet&#8217;s next adventure? Let&#8217;s get started!
         </p>
-        <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Start Planning</button>
+        <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+          Start Planning
+        </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default HowItWorks
-
+export default HowItWorks;
