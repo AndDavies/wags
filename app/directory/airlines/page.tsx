@@ -1,11 +1,11 @@
-// app/directory/search/airlines/page.tsx
+// app/directory/airlines/page.tsx
 import React from "react";
 import FilterSidebarAirlines from "@/components/FilterSidebarAirlines";
 import DirectoryItemCard from "@/components/DirectoryItemCard";
 import { getAirlines } from "@/lib/directory";
 
-// Use a different icon import – for example, using "Airplane" if available
-import { Airplane } from "lucide-react";
+// Use the correct icon export from lucide-react.
+import { Airplay } from "lucide-react";
 
 export default async function AirlinesSearchPage() {
   const airlines = await getAirlines();
@@ -20,9 +20,8 @@ export default async function AirlinesSearchPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Airlines Search</h1>
-      {/* Optionally display the Airplane icon */}
       <div className="mb-4">
-        <Airplane className="h-8 w-8 text-blue-500" />
+        <Airplay className="h-8 w-8 text-blue-500" />
       </div>
       <div className="flex flex-col md:flex-row gap-4">
         <FilterSidebarAirlines countries={filterCounts.countries} />
@@ -30,7 +29,7 @@ export default async function AirlinesSearchPage() {
           {airlines.length === 0 ? (
             <p>No airlines found.</p>
           ) : (
-            airlines.map((item: import("@/lib/directory").DirectoryItem) => (
+            airlines.map((item) => (
               <DirectoryItemCard key={`${item.type}-${item.id}`} item={item} />
             ))
           )}
