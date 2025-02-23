@@ -8,6 +8,7 @@ export type DirectoryItem = {
   country?: string; // airlines.country, hotels.country_scope, or from pet_policies joined countries
   fee?: number | null;
   last_updated?: string;
+  rating?: number; // <-- add rating if available
 };
 
 export async function getDirectoryItems(filters: {
@@ -24,23 +25,19 @@ export async function getDirectoryItems(filters: {
     airlinesQuery = airlinesQuery.ilike("country", `%${filters.country}%`);
   }
   const { data: airlines, error: airlinesErr } = await airlinesQuery;
-  if (airlinesErr) {
-    console.error("Error fetching airlines:", airlinesErr);
-  }
+  if (airlinesErr) console.error("Error fetching airlines:", airlinesErr);
   const airlinesData = airlines || [];
 
   // Query Pet Policies (with joined country info)
   let petPolicyQuery = supabase
     .from("pet_policies")
-    .select("id, pet_type, last_updated, countries(country_name)")
+    .select("id, pet_type, last_updated, countries(country_name)", { distinct: true } as any)
     .order("id", { ascending: true });
   if (filters.pet_type) {
     petPolicyQuery = petPolicyQuery.ilike("pet_type", `%${filters.pet_type}%`);
   }
   const { data: policies, error: policiesErr } = await petPolicyQuery;
-  if (policiesErr) {
-    console.error("Error fetching pet policies:", policiesErr);
-  }
+  if (policiesErr) console.error("Error fetching pet policies:", policiesErr);
   const policiesData = policies || [];
 
   // Query Hotels
@@ -51,12 +48,10 @@ export async function getDirectoryItems(filters: {
     hotelQuery = hotelQuery.ilike("country_scope", `%${filters.country}%`);
   }
   const { data: hotels, error: hotelsErr } = await hotelQuery;
-  if (hotelsErr) {
-    console.error("Error fetching hotels:", hotelsErr);
-  }
+  if (hotelsErr) console.error("Error fetching hotels:", hotelsErr);
   const hotelsData = hotels || [];
 
-  // Process results to produce a unified array
+  // Combine results
   const unified: DirectoryItem[] = [];
 
   airlinesData.forEach((item) => {
@@ -93,7 +88,7 @@ export async function getDirectoryItems(filters: {
     });
   });
 
-  // Sort by last_updated descending (newest first)
+  // Sort by last_updated descending
   unified.sort((a, b) => {
     const dateA = new Date(a.last_updated || 0).getTime();
     const dateB = new Date(b.last_updated || 0).getTime();
@@ -103,28 +98,95 @@ export async function getDirectoryItems(filters: {
   return unified;
 }
 
-// New helper: getAirlines returns only airline items.
-export async function getAirlines(): Promise<DirectoryItem[]> {
-  const items = await getDirectoryItems({});
+// Helper functions for each category now accept an optional filters parameter.
+export async function getAirlines(filters: { country?: string } = {}): Promise<DirectoryItem[]> {
+  const items = await getDirectoryItems(filters);
   return items.filter((item) => item.type === "airlines");
 }
 
-// Dummy getFilterCounts function. Replace with real aggregations as needed.
+export async function getHotels(filters: { country?: string } = {}): Promise<DirectoryItem[]> {
+  const items = await getDirectoryItems(filters);
+  return items.filter((item) => item.type === "hotels");
+}
+
+export async function getPolicies(filters: { country?: string; pet_type?: string } = {}): Promise<DirectoryItem[]> {
+  const items = await getDirectoryItems(filters);
+  return items.filter((item) => item.type === "pet_policies");
+}
+
+// Returns unique countries from all three tables.
+export async function getUniqueCountries(): Promise<{ value: string; count: number }[]> {
+  const supabase = await createClient();
+  
+  const { data: airlinesData } = await supabase
+    .from("airlines")
+    .select("country", { distinct: true } as any)
+    .neq("country", null);
+  
+  const { data: hotelsData } = await supabase
+    .from("hotels")
+    .select("country_scope", { distinct: true } as any)
+    .neq("country_scope", null);
+  
+  const { data: policiesData } = await supabase
+    .from("pet_policies")
+    .select("countries(country_name)", { distinct: true } as any)
+    .not("countries", "is", null);
+  
+  const countryMap = new Map<string, number>();
+  if (airlinesData) {
+    airlinesData.forEach((item: { country: string }) => {
+      if (item.country) {
+        countryMap.set(item.country, (countryMap.get(item.country) || 0) + 1);
+      }
+    });
+  }
+  if (hotelsData) {
+    hotelsData.forEach((item: { country_scope: string }) => {
+      if (item.country_scope) {
+        countryMap.set(item.country_scope, (countryMap.get(item.country_scope) || 0) + 1);
+      }
+    });
+  }
+  if (policiesData) {
+    policiesData.forEach((item: { countries: Array<{ country_name: string }> }) => {
+      if (item.countries && item.countries.length > 0) {
+        const country = item.countries[0].country_name;
+        if (country) {
+          countryMap.set(country, (countryMap.get(country) || 0) + 1);
+        }
+      }
+    });
+  }
+  return Array.from(countryMap.entries()).map(([value, count]) => ({ value, count }));
+}
+
+// Returns unique pet types from pet_policies table.
+export async function getUniquePetTypes(): Promise<{ value: string; count: number }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("pet_policies")
+    .select("pet_type", { distinct: true } as any)
+    .neq("pet_type", null);
+  const petTypeMap = new Map<string, number>();
+  if (data) {
+    data.forEach((item: { pet_type: string }) => {
+      if (item.pet_type) {
+        petTypeMap.set(item.pet_type, (petTypeMap.get(item.pet_type) || 0) + 1);
+      }
+    });
+  }
+  return Array.from(petTypeMap.entries()).map(([value, count]) => ({ value, count }));
+}
+
 export async function getFilterCounts(filters: {
   country?: string;
   pet_type?: string;
-}) {
-  return {
-    countries: [
-      { value: "USA", count: 10 },
-      { value: "Canada", count: 5 },
-      { value: "UK", count: 7 },
-    ],
-    pet_types: [
-      { value: "Dog", count: 8 },
-      { value: "Cat", count: 4 },
-      { value: "Bird", count: 3 },
-      { value: "Other", count: 2 },
-    ],
-  };
+}): Promise<{
+  countries: { value: string; count: number }[];
+  pet_types: { value: string; count: number }[];
+}> {
+  const countries = await getUniqueCountries();
+  const pet_types = await getUniquePetTypes();
+  return { countries, pet_types };
 }

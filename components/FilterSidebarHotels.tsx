@@ -1,47 +1,47 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { X } from "lucide-react"
 
 export interface FilterOption {
-  value: string;
-  count: number;
+  value: string
+  count: number
 }
 
-interface FilterSidebarAirlinesProps {
-  countries: FilterOption[];
+interface FilterSidebarHotelsProps {
+  countries: FilterOption[]
 }
 
-export default function FilterSidebarAirlines({ countries }: FilterSidebarAirlinesProps) {
-  const pathname = usePathname();
-  const segments = pathname.split("/").filter(Boolean);
-  const currentFilters: Record<string, string> = {};
+export default function FilterSidebarHotels({ countries }: FilterSidebarHotelsProps) {
+  const pathname = usePathname()
+  const segments = pathname.split("/").filter(Boolean)
+  const currentFilters: Record<string, string> = {}
   if (segments.length > 2) {
     for (let i = 2; i < segments.length; i += 2) {
-      currentFilters[segments[i]] = segments[i + 1];
+      currentFilters[segments[i]] = segments[i + 1]
     }
   }
 
   const buildUrl = (key: string, value: string) => {
-    const newFilters = { ...currentFilters };
+    const newFilters = { ...currentFilters }
     if (newFilters[key] === value) {
-      delete newFilters[key];
+      delete newFilters[key]
     } else {
-      newFilters[key] = value;
+      newFilters[key] = value
     }
-    let url = "/directory/airlines";
+    let url = "/directory/hotels"
     Object.entries(newFilters).forEach(([k, v]) => {
-      url += `/${k}/${encodeURIComponent(v)}`;
-    });
-    return url;
-  };
+      url += `/${k}/${encodeURIComponent(v)}`
+    })
+    return url
+  }
 
-  const clearAllFilters = () => "/directory/airlines";
+  const clearAllFilters = () => "/directory/hotels"
 
   return (
     <Card className="w-full lg:w-72 sticky top-4">
@@ -64,13 +64,9 @@ export default function FilterSidebarAirlines({ countries }: FilterSidebarAirlin
               {countries.map((option) => (
                 <Link key={option.value} href={buildUrl("country", option.value)}>
                   <div className="flex items-center space-x-2 cursor-pointer hover:bg-accent rounded-md p-1 transition-colors">
-                    <Checkbox
-                      id={`country-${option.value}`}
-                      checked={currentFilters["country"] === option.value}
-                    />
+                    <Checkbox id={`country-${option.value}`} checked={currentFilters["country"] === option.value} />
                     <Label htmlFor={`country-${option.value}`} className="flex-1 cursor-pointer">
-                      {option.value}{" "}
-                      <span className="ml-1 text-muted-foreground">({option.count})</span>
+                      {option.value} <span className="ml-1 text-muted-foreground">({option.count})</span>
                     </Label>
                   </div>
                 </Link>
@@ -80,5 +76,6 @@ export default function FilterSidebarAirlines({ countries }: FilterSidebarAirlin
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
+
