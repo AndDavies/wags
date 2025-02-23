@@ -20,8 +20,8 @@ function parseFilters(segments: string[]): Record<string, string> {
 }
 
 export default async function AirlinesPage({ params }: AirlinesPageProps) {
-  const segments = params?.params || [];
-  const filters = parseFilters(segments);
+  const resolvedParams = await Promise.resolve(params);
+  const filters = parseFilters(resolvedParams?.params || []);
   const airlines = await getAirlines(filters);
   const countries = await getUniqueCountries();
 
