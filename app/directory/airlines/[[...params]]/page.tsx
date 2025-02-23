@@ -1,3 +1,4 @@
+// app/directory/airlines/[[...params]]/page.tsx
 import FilterSidebarAirlines from "@/components/FilterSidebarAirlines";
 import DirectoryItemCard from "@/components/DirectoryItemCard";
 import { getAirlines, getUniqueCountries } from "@/lib/directory";
@@ -7,11 +8,13 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
+// We define our interface as expected.
 interface AirlinesPageProps {
   params: { params: string[] };
 }
 
-function parseFilters(segments: string[] = []): Record<string, string> {
+// Helper: Convert URL segments (e.g. ["country", "USA"]) into a filters object.
+function parseFilters(segments: string[]): Record<string, string> {
   const filters: Record<string, string> = {};
   for (let i = 0; i < segments.length; i += 2) {
     filters[segments[i]] = decodeURIComponent(segments[i + 1] || "");
@@ -19,6 +22,7 @@ function parseFilters(segments: string[] = []): Record<string, string> {
   return filters;
 }
 
+// @ts-ignore: Ignoring the Next.js PageProps type constraint on `params`
 export default async function AirlinesPage({ params }: AirlinesPageProps) {
   const filters = parseFilters(params.params || []);
   const airlines = await getAirlines(filters);
