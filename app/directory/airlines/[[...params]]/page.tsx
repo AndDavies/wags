@@ -8,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AirlinesPageProps {
-  params: { params: string[] } | Promise<{ params: string[] }>;
+  params?: { params?: string[] }
 }
 
-function parseFilters(segments: string[]): Record<string, string> {
+function parseFilters(segments: string[] = []): Record<string, string> {
   const filters: Record<string, string> = {};
   for (let i = 0; i < segments.length; i += 2) {
     filters[segments[i]] = decodeURIComponent(segments[i + 1] || "");
@@ -20,8 +20,8 @@ function parseFilters(segments: string[]): Record<string, string> {
 }
 
 export default async function AirlinesPage({ params }: AirlinesPageProps) {
-  const resolvedParams = await Promise.resolve(params);
-  const filters = parseFilters(resolvedParams.params || []);
+  const segments = params?.params || [];
+  const filters = parseFilters(segments);
   const airlines = await getAirlines(filters);
   const countries = await getUniqueCountries();
 

@@ -15,8 +15,8 @@ const Hero = () => {
         priority
       />
 
-      {/* Dark overlay for better text visibility */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/40" />
+      {/* Lighter overlay for subtle text contrast */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
 
       {/* Pattern overlay */}
       <div
@@ -58,7 +58,7 @@ const Hero = () => {
             <div className="hidden lg:block relative">
               <div className="relative h-[500px] w-full rounded-2xl overflow-hidden shadow-2xl">
                 <Image
-                  src="/placeholders/baggo_and_family.jpg"
+                  src="/placeholders/baggo_and_family_1.png"
                   alt="Our family traveling with Baggo, our rescue dog"
                   fill
                   className="object-cover"
