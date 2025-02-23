@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import FilterSidebarAirlines from "@/components/FilterSidebarAirlines";
 import DirectoryItemCard from "@/components/DirectoryItemCard";
 import { getAirlines, getUniqueCountries } from "@/lib/directory";
