@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import FilterSidebarAirlines from "@/components/FilterSidebarAirlines";
 import DirectoryItemCard from "@/components/DirectoryItemCard";
 import { getAirlines, getUniqueCountries } from "@/lib/directory";
@@ -9,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AirlinesPageProps {
-  params?: { params?: string[] }
+  params?: { params?: string[] };
 }
 
-function parseFilters(segments: string[] = []): Record<string, string> {
+function parseFilters(segments: string[]): Record<string, string> {
   const filters: Record<string, string> = {};
   for (let i = 0; i < segments.length; i += 2) {
     filters[segments[i]] = decodeURIComponent(segments[i + 1] || "");
