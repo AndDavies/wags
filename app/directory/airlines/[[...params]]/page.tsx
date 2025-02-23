@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface AirlinesPageProps {
-  params?: { params?: string[] }
+  params: { params: string[] }
 }
 
 function parseFilters(segments: string[] = []): Record<string, string> {
