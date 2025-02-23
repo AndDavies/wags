@@ -11,12 +11,12 @@ interface AirlinesPageProps {
   params?: { params?: string[] };
 }
 
-function parseFilters(segments: string[]): Record<string, string> {
-  const filters: Record<string, string> = {};
+function parseFilters(segments: string[] = []): Record<string, string> {
+  const filters: Record<string, string> = {}
   for (let i = 0; i < segments.length; i += 2) {
-    filters[segments[i]] = decodeURIComponent(segments[i + 1] || "");
+    filters[segments[i]] = decodeURIComponent(segments[i + 1] || "")
   }
-  return filters;
+  return filters
 }
 
 export default async function AirlinesPage({ params }: AirlinesPageProps) {
