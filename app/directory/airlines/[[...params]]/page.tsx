@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import FilterSidebarAirlines from "@/components/FilterSidebarAirlines";
 import DirectoryItemCard from "@/components/DirectoryItemCard";
 import { getAirlines, getUniqueCountries } from "@/lib/directory";
@@ -8,6 +8,10 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface AirlinesPageProps {
+  params?: { params?: string[] };
+}
+
 function parseFilters(segments: string[]): Record<string, string> {
   const filters: Record<string, string> = {};
   for (let i = 0; i < segments.length; i += 2) {
@@ -16,8 +20,8 @@ function parseFilters(segments: string[]): Record<string, string> {
   return filters;
 }
 
-// Instead of a custom interface, we use a loose type for props
-export default async function AirlinesPage({ params }: { params: any }) {
+export default async function AirlinesPage({ params }: AirlinesPageProps) {
+  // Use optional chaining to handle when no params are provided.
   const segments = params?.params || [];
   const filters = parseFilters(segments);
   const airlines = await getAirlines(filters);
