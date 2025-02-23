@@ -29,6 +29,7 @@ export async function getDirectoryItems(filters: {
   const airlinesData = airlines || [];
 
   // Query Pet Policies (with joined country info)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let petPolicyQuery = supabase
     .from("pet_policies")
     .select("id, pet_type, last_updated, countries(country_name)", { distinct: true } as any)
@@ -118,16 +119,19 @@ export async function getPolicies(filters: { country?: string; pet_type?: string
 export async function getUniqueCountries(): Promise<{ value: string; count: number }[]> {
   const supabase = await createClient();
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: airlinesData } = await supabase
     .from("airlines")
     .select("country", { distinct: true } as any)
     .neq("country", null);
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: hotelsData } = await supabase
     .from("hotels")
     .select("country_scope", { distinct: true } as any)
     .neq("country_scope", null);
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: policiesData } = await supabase
     .from("pet_policies")
     .select("countries(country_name)", { distinct: true } as any)
@@ -164,6 +168,7 @@ export async function getUniqueCountries(): Promise<{ value: string; count: numb
 // Returns unique pet types from pet_policies table.
 export async function getUniquePetTypes(): Promise<{ value: string; count: number }[]> {
   const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await supabase
     .from("pet_policies")
     .select("pet_type", { distinct: true } as any)
@@ -179,10 +184,7 @@ export async function getUniquePetTypes(): Promise<{ value: string; count: numbe
   return Array.from(petTypeMap.entries()).map(([value, count]) => ({ value, count }));
 }
 
-export async function getFilterCounts(filters: {
-  country?: string;
-  pet_type?: string;
-}): Promise<{
+export async function getFilterCounts(filters: { country?: string; pet_type?: string }): Promise<{
   countries: { value: string; count: number }[];
   pet_types: { value: string; count: number }[];
 }> {
