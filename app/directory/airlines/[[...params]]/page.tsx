@@ -7,21 +7,18 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface AirlinesPageProps {
-  params?: { params?: string[] };
-}
-
-function parseFilters(segments: string[] = []): Record<string, string> {
-  const filters: Record<string, string> = {}
+function parseFilters(segments: string[]): Record<string, string> {
+  const filters: Record<string, string> = {};
   for (let i = 0; i < segments.length; i += 2) {
-    filters[segments[i]] = decodeURIComponent(segments[i + 1] || "")
+    filters[segments[i]] = decodeURIComponent(segments[i + 1] || "");
   }
-  return filters
+  return filters;
 }
 
-export default async function AirlinesPage({ params }: AirlinesPageProps) {
-  const resolvedParams = await Promise.resolve(params);
-  const filters = parseFilters(resolvedParams?.params || []);
+// Instead of a custom interface, we use a loose type for props
+export default async function AirlinesPage({ params }: { params: any }) {
+  const segments = params?.params || [];
+  const filters = parseFilters(segments);
   const airlines = await getAirlines(filters);
   const countries = await getUniqueCountries();
 
@@ -43,7 +40,7 @@ export default async function AirlinesPage({ params }: AirlinesPageProps) {
                 No airlines found.
               </p>
             ) : (
-              airlines.map((item) => (
+              airlines.map((item: any) => (
                 <DirectoryItemCard key={`${item.type}-${item.id}`} item={item} />
               ))
             )}
