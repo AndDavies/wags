@@ -18,7 +18,8 @@ export default async function PoliciesPage({ params }: PoliciesPageProps) {
   const filters = parseFilters(segments);
   const policies = await getPolicies(filters);
   const countries = await getUniqueCountries();
-  // (Optional) If needed, you can also fetch pet types for further filtering.
+  // If needed, you can also retrieve unique pet types for further filtering.
+  // const pet_types = await getUniquePetTypes();
 
   return (
     <DirectoryPage

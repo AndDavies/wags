@@ -14,7 +14,7 @@ function parseFilters(segments: string[]): { [key: string]: string } {
 }
 
 export default async function AirlinesPage({ params }: AirlinesPageProps) {
-  const segments = params.params; // Now always defined (even if an empty array)
+  const segments = params.params; // Guaranteed to be defined (even if empty)
   const filters = parseFilters(segments);
   const airlines = await getAirlines(filters);
   const countries = await getUniqueCountries();
