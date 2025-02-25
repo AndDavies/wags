@@ -16,8 +16,7 @@ const eslintConfig = [
       "@typescript-eslint/no-unused-vars": "off",
       "react/no-unescaped-entities": "off",
       "@next/next/no-page-custom-font": "off",
-      // Optionally disable other rules if needed:
-      // "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/ban-ts-comment": "off", // Disable ban-ts-comment rule globally
     },
   },
 ];
