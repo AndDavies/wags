@@ -8,10 +8,6 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface AirlinesPageProps {
-  params?: { params?: string[] };
-}
-
 function parseFilters(segments: string[]): Record<string, string> {
   const filters: Record<string, string> = {};
   for (let i = 0; i < segments.length; i += 2) {
@@ -20,9 +16,10 @@ function parseFilters(segments: string[]): Record<string, string> {
   return filters;
 }
 
-export default async function AirlinesPage({ params }: AirlinesPageProps) {
-  // Use optional chaining to handle when no params are provided.
-  const segments = params?.params || [];
+export default async function AirlinesPage({ params }: any) {
+  // Resolve the route parameters (they may be undefined)
+  const resolvedParams = await Promise.resolve(params);
+  const segments = resolvedParams?.params || [];
   const filters = parseFilters(segments);
   const airlines = await getAirlines(filters);
   const countries = await getUniqueCountries();

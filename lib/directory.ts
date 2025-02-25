@@ -1,15 +1,20 @@
-// lib/directory.ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/lib/supabase-server";
+
+// Define a type for extended select options including the "distinct" property.
+type DistinctOptions = {
+  distinct: boolean;
+  head?: boolean;
+  count?: "exact" | "planned" | "estimated";
+};
 
 export type DirectoryItem = {
   type: "airlines" | "pet_policies" | "hotels";
   id: number;
   name: string; // For airlines: airline name; for pet_policies: pet type; for hotels: hotel chain
-  country?: string; // airlines.country, hotels.country_scope, or from pet_policies joined countries
+  country?: string; // airlines.country, hotels.country_scope, or from pet_policies joined countries (undefined if not set)
   fee?: number | null;
   last_updated?: string;
-  rating?: number; // <-- add rating if available
+  rating?: number; // if available
 };
 
 export async function getDirectoryItems(filters: {
@@ -30,10 +35,12 @@ export async function getDirectoryItems(filters: {
   const airlinesData = airlines || [];
 
   // Query Pet Policies (with joined country info)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let petPolicyQuery = supabase
     .from("pet_policies")
-    .select("id, pet_type, last_updated, countries(country_name)", { distinct: true } as any)
+    .select(
+      "id, pet_type, last_updated, countries(country_name)",
+      { distinct: true } as unknown as DistinctOptions
+    )
     .order("id", { ascending: true });
   if (filters.pet_type) {
     petPolicyQuery = petPolicyQuery.ilike("pet_type", `%${filters.pet_type}%`);
@@ -56,17 +63,17 @@ export async function getDirectoryItems(filters: {
   // Combine results
   const unified: DirectoryItem[] = [];
 
-  airlinesData.forEach((item) => {
+  airlinesData.forEach((item: any) => {
     unified.push({
       type: "airlines",
       id: item.id,
       name: item.airline,
-      country: item.country,
+      country: item.country || undefined,
       fee: item.fees_usd,
       last_updated: item.last_updated,
     });
   });
-  policiesData.forEach((item) => {
+  policiesData.forEach((item: any) => {
     unified.push({
       type: "pet_policies",
       id: item.id,
@@ -74,17 +81,17 @@ export async function getDirectoryItems(filters: {
       country:
         item.countries && Array.isArray(item.countries) && item.countries.length > 0
           ? item.countries[0].country_name
-          : null,
+          : undefined,
       fee: null,
       last_updated: item.last_updated,
     });
   });
-  hotelsData.forEach((item) => {
+  hotelsData.forEach((item: any) => {
     unified.push({
       type: "hotels",
       id: item.id,
       name: item.hotel_chain,
-      country: item.country_scope,
+      country: item.country_scope || undefined,
       fee: null,
       last_updated: item.last_updated,
     });
@@ -100,7 +107,7 @@ export async function getDirectoryItems(filters: {
   return unified;
 }
 
-// Helper functions for each category now accept an optional filters parameter.
+// Helper functions for each category
 export async function getAirlines(filters: { country?: string } = {}): Promise<DirectoryItem[]> {
   const items = await getDirectoryItems(filters);
   return items.filter((item) => item.type === "airlines");
@@ -120,41 +127,38 @@ export async function getPolicies(filters: { country?: string; pet_type?: string
 export async function getUniqueCountries(): Promise<{ value: string; count: number }[]> {
   const supabase = await createClient();
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: airlinesData } = await supabase
     .from("airlines")
-    .select("country", { distinct: true } as any)
+    .select("country", { distinct: true } as unknown as DistinctOptions)
     .neq("country", null);
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: hotelsData } = await supabase
     .from("hotels")
-    .select("country_scope", { distinct: true } as any)
+    .select("country_scope", { distinct: true } as unknown as DistinctOptions)
     .neq("country_scope", null);
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: policiesData } = await supabase
     .from("pet_policies")
-    .select("countries(country_name)", { distinct: true } as any)
+    .select("countries(country_name)", { distinct: true } as unknown as DistinctOptions)
     .not("countries", "is", null);
   
   const countryMap = new Map<string, number>();
   if (airlinesData) {
-    airlinesData.forEach((item: { country: string }) => {
+    airlinesData.forEach((item: any) => {
       if (item.country) {
         countryMap.set(item.country, (countryMap.get(item.country) || 0) + 1);
       }
     });
   }
   if (hotelsData) {
-    hotelsData.forEach((item: { country_scope: string }) => {
+    hotelsData.forEach((item: any) => {
       if (item.country_scope) {
         countryMap.set(item.country_scope, (countryMap.get(item.country_scope) || 0) + 1);
       }
     });
   }
   if (policiesData) {
-    policiesData.forEach((item: { countries: Array<{ country_name: string }> }) => {
+    policiesData.forEach((item: any) => {
       if (item.countries && item.countries.length > 0) {
         const country = item.countries[0].country_name;
         if (country) {
@@ -169,14 +173,13 @@ export async function getUniqueCountries(): Promise<{ value: string; count: numb
 // Returns unique pet types from pet_policies table.
 export async function getUniquePetTypes(): Promise<{ value: string; count: number }[]> {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await supabase
     .from("pet_policies")
-    .select("pet_type", { distinct: true } as any)
+    .select("pet_type", { distinct: true } as unknown as DistinctOptions)
     .neq("pet_type", null);
   const petTypeMap = new Map<string, number>();
   if (data) {
-    data.forEach((item: { pet_type: string }) => {
+    data.forEach((item: any) => {
       if (item.pet_type) {
         petTypeMap.set(item.pet_type, (petTypeMap.get(item.pet_type) || 0) + 1);
       }

@@ -3,120 +3,118 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useTheme } from "next-themes"
-import { Menu, X, User, Sun, Moon } from "lucide-react"
+import { Menu, X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
-  <Link href={href} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-    {children}
-  </Link>
-)
+const routes = [
+  { href: "/", label: "Home" },
+  { href: "/services", label: "Services" },
+  { href: "/about", label: "About" },
+  { href: "/blog", label: "Blog" },
+  { href: "/contact", label: "Contact" },
+]
 
-const Navbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+export function Navbar() {
+  const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10)
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10)
+    }
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
-
   return (
     <header
       className={cn(
-        "fixed top-0 w-full z-50 transition-all duration-300",
-        isScrolled ? "bg-background/80 backdrop-blur-md shadow-sm" : "bg-transparent",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        isScrolled ? "bg-white shadow-md" : "bg-transparent",
       )}
     >
-      <div className="container mx-auto px-4">
-        <nav className="flex items-center justify-between h-16">
-          <Link href="/" className="flex-shrink-0">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          <Link href="/" className="flex items-center space-x-2">
             <Image
               src="/wags_and_wanders_logo_trans.png"
-              alt="Wags Travel Hub Logo"
-              width={80}
-              height={80}
-              className="object-contain"
+              alt="Wags & Wanders"
+              width={40}
+              height={40}
+              className="w-10 h-10"
             />
+            <span className={cn("text-xl font-semibold", isScrolled ? "text-brand-teal" : "text-brand-teal")}>
+              Wags & Wanders
+            </span>
           </Link>
 
-          <div className="hidden md:flex items-center space-x-6">
-            <NavLink href="/">Home</NavLink>
-            <NavLink href="/about">About Us</NavLink>
-            <NavLink href="/how-it-works">How It Works</NavLink>
-            <NavLink href="/directory">Directory</NavLink>
-            <NavLink href="/blog">Blog</NavLink>
-          </div>
+          <nav className="hidden md:flex items-center space-x-8">
+            {routes.map((route) => (
+              <Link
+                key={route.href}
+                href={route.href}
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-brand-pink",
+                  isScrolled ? "text-offblack" : "text-brand-teal",
+                )}
+              >
+                {route.label}
+              </Link>
+            ))}
+          </nav>
 
-          <div className="hidden md:flex items-center space-x-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button variant="ghost" size="sm" className="flex items-center gap-x-2">
-              <User className="h-5 w-5" />
-              Sign In
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="default"
+              className={cn(
+                "bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack",
+                "transition-all duration-300 rounded-full px-6",
+              )}
+              asChild
+            >
+              <Link href="/contact">Book Now</Link>
             </Button>
-            <Button size="sm">Hire Us</Button>
-          </div>
 
-          <div className="md:hidden">
-            <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </Button>
-          </div>
-        </nav>
-      </div>
-
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-background border-t">
-          <div className="container mx-auto px-4 py-4 space-y-4">
-            <NavLink href="/">Home</NavLink>
-            <NavLink href="/about">About Us</NavLink>
-            <NavLink href="/how-it-works">How It Works</NavLink>
-            <NavLink href="/directory">Directory</NavLink>
-            <NavLink href="/blog">Blog</NavLink>
-            <div className="flex items-center justify-between pt-4 border-t">
-              <Button variant="ghost" size="sm" className="flex items-center gap-x-2">
-                <User className="h-5 w-5" />
-                Sign In
-              </Button>
-              <Button size="sm">Hire Us</Button>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t">
-              <span className="text-sm font-medium text-muted-foreground">Theme</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <button className="md:hidden" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu">
+              {isOpen ? (
+                <X className={cn("h-6 w-6", isScrolled ? "text-offblack" : "text-brand-teal")} />
+              ) : (
+                <Menu className={cn("h-6 w-6", isScrolled ? "text-offblack" : "text-brand-teal")} />
+              )}
+            </button>
           </div>
         </div>
-      )}
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-white shadow-lg"
+          >
+            <div className="container mx-auto px-4 py-6">
+              <nav className="flex flex-col space-y-4">
+                {routes.map((route) => (
+                  <Link
+                    key={route.href}
+                    href={route.href}
+                    className="text-offblack hover:text-brand-teal transition-colors text-lg"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {route.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }
