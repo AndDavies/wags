@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/lib/supabase-server";
 
 // Define a type for extended select options including the "distinct" property.
@@ -37,10 +38,7 @@ export async function getDirectoryItems(filters: {
   // Query Pet Policies (with joined country info)
   let petPolicyQuery = supabase
     .from("pet_policies")
-    .select(
-      "id, pet_type, last_updated, countries(country_name)",
-      { distinct: true } as unknown as DistinctOptions
-    )
+    .select("id, pet_type, last_updated, countries(country_name)", { distinct: true } as unknown as DistinctOptions)
     .order("id", { ascending: true });
   if (filters.pet_type) {
     petPolicyQuery = petPolicyQuery.ilike("pet_type", `%${filters.pet_type}%`);
@@ -107,7 +105,7 @@ export async function getDirectoryItems(filters: {
   return unified;
 }
 
-// Helper functions for each category
+// Helper functions for each category now accept an optional filters parameter.
 export async function getAirlines(filters: { country?: string } = {}): Promise<DirectoryItem[]> {
   const items = await getDirectoryItems(filters);
   return items.filter((item) => item.type === "airlines");
