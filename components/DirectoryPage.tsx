@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import DirectoryItemCard from "@/components/DirectoryItemCard";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
+import { DirectoryItem } from "@/lib/directory";
 
 interface DirectoryPageProps {
   category: "airlines" | "hotels" | "policies";
-  items: any[]; // Replace with your DirectoryItem type when available.
+  items: DirectoryItem[];
   countries: { value: string; count: number }[];
   filters: { [key: string]: string };
 }
@@ -20,14 +21,19 @@ const categoryInfo = {
   policies: { title: "Policies", icon: FileText },
 };
 
-export default function DirectoryPage({ category, items, countries, filters }: DirectoryPageProps) {
+export default function DirectoryPage({
+  category,
+  items,
+  countries,
+  filters,
+}: DirectoryPageProps) {
   const { title, icon: Icon } = categoryInfo[category];
 
   return (
     <div className="container mx-auto p-4 space-y-8">
       {/* Spacer to push content below fixed navbar */}
       <div className="mt-20" />
-      
+
       {/* Directory Navigation Tabs */}
       <nav className="flex justify-center gap-8 mb-8">
         {Object.entries(categoryInfo).map(([key, value]) => (
