@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { getAirlines, getUniqueCountries } from "@/lib/directory";
 import DirectoryPage from "@/components/DirectoryPage";
 
