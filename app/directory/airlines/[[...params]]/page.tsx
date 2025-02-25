@@ -2,7 +2,7 @@ import { getAirlines, getUniqueCountries } from "@/lib/directory";
 import DirectoryPage from "@/components/DirectoryPage";
 
 interface AirlinesPageProps {
-  params?: { params?: string[] };
+  params: { params: string[] };
 }
 
 function parseFilters(segments: string[]): { [key: string]: string } {
@@ -14,7 +14,7 @@ function parseFilters(segments: string[]): { [key: string]: string } {
 }
 
 export default async function AirlinesPage({ params }: AirlinesPageProps) {
-  const segments = params?.params || [];
+  const segments = params.params; // Now always defined (even if an empty array)
   const filters = parseFilters(segments);
   const airlines = await getAirlines(filters);
   const countries = await getUniqueCountries();

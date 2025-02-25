@@ -2,10 +2,10 @@ import { getPolicies, getUniqueCountries, getUniquePetTypes } from "@/lib/direct
 import DirectoryPage from "@/components/DirectoryPage";
 
 interface PoliciesPageProps {
-  params?: { params?: string[] };
+  params: { params: string[] };
 }
 
-function parseFilters(segments: string[] = []): { [key: string]: string } {
+function parseFilters(segments: string[]): { [key: string]: string } {
   const filters: { [key: string]: string } = {};
   for (let i = 0; i < segments.length; i += 2) {
     filters[segments[i]] = decodeURIComponent(segments[i + 1] || "");
@@ -14,11 +14,12 @@ function parseFilters(segments: string[] = []): { [key: string]: string } {
 }
 
 export default async function PoliciesPage({ params }: PoliciesPageProps) {
-  const segments = params?.params || [];
+  const segments = params.params;
   const filters = parseFilters(segments);
   const policies = await getPolicies(filters);
   const countries = await getUniqueCountries();
-  // If needed, you can also fetch unique pet types here.
+  // (Optional) If needed, you can also fetch pet types for further filtering.
+
   return (
     <DirectoryPage
       category="policies"
