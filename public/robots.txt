@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://wagsandwanders.com
+
+# Sitemaps
+Sitemap: https://wagsandwanders.com/sitemap.xml

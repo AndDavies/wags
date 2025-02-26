@@ -1,23 +1,28 @@
 /** @type {import('next-sitemap').IConfig} */
+const { getAllBlogSlugs } = require('./lib/blog');
+
+
 module.exports = {
-    siteUrl: 'https://wagsandwanders.com',
-    generateRobotsTxt: true,
-    additionalPaths: async (config) => {
-      // Define your static routes
-      const staticPaths = ['/', '/directory', '/about', '/blog', '/contact'];
-  
-      // Optionally, fetch dynamic routes (for example, blog posts)
-      // Replace this with your own data source/API call
-      const blogData = await fetch('https://your-api.com/blog-slugs')
-        .then((res) => res.json())
-        .catch(() => []);
-      const blogPaths = blogData.map((slug) => `/blog/${slug}`);
-  
-      // Combine static and dynamic paths, then transform them as required by next-sitemap
-      return [
-        ...staticPaths.map((path) => config.transform(config, path)),
-        ...blogPaths.map((path) => config.transform(config, path)),
-      ];
-    },
-  }
-  
+  siteUrl: 'https://wagsandwanders.com',
+  generateRobotsTxt: true,
+  additionalPaths: async (config) => {
+    const staticPaths = ['/', '/directory', '/about', '/blog', '/contact'];
+    
+    let blogSlugs = [];
+    try {
+      blogSlugs = await getAllBlogSlugs(); // ensure this returns an array of slugs
+    } catch (error) {
+      console.error('Error fetching blog slugs:', error);
+    }
+    const blogPaths = blogSlugs.map((slug) => `/blog/${slug}`);
+
+    // Debug log (you can remove this later)
+    console.log('Static paths:', staticPaths);
+    console.log('Dynamic blog paths:', blogPaths);
+
+    return [
+      ...staticPaths.map((path) => config.transform(config, path)),
+      ...blogPaths.map((path) => config.transform(config, path)),
+    ];
+  },
+};
