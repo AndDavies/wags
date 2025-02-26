@@ -4,7 +4,7 @@ module.exports = {
     generateRobotsTxt: true,
     additionalPaths: async (config) => {
       // Define your static routes
-      const staticPaths = ['/', '/about', '/contact'];
+      const staticPaths = ['/', '/directory', '/about', '/blog', '/contact'];
   
       // Optionally, fetch dynamic routes (for example, blog posts)
       // Replace this with your own data source/API call

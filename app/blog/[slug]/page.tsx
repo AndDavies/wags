@@ -1,4 +1,3 @@
-// app/blog/[slug]/page.tsx
 import { createClient } from "@/lib/supabase-server"
 import Image from "next/image"
 import Link from "next/link"
@@ -12,7 +11,6 @@ import { Badge } from "@/components/ui/badge"
 import ShareButtons from "@/components/ShareButtons"
 import Breadcrumbs from "@/components/Breadcrumbs"
 
-// Fix: define `params` as a Promise
 type BlogParams = Promise<{ slug: string }>
 
 interface PageProps {
@@ -26,17 +24,12 @@ interface RecentPost {
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  // Await the params before accessing slug.
   const resolvedParams = await params
   const { slug } = resolvedParams
 
   const supabase = await createClient()
 
-  const { data: post, error } = await supabase
-    .from("blog_posts")
-    .select("*")
-    .eq("slug", slug)
-    .single()
+  const { data: post, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).single()
 
   if (error || !post) {
     notFound()
@@ -60,14 +53,10 @@ export default async function BlogPostPage({ params }: PageProps) {
     .order("created_at", { ascending: false })
     .limit(5)
 
-  const breadcrumbs = [
-    { label: "Home", href: "/" },
-    { label: "Blog", href: "/blog" },
-    { label: post.title },
-  ]
+  const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Blog", href: "/blog" }, { label: post.title }]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-offwhite">
       {post.featured_image && (
         <div className="relative w-full h-[40vh] md:h-[50vh] lg:h-[60vh]">
           <Image
@@ -77,32 +66,30 @@ export default async function BlogPostPage({ params }: PageProps) {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-black bg-opacity-40" />
+          <div className="absolute inset-0 bg-black bg-opacity-50" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center max-w-4xl px-4">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display text-white text-center max-w-4xl px-4">
               {post.title}
             </h1>
           </div>
         </div>
       )}
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-12">
         <Breadcrumbs items={breadcrumbs} />
 
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
           <article className="lg:col-span-2 space-y-8">
-            {!post.featured_image && (
-              <h1 className="text-4xl font-bold">{post.title}</h1>
-            )}
+            {!post.featured_image && <h1 className="text-4xl font-display text-brand-teal">{post.title}</h1>}
             <div
-              className="prose prose-lg max-w-none"
+              className="prose prose-lg max-w-none text-offblack"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {post.tags.map((tag: string) => (
-                  <Badge key={tag} variant="secondary">
+                  <Badge key={tag} variant="secondary" className="bg-brand-pink text-offblack">
                     {tag}
                   </Badge>
                 ))}
@@ -111,9 +98,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           </article>
 
           <aside className="space-y-8">
-            <Card>
+            <Card className="bg-white border-brand-pink">
               <CardHeader>
-                <CardTitle>About the Author</CardTitle>
+                <CardTitle className="text-brand-teal">About the Author</CardTitle>
               </CardHeader>
               <CardContent>
                 {author ? (
@@ -123,19 +110,19 @@ export default async function BlogPostPage({ params }: PageProps) {
                       <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold">{author.name}</p>
-                      <p className="text-sm text-muted-foreground">{author.bio}</p>
+                      <p className="font-semibold text-brand-teal">{author.name}</p>
+                      <p className="text-sm text-offblack">{author.bio}</p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Author information not available.</p>
+                  <p className="text-sm text-offblack">Author information not available.</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white border-brand-pink">
               <CardHeader>
-                <CardTitle>Share This Article</CardTitle>
+                <CardTitle className="text-brand-teal">Share This Article</CardTitle>
               </CardHeader>
               <CardContent>
                 <ShareButtons url={`https://wagsandwanders.com/blog/${post.slug}`} title={post.title} />
@@ -143,15 +130,18 @@ export default async function BlogPostPage({ params }: PageProps) {
             </Card>
 
             {(recentPosts || []).length > 0 && (
-              <Card>
+              <Card className="bg-white border-brand-pink">
                 <CardHeader>
-                  <CardTitle>Recent Posts by {author?.name || "Author"}</CardTitle>
+                  <CardTitle className="text-brand-teal">Recent Posts by {author?.name || "Author"}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
                     {(recentPosts || []).map((recentPost: RecentPost) => (
                       <li key={recentPost.id}>
-                        <Link href={`/blog/${recentPost.slug}`} className="text-primary hover:underline">
+                        <Link
+                          href={`/blog/${recentPost.slug}`}
+                          className="text-brand-teal hover:text-brand-pink transition-colors"
+                        >
                           {recentPost.title}
                         </Link>
                       </li>
@@ -164,13 +154,17 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
 
         <div className="mt-12 flex justify-between">
-          <Button variant="outline" asChild>
+          <Button
+            variant="outline"
+            asChild
+            className="border-brand-teal text-brand-teal hover:bg-brand-pink hover:text-offblack"
+          >
             <Link href="/blog" className="flex items-center">
               <ChevronLeft className="mr-2 h-4 w-4" />
               Back to Blog
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack">
             <Link href="#" className="flex items-center">
               Next Article
               <ChevronRight className="ml-2 h-4 w-4" />
@@ -179,12 +173,13 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
       </main>
 
-      <footer className="bg-muted mt-16 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+      <footer className="bg-brand-pink mt-16 py-8">
+        <div className="container mx-auto px-4 text-center text-sm text-offblack">
           <p>Published on: {format(new Date(post.published_at), "MMMM d, yyyy")}</p>
           <p className="mt-2">&copy; 2023 Wags Travel Hub. All rights reserved.</p>
         </div>
       </footer>
     </div>
-  );
+  )
 }
+

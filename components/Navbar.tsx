@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 
 const routes = [
   { href: "/", label: "Home" },
-  { href: "/services", label: "Services" },
+  { href: "/directory", label: "Directory" },
   { href: "/about", label: "About" },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
