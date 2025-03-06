@@ -25,7 +25,7 @@ type Params = { slug: string };
 // }
 
 export default async function AirlinePage({ params }: { params: Params }) {
-  const { slug } = await params;
+  const { slug } = params;
 
   // Create a Supabase client using your helper.
   const supabase = await createClient();
