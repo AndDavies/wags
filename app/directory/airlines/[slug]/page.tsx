@@ -17,12 +17,12 @@ import { createClient } from "@/lib/supabase-server";
 // Use a synchronous type for params.
 type Params = { slug: string };
 
-// export async function generateMetadata({ params }: { params: Params }) {
-//   const { slug } = params;
-//   return {
-//     title: `Airlines: ${slug.replace(/-/g, " ")}`,
-//   };
-// }
+export async function generateMetadata({ params }: { params: Params }) {
+  const { slug } = params;
+  return {
+    title: `Airlines: ${slug.replace(/-/g, " ")}`,
+  };
+}
 
 export default async function AirlinePage({ params }: { params: Params }) {
   const { slug } = params;
