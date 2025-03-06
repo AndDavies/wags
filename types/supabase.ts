@@ -39,24 +39,29 @@ export interface Hotel {
  *
  * Note: The joined country data is returned as an array.
  */
+// types/supabase.ts
 export interface Policy {
-  id: number;
+  policy_id: number;
   country_id: number;
   pet_type: string;
-  medical_requirements?: string;
-  time_constraints?: string;
-  quarantine?: string;
-  fees?: string;
-  pet_passports?: string;
-  duration_of_stay?: string;
-  aggregated_sources?: string;
-  extra_details?: Record<string, unknown>;
-  last_updated?: string;
-  /** Joined country data as an array */
-  countries?: {
+  quarantine_required: boolean;
+  vaccination_required: boolean;
+  microchipping_required: boolean;
+  import_permits_required: boolean;
+  breed_restrictions?: string;
+  effective_date?: string;
+  last_verified?: string;
+  notes?: string;
+  source_references?: Record<string, unknown>; // e.g. { flag_local_path: string, ... }
+  // Joined country data from the countries table:
+  countries?: Array<{
     country_name: string;
-  }[];
+    iso_code?: string;
+    official_links?: Record<string, unknown>;
+    additional_info?: Record<string, unknown>;
+  }>;
 }
+
 
 /**
  * The Database type maps table names to their record shapes.

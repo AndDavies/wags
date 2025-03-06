@@ -1,0 +1,53 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronRight } from "lucide-react";
+import { CountryData } from "@/app/directory/policies/page";
+
+interface CountriesGridProps {
+  countries: CountryData[];
+}
+
+export function CountriesGrid({ countries }: CountriesGridProps) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
+      {countries.map((country) => {
+        // Ensure the flag URL starts with a leading slash.
+        const flagSrc =
+          country.flag && country.flag.startsWith("/")
+            ? country.flag
+            : `/${country.flag}`;
+        return (
+          <Link
+            key={country.slug}
+            href={`/directory/policies/${country.slug}`}
+            className="transition-transform hover:scale-105"
+          >
+            <Card className="h-full overflow-hidden border-none shadow-md hover:shadow-xl transition-shadow">
+              <div className="relative h-40 bg-gray-100">
+                <Image
+                  src={flagSrc || `/flags/${country.slug}.jpg`}
+                  alt={country.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <CardContent className="p-4 bg-white">
+                <h3 className="text-xl font-semibold text-brand-teal">{country.name}</h3>
+              </CardContent>
+              <CardFooter className="p-4 pt-0 bg-white">
+                <Button variant="link" className="p-0 text-brand-teal hover:text-brand-pink">
+                  View Requirements
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

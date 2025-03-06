@@ -1,0 +1,43 @@
+{
+    "type": "object",
+    "properties": {
+      "countries": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "country_name": {
+              "type": "string"
+            },
+            "external_link": {
+              "type": "string"
+            },
+            "pdf_application_link": {
+              "type": "string"
+            },
+            "entry_requirements": {
+              "type": "string"
+            },
+            "external_links": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "quarantine_info": {
+              "type": "string"
+            },
+            "questions_answers": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "country_name"
+          ]
+        }
+      }
+    },
+    "required": [
+      "countries"
+    ]
+  }

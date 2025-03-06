@@ -1,16 +1,134 @@
-import { getPolicies, getUniqueCountries } from "@/lib/directory";
-import DirectoryPage from "@/components/DirectoryPage";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Airplay, Hotel, FileText } from "lucide-react";
+import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
+import { createClient } from "@/lib/supabase-server";
+import CountrySearch from "@/components/CountrySearch";
+import { CountriesGrid } from "@/components/CountriesGrid";
 
-export default async function PoliciesPage() {
-  const policies = await getPolicies({});
-  const countries = await getUniqueCountries();
+// Disable caching so data is always fresh.
+export const revalidate = 0;
+
+// Our new PetPolicy type from the updated schema.
+export type PetPolicy = {
+  policy_id: number;
+  country_name: string;
+  slug: string;
+  external_link: string | null;
+  pdf_application_link: string | null;
+  entry_requirements: string | null;
+  external_links: string[] | null;
+  quarantine_info: string | null;
+  questions_answers: string | null;
+  flag_path: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// CountryData that our UI components expect.
+export type CountryData = {
+  name: string;
+  slug: string;
+  flag: string;
+};
+
+export default async function PoliciesDirectoryPage() {
+  const supabase = await createClient();
+
+  // Query all pet policies, ordering by country name.
+  const { data: policies, error } = await supabase
+    .from("pet_policies")
+    .select("*")
+    .order("country_name", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching pet policies:", error);
+    throw new Error("Failed to fetch pet policies");
+  }
+
+  const policiesData: PetPolicy[] = policies ?? [];
+
+  // Map each policy row to our CountryData.
+  const countries: CountryData[] = policiesData.map((policy) => ({
+    name: policy.country_name,
+    slug: policy.slug,
+    flag: policy.flag_path, // Directly stored in the DB.
+  }));
 
   return (
-    <DirectoryPage
-      category="policies"
-      items={policies}
-      countries={countries}
-      filters={{}}
-    />
+    <div className="container mx-auto p-4 space-y-8">
+      {/* Spacer for fixed navbar */}
+      <div className="mt-20" />
+
+      {/* Directory Navigation Tabs */}
+      <nav className="flex justify-center gap-8 mb-8">
+        {Object.entries({
+          airlines: { title: "Airlines", icon: Airplay },
+          hotels: { title: "Hotels", icon: Hotel },
+          policies: { title: "Policies", icon: FileText },
+        }).map(([key, value]) => (
+          <Link
+            key={key}
+            href={`/directory/${key}`}
+            className={`text-xl font-bold ${
+              key === "policies" ? "text-brand-teal" : "text-offblack hover:text-brand-pink"
+            }`}
+          >
+            {value.title}
+          </Link>
+        ))}
+      </nav>
+
+      {/* Inline Country Search Filter */}
+      <CountrySearch countries={countries} />
+
+      {/* Page Title Card */}
+      <Card className="bg-brand-pink border-none shadow-md">
+        <CardHeader className="flex flex-col space-y-4">
+          <div className="flex flex-row items-center space-x-4">
+            <FileText className="h-12 w-12 text-brand-teal" />
+            <CardTitle className="text-4xl font-display text-brand-teal">
+              Country Import Policies
+            </CardTitle>
+          </div>
+          <p className="text-offblack">
+            Each country has specific requirements for bringing pets across their borders.
+            Select a country to learn about vaccination requirements, quarantine periods,
+            and necessary documentation.
+          </p>
+        </CardHeader>
+      </Card>
+
+      {/* Breadcrumb */}
+      <DirectoryBreadcrumb currentCategory="policies" />
+
+      {/* Countries Grid */}
+      {countries.length > 0 ? (
+        <CountriesGrid countries={countries} />
+      ) : (
+        <p className="text-center text-xl text-offblack">No pet policy data available.</p>
+      )}
+
+      {/* Call to Action */}
+      <div className="text-center mt-16 p-8 bg-brand-pink rounded-2xl">
+        <h2 className="text-3xl font-display text-brand-teal mb-4">
+          Need Help Planning Your Pet&apos;s Travel?
+        </h2>
+        <p className="text-xl text-offblack mb-6 max-w-2xl mx-auto">
+          Our team can help you navigate the complex requirements for international pet travel.
+        </p>
+        <Button asChild className="bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack">
+          <Link href="/contact">Contact Us</Link>
+        </Button>
+      </div>
+    </div>
   );
 }
