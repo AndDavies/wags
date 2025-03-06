@@ -1,3 +1,5 @@
+// app/directory/policies/[country]/page.tsx
+
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -31,9 +33,9 @@ export type PetPolicy = {
   updated_at: string;
 };
 
-export default async function CountryPolicyPage({ params }: { params: { country: string } }) {
-  // The URL slug is the SEO‑friendly country slug.
-  const slug = params.country;
+// Fix the params typing to use Promise
+export default async function CountryPolicyPage({ params }: { params: Promise<{ country: string }> }) {
+  const { country: slug } = await params; // Unwrap the Promise with await, rename to avoid confusion
 
   // Create a Supabase client.
   const supabase = await createClient();
@@ -324,4 +326,12 @@ export default async function CountryPolicyPage({ params }: { params: { country:
       </div>
     </div>
   );
+}
+
+// Optional: Add generateMetadata for consistency
+export async function generateMetadata({ params }: { params: Promise<{ country: string }> }) {
+  const { country: slug } = await params;
+  return {
+    title: `Pet Travel Policy: ${slug.replace(/-/g, " ")}`,
+  };
 }
