@@ -9,22 +9,32 @@ import {
   MessageSquare,
   ChevronLeft,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
 import { createClient } from "@/lib/supabase-server";
 
-// Use a synchronous type for params.
+// Update the type so that params is synchronous.
 type Params = { slug: string };
 
-export async function generateMetadata({ params }: { params: Params }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Params;
+}) {
   const { slug } = params;
   return {
     title: `Airlines: ${slug.replace(/-/g, " ")}`,
   };
 }
 
-export default async function AirlinePage({ params }: { params: Params }) {
+export default async function AirlinePage({
+  params,
+}: {
+  params: Params;
+}) {
+  // Destructure the slug directly since params is synchronous.
   const { slug } = params;
 
   // Create a Supabase client using your helper.
