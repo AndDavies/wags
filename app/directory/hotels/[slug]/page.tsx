@@ -1,3 +1,5 @@
+// app/directory/hotels/[slug]/page.tsx
+
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -33,12 +35,13 @@ export type HotelData = {
   logo: string;
 };
 
+// Fix the params typing to use Promise
 export default async function HotelDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>; // Correct typing for Next.js 15
 }) {
-  const slug = params.slug;
+  const { slug } = await params; // Unwrap the Promise with await
   const supabase = await createClient();
 
   // Query the hotel record by slug
@@ -214,4 +217,12 @@ export default async function HotelDetailPage({
       </div>
     </div>
   );
+}
+
+// Optional: Add generateMetadata for consistency with airlines page
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  return {
+    title: `Hotels: ${slug.replace(/-/g, " ")}`,
+  };
 }
