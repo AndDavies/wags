@@ -17,13 +17,13 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  // Unwrap the promised params using the experimental "use" hook.
-  const { slug } = use(params);
-  return {
-    title: `Airlines: ${slug.replace(/-/g, " ")}`,
-  };
-}
+// export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+//   // Unwrap the promised params using the experimental "use" hook.
+//   const { slug } = use(params);
+//   return {
+//     title: `Airlines: ${slug.replace(/-/g, " ")}`,
+//   };
+// }
 
 export default function AirlinePage({ params }: Props) {
   // Use the experimental "use" hook to synchronously unwrap the promised params.
