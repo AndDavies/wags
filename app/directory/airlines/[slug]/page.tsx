@@ -9,12 +9,14 @@ import {
   MessageSquare,
   ChevronLeft,
 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
+import React from "react";
 import { createClient } from "@/lib/supabase-server";
 
-// Use a synchronous type for params.
+// Define params as a synchronous type.
 type Params = { slug: string };
 
 export async function generateMetadata({ params }: { params: Params }) {
@@ -25,9 +27,10 @@ export async function generateMetadata({ params }: { params: Params }) {
 }
 
 export default async function AirlinePage({ params }: { params: Params }) {
+  // Destructure the slug directly (no await needed)
   const { slug } = params;
 
-  // Create a Supabase client using your helper.
+  // Create a Supabase client.
   const supabase = await createClient();
 
   // Query the airlines table for a single airline record matching the slug.
@@ -58,7 +61,7 @@ export default async function AirlinePage({ params }: { params: Params }) {
         {/* Breadcrumb */}
         <DirectoryBreadcrumb
           currentCategory="airlines"
-          extraItems={[{ label: airline.airline, href: "/directory/airlines" }]}
+          extraItems={[{ label: airline.airline, href: `/directory/airlines` }]}
         />
 
         {/* Airline Header */}
@@ -90,7 +93,6 @@ export default async function AirlinePage({ params }: { params: Params }) {
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            {/* Display Country Scope and Pet Fees */}
             <div className="flex gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-brand-teal">Country Scope</h3>
@@ -101,14 +103,12 @@ export default async function AirlinePage({ params }: { params: Params }) {
                 <p className="text-offblack">{airline.pet_fees}</p>
               </div>
             </div>
-            {/* Additional Information */}
             <div className="flex gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-brand-teal">Additional Information</h3>
                 <p className="text-offblack">{airline.additional_information}</p>
               </div>
             </div>
-            {/* Official Resources Link */}
             {airline.external_link && (
               <div className="flex gap-4">
                 <div>
@@ -124,7 +124,6 @@ export default async function AirlinePage({ params }: { params: Params }) {
                 </div>
               </div>
             )}
-            {/* Last Updated */}
             <div className="text-sm text-offblack/70 pt-4 border-t">
               Last updated:{" "}
               {new Date(airline.last_updated).toLocaleDateString("en-US", {
