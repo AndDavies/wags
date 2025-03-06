@@ -1,44 +1,46 @@
+// app/directory/airlines/[slug]/page.tsx
+
 import Image from "next/image";
 import Link from "next/link";
 import {
   Airplay,
-  ExternalLink,
-  Info,
-  DollarSign,
-  Clock,
-  MessageSquare,
   ChevronLeft,
 } from "lucide-react";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
-import React from "react";
+import { use } from "react";
 import { createClient } from "@/lib/supabase-server";
 
-// Define params as a synchronous type.
-type Params = { slug: string };
+// We expect the incoming props.params to be a Promise that resolves to an object with a "slug" string.
+type Props = {
+  params: Promise<{ slug: string }>;
+};
 
-export async function generateMetadata({ params }: { params: Params }) {
-  const { slug } = params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  // Unwrap the promised params using the experimental "use" hook.
+  const { slug } = use(params);
   return {
     title: `Airlines: ${slug.replace(/-/g, " ")}`,
   };
 }
 
-export default async function AirlinePage({ params }: { params: Params }) {
-  // Destructure the slug directly (no await needed)
-  const { slug } = params;
+export default function AirlinePage({ params }: Props) {
+  // Use the experimental "use" hook to synchronously unwrap the promised params.
+  const { slug } = use(params);
 
-  // Create a Supabase client.
-  const supabase = await createClient();
+  // Create a Supabase client (assuming createClient returns a Promise).
+  const supabase = use(createClient());
 
-  // Query the airlines table for a single airline record matching the slug.
-  const { data: airline, error } = await supabase
-    .from("airlines")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  // Query the "airlines" table for a single record matching the slug.
+  // We wrap the promise in "use()" so that the component suspends until the data is fetched.
+  const { data: airline, error } = use(
+    supabase
+      .from("airlines")
+      .select("*")
+      .eq("slug", slug)
+      .single()
+  );
 
   if (error || !airline) {
     console.error("Error fetching airline:", error);
@@ -49,7 +51,7 @@ export default async function AirlinePage({ params }: { params: Params }) {
     );
   }
 
-  // Use the logo path directly from the database.
+  // The logo path is stored in the database.
   const logoPath = airline.logo;
 
   return (
@@ -61,7 +63,7 @@ export default async function AirlinePage({ params }: { params: Params }) {
         {/* Breadcrumb */}
         <DirectoryBreadcrumb
           currentCategory="airlines"
-          extraItems={[{ label: airline.airline, href: `/directory/airlines` }]}
+          extraItems={[{ label: airline.airline, href: "/directory/airlines" }]}
         />
 
         {/* Airline Header */}
@@ -112,7 +114,9 @@ export default async function AirlinePage({ params }: { params: Params }) {
             {airline.external_link && (
               <div className="flex gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-brand-teal">Official Resources</h3>
+                  <h3 className="text-lg font-semibold text-brand-teal">
+                    Official Resources
+                  </h3>
                   <a
                     href={airline.external_link}
                     target="_blank"
