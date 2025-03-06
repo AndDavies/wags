@@ -12,28 +12,26 @@ import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
 import { use } from "react";
 import { createClient } from "@/lib/supabase-server";
 
-// We expect the incoming props.params to be a Promise that resolves to an object with a "slug" string.
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
-// export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-//   // Unwrap the promised params using the experimental "use" hook.
-//   const { slug } = use(params);
-//   return {
-//     title: `Airlines: ${slug.replace(/-/g, " ")}`,
-//   };
-// }
+// Use async/await in generateMetadata instead of the "use" hook
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params; // Unwrap the Promise with await
+  return {
+    title: `Airlines: ${slug.replace(/-/g, " ")}`,
+  };
+}
 
 export default function AirlinePage({ params }: Props) {
-  // Use the experimental "use" hook to synchronously unwrap the promised params.
+  // Use the experimental "use" hook to unwrap the params Promise in the component
   const { slug } = use(params);
 
-  // Create a Supabase client (assuming createClient returns a Promise).
+  // Create a Supabase client and unwrap it with "use"
   const supabase = use(createClient());
 
-  // Query the "airlines" table for a single record matching the slug.
-  // We wrap the promise in "use()" so that the component suspends until the data is fetched.
+  // Query the "airlines" table and unwrap the Promise with "use"
   const { data: airline, error } = use(
     supabase
       .from("airlines")
@@ -51,7 +49,6 @@ export default function AirlinePage({ params }: Props) {
     );
   }
 
-  // The logo path is stored in the database.
   const logoPath = airline.logo;
 
   return (
