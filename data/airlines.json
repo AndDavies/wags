@@ -1,0 +1,350 @@
+[
+    {
+      "airlines": [
+        {
+          "pet_policy": "Air Cote d'Ivoire is the flag carrier airline of the Ivory Coast based in Abidjan. Small pets are welcome to travel in the cabin and the hold on select flights.",
+          "airline_name": "Air Cote d'Ivoire",
+          "pets_in_cabin": "Small dogs and cats are permitted to fly in the cabin if the combined weight of the pet and carrier does not exceed 11 lbs (5 kg). The fee for pets traveling in the cabin is 15000 XOF.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed the dimensions of 21\" L x 15\" W x 9\" H (55 cm x 40 cm x 23 cm). For pets traveling in the hold, carriers must be IATA-compliant with a shell made of fiberglass or rigid plastic only. If the crate has wheels, they must be removed or secured with adhesive tape if retractable. Pets must be able to stand with their head fully erect, without touching the top of the crate and be able to turn around and lie down comfortably. The crate must have a double bowl for food and water that must be empty, fixed, and easily reachable without opening the crate.",
+          "pets_in_checked_baggage": ""
+        },
+        {
+          "pet_policy": "Pets are welcome to travel as checked baggage with UNI Air.",
+          "airline_name": "UNI Air",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin on UNI Air flights.",
+          "pets_in_cargo": null,
+          "carrier_guidelines": "For pets traveling as checked baggage, carriers must be leak, escape and claw-proof. The carrier must be made of rigid plastics material. Pets should be able to stand without touching the roof of the carrier, have space to stand upright, and lie down comfortably inside. Inside the carrier, food and water should be secured.",
+          "pets_in_checked_baggage": "Cats, dogs, rabbits, turtles, frogs and insects can travel as checked baggage with UNI Air. Pets and carriers that weigh under 22 lbs (10 kg) are charged as excess baggage at the rate of normal luggage at 22 lbs (10 kg), whereas a total weight that exceeds 22 lbs (10 kg) are charged at the final weight."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel as cargo through JAL Cargo. Unfortunately, pets are not permitted to travel in the cabin with Japan Airlines.",
+          "airline_name": "Japan Airlines",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin with Japan Airlines.",
+          "pets_in_cargo": "Animals are permitted to travel on domestic and international flights as cargo if they meet the necessary requirements. Contact the Cargo Department directly at (800) 525-3663 to arrange Fido's transport.",
+          "carrier_guidelines": "For pets traveling as cargo, carriers must be large enough for the animal to stand up, lie down, and turn around. They must be constructed of durable plastic, fiberglass, wood or material of similar strength, and be leak proof. Carriers must have proper ventilation, be lockable, and escape-proof.",
+          "pets_in_checked_baggage": ""
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage on select flights.",
+          "airline_name": "Avior Airlines",
+          "pets_in_cabin": "Avior Airlines welcomes small pets that weigh under 13 lbs (6 kg) including carrier to travel in the cabin. Each passenger is allowed to bring one pet in the cabin. The fee for this service is $55.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed 10\" x 14\" x 12\" (25 cm x 35 cm x 55 cm). For pets traveling as checked baggage, carriers must be leak-proof and large enough for the animal inside to fit comfortably.",
+          "pets_in_checked_baggage": "Dogs, cats and roosters who weigh under 88 lbs (40 kg) are permitted to travel as checked baggage with Avior Airlines. Each passenger is allowed to bring six pets in the cabin. Pets who weigh up to 50 lbs (22 kg) will be charged a fee of $150. Pets who weigh up to 88 lbs (40 kg) will be charged a fee of $250."
+        },
+        {
+          "pet_policy": "Air Europa is a Spanish airline that operates flights around Europe. Pets are welcome to travel in the cabin and as checked baggage on select flights with Air Europa.",
+          "airline_name": "Air Europa",
+          "pets_in_cabin": "Air Europa allows small dogs and cats to travel in the cabin, except for Business class operated by a Boeing 787. Pets traveling in the cabin cannot exceed a weight of 17 lbs (8 kg), and pets and carriers cannot exceed 22 lbs (10 kg). Up to 3 pets may be transported in the same carrier, provided that they are all the same species and that the maximum size and weight limits are not exceeded. For pets traveling to Mainland, Canary Islands, and Balearic Islands, the pet fee is $36 USD; for Europe and Africa, the fee is $52 USD; for long haul flights, the fee ranges from $155 USD to $181 USD. Prices are subject to possible surcharges when traveling to certain countries.",
+          "pets_in_cargo": "To transport other animals in the hold, contact Air Europa Cargo team at (934) 90-40-38.",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers should not exceed the dimensions 15\" x 11\" x 11\" (40 cm x 30 cm x 30 cm) and the weight limitation for pets and carriers is 22 lbs (10 kg). The carrier must be a soft, flexible, ventilated and approved carrier. Each animal must have enough space to stand up, sit upright, lie in a natural position, and turn around while standing up. For pets traveling in the hold, carriers must be IATA-approved with a metal door. Wire mesh or welded mesh containers are not acceptable. You need to mark Fido's carrier with the passenger’s name, address, and contact telephone number marked clearly and visibly on the animal’s container.",
+          "pets_in_checked_baggage": "Amphibians, insects, crustaceans, reptiles (except tortoises), rodents (except hamsters, guinea pigs or small rabbits), ferrets, and some dog breeds can be transported in the hold. Up to 2 pets may be transported in the same carrier, provided that they are all the same species and that the maximum weight does not exceed 30 lbs (14 kg) or up to 3 pets if they are from the same litter and no older than 6 months. Pets and carriers should not exceed 110 lbs (50 kg) to travel in the hold. For pets traveling to Mainland, Canary Islands, and Balearic Islands, the fee is $93 USD; for Europe, Canary Islands, and Africa, the fee is $155 USD; for long haul flights, the fee ranges from $310 USD to $361 USD."
+        },
+        {
+          "pet_policy": "Small pets can travel as checked baggage in the hold on select flights. Unfortunately, pets are not permitted to travel in the cabin on any flights with SANSA Airlines.",
+          "airline_name": "SANSA",
+          "pets_in_cabin": "Pets are not permitted to travel in the cabin on any flights with SANSA Airlines.",
+          "pets_in_cargo": null,
+          "carrier_guidelines": "For pets traveling as checked baggage, carriers must be lockable and sturdy.",
+          "pets_in_checked_baggage": "Dogs and cats with a combined weight with a carrier under 88 lbs (40 kg) are allowed to travel as checked baggage with SANSA. The fee for this service is $30 each way. Pets must be in good health and there must be enough space on the airplane."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel as checked baggage with Mahan Air. Unfortunately, pets are not permitted to travel in the cabin on any of their flights.",
+          "airline_name": "Mahan Air",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin on any of their flights.",
+          "pets_in_cargo": null,
+          "carrier_guidelines": "For pets traveling as checked baggage, carriers must be strong enough to prevent animals escaping and should have proper ventilation. Pets should be able to stand up, turn around, and lie down comfortably inside. Pets should be checked in at least 3 hours before international flights and 2 hours before domestic flights.",
+          "pets_in_checked_baggage": "Mahan Air allows pets who weigh under 66 lbs (30 kg) with a carrier to travel as checked baggage on select flights. Mahan Air does not accept animals younger than 10 weeks, or weak and fragile animals. Animals being transported in this manner will be charged as excess baggage."
+        },
+        {
+          "pet_policy": "Carpatair permits 4 animals in the cabin and 3 in the hold on Fokker 100 aircraft and 6 in the cabin and hold on Boeing 737 aircraft. Pets are welcome to travel as checked baggage and in the cabin.",
+          "airline_name": "Carpatair",
+          "pets_in_cabin": "Small dogs and cats can travel in the cabin with Carpatair if the combined weight of the pet and carrier does not exceed 13 lbs (6 kg). Each passenger is allowed to bring 1 pet on board with them. The pet fee is 75 EUR each way for small animals traveling in the cabin on international flights.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed the dimensions of 10\" H x 19\" W x 14\" L (26 cm x 50 cm x 35 cm). They must be leak-proof, bite-proof, and well-ventilated. Animals should be able to stand up, turn around, and lie down inside their carrier.",
+          "pets_in_checked_baggage": "Dogs and cats who exceed the weight restrictions to travel in the cabin may be accepted for transport as checked baggage instead. For animals in the hold, the pet fee is 75 EUR for animals under 55 lbs (25 kg) and 150 EUR for animals weighing over this amount."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel as checked baggage or in the cabin on a number of different flights. Guests traveling with pets in the cabin will be assigned a window seat, and the seat assignment may change depending on seat availability. Make sure to contact the reservation center before traveling to confirm that your pet can be transported.",
+          "airline_name": "Air Busan",
+          "pets_in_cabin": "Small dogs, cats, and birds can join their owners in the cabin if the combined weight of the pet and carrier does not exceed 15 lbs (7 kg). Each passenger is allowed to bring 1 pet on board with them. However, exceptions are made for 2 puppies or 2 cats under 6 months of age, a mother and her offspring under 6 months old (dog/cat), or 1 pair of birds. Fees for this service range from $90-210 USD depending on the destination of your travel.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed the combined dimension of 45\" (115 cm) and a height of 9\" (24 cm). It must be small enough to fit comfortably under the seat in front of you. Air Busan offer their own carriers that can be purchased at the airport for transport of pets in the cabin. For pets traveling in the hold, carriers must not exceed the combined dimensions of 97\" (246 cm) and a height of 33\" (84 cm). Carriers must have a lock and a waterproof bottom. Additionally, they must be made of hard metal, wood, or plastic, and have proper ventilation.",
+          "pets_in_checked_baggage": "Animals who exceed the limit to travel in the cabin may be accepted for transport as checked baggage instead. The maximum combined weight for pets and carriers traveling in the hold with Air Busan is 70 lbs (32 kg). Animals can only fly as checked baggage on domestic flights. Fees for this service range from $180-400 USD depending on the destination of your travel. Pets may be restricted from being transported as checked baggage during cold weather for the pet's health and safety. For international flights, checked baggage is not allowed for all segments. Short-nosed dogs may not be transported as checked baggage between July 1 to September 30, as their health and safety are especially impacted by stress and intense heat."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel as checked baggage on select flights with Myanmar Airways.",
+          "airline_name": "Myanmar National Airlines",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin with Myanmar National Airlines.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "",
+          "pets_in_checked_baggage": "Animals can be transported as checked baggage with Myanmar National Airlines. The fee for this service varies depending on the destination of your travel."
+        },
+        {
+          "pet_policy": "Small pets are welcome to travel in the cabin with T'way Air. The maximum number of pets allowed on board is 6. Pets are not allowed in Business Saver Class.",
+          "airline_name": "T'way Air",
+          "pets_in_cabin": "Small dogs, cats and birds up to 20 lbs (9 kg) with a carrier are permitted to fly in the cabin. Only one pet is permitted to travel with each passenger. Pets must be at least 8 weeks old to fly in the cabin. The service fee is KRW 30,000 per flight.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed the dimensions of 15\" x 9\" (37 cm x 23 cm) for a hard case and 10\" (26 cm) for a soft sided. The sum of the three sides of the carrier should be less than 45\" (115cm). The carrier must be ventilated and waterproof.",
+          "pets_in_checked_baggage": ""
+        },
+        {
+          "pet_policy": "interCaribbean Airways allows pets to travel in the cabin and as checked baggage on a number of their flights. They permit small cats and dogs in the cabin if the combined weight of the pet and carrier does not exceed 15 lbs (8 kg). Pets exceeding this weight may be accepted as checked baggage. Certain dog breeds are not permitted to fly, and emotional support dogs may be accepted with prior approval.",
+          "airline_name": "interCaribbean Airways",
+          "pets_in_cabin": "Small cats and dogs are allowed in the cabin if the combined weight of the pet and carrier does not exceed 15 lbs (8 kg). Fees apply based on the size of the animal.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "Certain breeds of dogs are not permitted to fly, including Akitas, Bulldogs, Mastiffs, and others deemed fighting breeds. Emotional support dogs may be accepted with prior approval.",
+          "pets_in_checked_baggage": "Pets exceeding the cabin weight limit may be accepted as checked baggage. Fees apply based on the size of the animal."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage on select flights with Iberia Express.",
+          "airline_name": "Iberia Express",
+          "pets_in_cabin": "Animals are allowed to travel with passengers in the cabin if the combined weight of the pet and carrier does not exceed 17 lbs (8 kg). The fees for this service vary between $50-210 depending on the destination of your travel.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed 17\" x 14\" x 10\" (45 cm x 35 cm x 25 cm), be strong, well-ventilated, secure, and have a waterproof floor. For pets traveling in the hold, carriers should be sturdy, comfortable, well-ventilated, waterproof on the bottom, and have a strong locking and closing system.",
+          "pets_in_checked_baggage": "Animals are permitted to travel as checked baggage with Iberia Express. Cats, dogs, household birds, fish, turtle, some rodents, amphibians, insects, crustaceans, reptiles (except aquarium turtles), rodents, and ferrets can travel as checked baggage. The maximum weight for animals in the hold is 99\" (45 kg). The fee for this service varies from $120-435 depending on the destination of your travel."
+        },
+        {
+          "pet_policy": "Qantas Airways is the flag carrier of Australia. Qantas arranges all pet travel through Qantas Freight. Unfortunately, pets are not permitted to travel in the cabin on any Qantas flights. If your pet is travelling on their own, internationally, or within 24 hours of departure, you can call Qantas Freight in Australia at (+61) 13-12-13 for more details and prices. More than 1 pet may travel in the same carrier if they are from the same species, are similar in size and weight and are used to cohabitation. Each pet must weight less than 30 lbs (14 kg). For pets traveling as cargo, the maximum carrier size is 50\" x 24\" x 32\" (129 cm x 62 cm x 82 cm). Your animal will need to have enough room inside the crate to sit comfortably, stand up, and turn around easily without touching the sides or roof. Pets must be provided with water that is accessible to them from inside the carrier. The following breeds are not accepted to travel with Qantas: Fila Brasileiro, Dogo Argentino, American Pit Bull Terrier, Perro De Presa, Canario and Presa Canario. Additionally, kittens and puppies under 8 weeks of age and animals that demonstrate aggressive behaviors or show excessive chewing or cage destruction will not be allowed to travel. Brachycephalic (snub-nosed) dogs (full bred only), such as French Bull Dog, Bull Dog British/English, Pug, Pekingese, Boston Terriers, American Terrier, and Staffordshire Terrier, and Japanese Chin are permitted on flights no longer than 5 hours in length and no more than 2 sectors per journey.",
+          "airline_name": "Qantas",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin on any Qantas flights.",
+          "pets_in_cargo": "If your pet is travelling on their own, internationally, or within 24 hours of departure, you can call Qantas Freight in Australia at (+61) 13-12-13 for more details and prices. More than 1 pet may travel in the same carrier if they are from the same species, are similar in size and weight and are used to cohabitation. Each pet must weight less than 30 lbs (14 kg).",
+          "carrier_guidelines": "For pets traveling as cargo, the maximum carrier size is 50\" x 24\" x 32\" (129 cm x 62 cm x 82 cm). Your animal will need to have enough room inside the crate to sit comfortably, stand up, and turn around easily without touching the sides or roof. Pets must be provided with water that is accessible to them from inside the carrier.",
+          "pets_in_checked_baggage": ""
+        },
+        {
+          "pet_policy": "Pets can only travel as cargo with flydubai.",
+          "airline_name": "flydubai",
+          "pets_in_cabin": "",
+          "pets_in_cargo": "For pets traveling as cargo, carriers must meet IATA-approved specifications, be hard-sided, leak and escape proof, and have adequate ventilation. Your pet must be able to move freely inside and travel comfortably.",
+          "carrier_guidelines": "Snub-nosed breeds and some aggressive breeds are not permitted on board. These include, but are not limited to: Akita, Fila Brazillero, American Pit Bull Terrier, French Bulldog, American Staffordshire Terrier, Japanese Chin, Boston Terrier, Lhasa Apso, Boxer, Pekingese, Brussels Griffin, Pit Bull, Bull Mastiff, Pug, Bull Terrier, Rottweiler, Shar-Pei, Chow Chow, Shih Tzu, Dogo Argentino, Staffordshire Bull Terrier, Tibetan Spaniel, English Bulldog, Tosa, and English Toy Spaniel. The following cat breeds are also unable to travel: Burmese, Exotic, Himalayan, and Persian.",
+          "pets_in_checked_baggage": ""
+        },
+        {
+          "pet_policy": "Pets are allowed to travel as cargo with Fiji Airways. Unfortunately, pets are not permitted to travel in the cabin.",
+          "airline_name": "Fiji Airways",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin with Fiji Airways.",
+          "pets_in_cargo": "Pets are only permitted to travel as cargo with Fiji Airways. Animals are charged as excess baggage.",
+          "carrier_guidelines": "Find out more information on transporting Fido in this manner by contacting the Fiji Freight Department via telephone at (+679) 672-2694 or by email at freightres@fijiairways.com.",
+          "pets_in_checked_baggage": ""
+        },
+        {
+          "pet_policy": "Pets can travel in the cabin and as cargo on select flights with Delta Air Lines. Delta Air Lines limits the number of pets per flight to 2 in first class, 2 in business class, and 4 in the main cabin. Pets are not permitted on flights to Hawaii. To qualify for travel in the cabin, your pet must be small enough to fit comfortably in a carrier under the seat in front of you. Pets must be at least 10 weeks old for domestic travel, 16 weeks old if traveling to the USA from elsewhere, and 15 weeks old for European Union travel. Fees for taking your pet in the cabin vary depending on your travel plans. Flights to/from the U.S.A, Canada, Puerto Rico and Virgin Islands incur a pet fee of $95, flights outside the U.S. incur a pet fee of $200; and flights to Brazil incur a pet fee of $75.",
+          "airline_name": "Delta Air Lines",
+          "pets_in_cabin": "Delta Air Lines welcomes passengers with small pets (dogs, cats, and household birds) in the cabin on select flights within the United States, Canada, the Virgin Islands, and Puerto Rico. Pets must remain inside the carrier while in the airport boarding area, during boarding, as well as throughout the duration of each flight. A soft-sided carrier with dimensions of 18” x 11” x 11” (45 cm x 28 cm x 28 cm) is recommended as this will fit on most Delta aircrafts.",
+          "pets_in_cargo": "Animals who are too large to be taken in the cabin, or are being transported separately from their owner, can be shipped as cargo through Delta Cargo. Pets shipped domestically via Delta Cargo cannot be booked until 14 days prior to departure, pets are not guaranteed to be shipped on the same flight as their owner. Shipping a pet requires dropping it off at a Delta Cargo location at least 3 hours before departure.",
+          "carrier_guidelines": "For pets traveling in the cabin, maximum carry-on kennel dimensions are determined by your flight. However, a soft-sided carrier with dimensions of 18” x 11” x 11” (45 cm x 28 cm x 28 cm) is recommended. For pets traveling with Delta Cargo, carriers can have dimensions of 27\" x 20\" x 19\" (68 cm x 50 cm x 48 cm); 32\" x 22\" x 23\" (81 cm x 55 cm x 58 cm); 36\" x 24\" x 26\" (91 cm x 61 cm x 66 cm); 40\" x 27\" x 30\" (101 cm x 68 cm x 76 cm); and 48\" x 32\" x 35\" (122 cm x 81 cm x 89 cm). Kennels must be rigid with a solid top, have proper ventilation on at least 3 sides domestically or 4 on international flights, have a solid door, and nuts and bolts securing loose parts.",
+          "pets_in_checked_baggage": "Unfortunately, Delta Air Lines does not allow pets to travel as checked baggage."
+        },
+        {
+          "pet_policy": "Spirit Airlines is a low-cost airline based in Florida. Small pets are welcome to travel in the cabin on domestic flights with Spirit.",
+          "airline_name": "Spirit Airlines",
+          "pets_in_cabin": "Spirit Airlines accepts small dogs, cats, and household birds in the cabin on domestic flights if the combined weight of the pet and carrier is under 40 lbs (18 kg). Small dogs and cats are also permitted in the cabin on flights to/from Puerto Rico or St. Thomas. Passengers are limited to 1 pet carrier each with up to 2 pets inside. Pets are not permitted on international flights. Spirit Airlines limits the number of pet carriers in the cabin to 4 on routes within the United States, including San Juan, Puerto Rico and St. Thomas. The fee for traveling with your pet is $125 each way.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed 18\" x 14\" x 9\" (45.72cm x 35.56 cm x 22.86cm). Carriers must be large enough to allow pets to stand in an upright position and comfortably move around in the carrier, but remain fully contained inside. Pets must remain in the carrier at all times while on the aircraft.",
+          "pets_in_checked_baggage": ""
+        },
+        {
+          "pet_policy": "JetBlue is a low-cost American airline. Small pets are welcome to fly in the cabin with JetBlue.",
+          "airline_name": "JetBlue",
+          "pets_in_cabin": "JetBlue accepts small cats and dogs in the cabin on both domestic and international flights if the combined weight of the pet and carrier does not exceed 20 lbs (9 kg). Pets must remain completely in the carrier with the door closed and under the seat during the entire journey. The fee for this service is $125 each way.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed 17\" x 12.5\" x 8.5\" (43 cm x 31 cm x 21 cm). Animals must be able to stand up comfortably and move around the carrier with ease. Carriers must have a leak-proof bottom and must be well ventilated on at least 2 sides. Pets are considered your personal item, and carriers are available to purchase through JetBlue.",
+          "pets_in_checked_baggage": "Unfortunately, JetBlue does not allow pets to travel as checked baggage."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin with Southwest Airlines.",
+          "airline_name": "Southwest Airlines",
+          "pets_in_cabin": "Southwest Airlines allows customers to travel with 1 small cats and dogs in the cabin on domestic flights. Carriers may contain up to 2 cats or dogs of the same species if they fit comfortably inside the carrier and will count as carry-on allowance. The pet fee is $125 on flights in the U.S. and $35 on flights between Hawaiian islands each way.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, soft or hard-sided carriers should be a maximum of 18.5\" x 8.5\" x 13.5\" (47 cm x 22 cm x 34 cm). Carriers must also be leak-proof, well ventilated, and small enough to fit under the seat in front. Cats and dogs must be able to stand up and move around the carrier with ease. Carriers also need to be small enough to fit under the seat in front of yours.",
+          "pets_in_checked_baggage": "Unfortunately, pets are not permitted to travel as checked baggage with Southwest Airlines."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage on select flights.",
+          "airline_name": "Iberia",
+          "pets_in_cabin": "Dogs and cats are welcome in the cabin if the combined weight of the pet and carrier is under 17 lbs (8 kg). Pet fees for passengers traveling to Spain are $50; Europe, Africa and the Middle East are $73; and America and Asia are $210.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets in the cabin, the maximum carrier dimensions are 18\" x 14\" x 10\" (45 cm x 35 cm x 25 cm). For pets traveling in the hold, carriers must not exceed 25\" x 32\" x 22\" (65 cm x 83 cm x 56 cm). Carriers must comply with international regulations, be made of resistant and secure material, ventilated with a waterproof floor, adapted to the animal's size, and in good condition to ensure their safety.",
+          "pets_in_checked_baggage": "Animals and carriers that weigh over 17 lbs (8 kg) are permitted to travel as checked baggage. Pet fees for passengers traveling to Spain are $120; Europe, Africa and the Middle East are $170 and flights to/from America and Asia are $435."
+        },
+        {
+          "pet_policy": "Pets are welcome in the cabin and as checked baggage with Lufthansa. Pets must be booked onto flights at least 72 hours before departure. Dogs and cats are welcome in the cabin if the combined weight of the pet and carrier is under 17 lbs (8 kg). Each passenger is allowed to bring 2 animals in the cabin. Pets must be at least 15 weeks on flights to/from Germany and 12 weeks for other flights. Animals must be stowed in a carrier under the seat during the flight. Fees for pets traveling in the cabin are calculated using the baggage calculator and depend on the route of travel. If the combined weight of your pet and carrier is over 17 lbs (8 kg), your pet can be transported in the air-conditioned cargo hold instead. Each passenger can only bring 2 animals as checked baggage. Fees for pets traveling as checked baggage depend both on the route and the size of the carrier. A surcharge of EUR 150 / CHF 170 / USD 170 / CAD 220 is charged for transfers via Brussels, Geneva, Frankfurt, Vienna and Zurich. Dogs that cannot fit in larger carriers or are traveling alone must be transported as cargo instead. For this, you will need a specialized forwarding agent. Contact Lufthansa Cargo directly at (01) 806-747-100 to answer any queries about the cargo service. For small dogs and cats traveling in the cabin, carriers must not exceed the dimensions 22\" x 16\" x 9\" (55 cm x 40 cm x 23 cm). Carriers must be escape, leak, and bite-proof. For pets traveling in the cargo hold, medium carriers can be up to 24\" x 18\" x 16\" (60 cm x 45 cm x 40 cm) and larger carriers can be up to 49\" x 29\" x 33\" (125 cm x 75 cm x 85 cm). Carriers in the hold must have food and water containers attached, proper ventilation, and a secure locking system. Animals classified as fighting or dangerous dogs may only be transported in special crates in the hold (except dogs between the ages of 3 and 6 months who can be transported in regular crates), including American Pit Bull Terrier, American Staffordshire Terrier, Staffordshire Bull Terrier, Bull Terrier, American Bulldog, Dogo Argentino, Karabash (Kangal) (Anatolian Shepherd Dog), Caucasian Ovcharka (Caucasian Shepherd Dog), and Rottweilers. Additionally, Pit Bull Terriers, American Staffordshire Terriers, Staffordshire Bull Terriers, and Bull Terriers are not allowed entry into Germany. Passengers who are looking to transport snub-nosed animals are advised not to by Lufthansa, though they are not forbidden, including Boxer, Bulldog (all breeds with the exception of the American Bulldog), Chow Chow, Pug, and Pekinese; and cat breeds are British Shorthair, Exotic Shorthair, Himalayan, Persian, and Scottish Fold.",
+          "airline_name": "Lufthansa",
+          "pets_in_cabin": "Dogs and cats are welcome in the cabin if the combined weight of the pet and carrier is under 17 lbs (8 kg). Each passenger is allowed to bring 2 animals in the cabin. Pets must be at least 15 weeks on flights to/from Germany and 12 weeks for other flights. Animals must be stowed in a carrier under the seat during the flight.",
+          "pets_in_cargo": "Dogs that cannot fit in larger carriers or are traveling alone must be transported as cargo instead. For this, you will need a specialized forwarding agent. Contact Lufthansa Cargo directly at (01) 806-747-100 to answer any queries about the cargo service.",
+          "carrier_guidelines": "For small dogs and cats traveling in the cabin, carriers must not exceed the dimensions 22\" x 16\" x 9\" (55 cm x 40 cm x 23 cm). Carriers must be escape, leak, and bite-proof. For pets traveling in the cargo hold, medium carriers can be up to 24\" x 18\" x 16\" (60 cm x 45 cm x 40 cm) and larger carriers can be up to 49\" x 29\" x 33\" (125 cm x 75 cm x 85 cm). Carriers in the hold must have food and water containers attached, proper ventilation, and a secure locking system.",
+          "pets_in_checked_baggage": "If the combined weight of your pet and carrier is over 17 lbs (8 kg), your pet can be transported in the air-conditioned cargo hold instead. Each passenger can only bring 2 animals as checked baggage. Fees for pets traveling as checked baggage depend both on the route and the size of the carrier. A surcharge of EUR 150 / CHF 170 / USD 170 / CAD 220 is charged for transfers via Brussels, Geneva, Frankfurt, Vienna and Zurich."
+        },
+        {
+          "pet_policy": "Pets are welcome to fly in the cabin and as checked baggage on select domestic and international flights with Air India.",
+          "airline_name": "Air India",
+          "pets_in_cabin": "Small pets will be accepted on Air India domestic flights. Pets and carriers should not exceed 15 lbs (7 kg).",
+          "pets_in_cargo": "If the combined weight of the pet and carrier is over 70 lbs (32 kg), they must be transported as cargo.",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers should not exceed 18\" x 18\" x 12\" (46 cm x 46 cm x 30 cm) and should be soft ventilated bags or kennels. Carriers should be labeled with your pet's name, and a moisture-absorbent mat must be placed in the bottom. Food isn't allowed inside the carrier.",
+          "pets_in_checked_baggage": "Pets and their carriers weighing over 15 lbs (7 kg) but under 70 lbs (32 kg) may be transported as checked baggage in the cargo hold instead."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel as checked baggage on select flights with Air China. Unfortunately, pets are not permitted to travel in the cabin with their owners. Cats and dogs can travel as checked baggage if the combined weight of the pet and carrier does not exceed 99 lbs (45 kg) on domestic flights and 70 lbs (32 kg) on international flights. Each carrier can hold two animals that weigh less than 30 lbs (14 kg) each and are used to cohabitation. Pets weighing over 30 lbs (14 kg) must be transported separately. Animals that exceed the weight limits to travel as checked baggage may be transported as cargo instead. Pets that will not be accepted for transport include cats, dogs and their hybrids that are prone to harm people, pets that suffer from breathing problems or are ill, various dog and cat breeds that have short noses, pregnant animals, and animals that were born no more than 8 weeks ago or are not yet weaned from breastfeeding.",
+          "airline_name": "Air China",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin with their owners.",
+          "pets_in_cargo": "Animals that exceed the weight limits to travel as checked baggage may be transported as cargo instead.",
+          "carrier_guidelines": "For pets traveling as checked baggage, carriers must be solid, escape-proof, and leak-proof, and big enough to allow the small animal to stand upright and move around comfortably inside. Carriers should be properly ventilated. The total weight of the carrier, animals, feed and water cannot exceed 99 lbs (45 kg) on domestic flights and cannot exceed 70 lbs (32 kg) on international flights.",
+          "pets_in_checked_baggage": "Cats and dogs can travel as checked baggage if the combined weight of the pet and carrier does not exceed 99 lbs (45 kg) on domestic flights and 70 lbs (32 kg) on international flights. Each carrier can hold two animals that weigh less than 30 lbs (14 kg) each and are used to cohabitation. Pets weighing over 30 lbs (14 kg) must be transported separately."
+        },
+        {
+          "pet_policy": "Pets are permitted to fly with AirSial.",
+          "airline_name": "AirSial",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to fly in the cabin with AirSial.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "Pets must be properly crated and accompanied by valid health and vaccination certificates, entry permits, and other documents required by countries of entry or transit will, with the advance agreement of Carrier, be accepted for carriage.",
+          "pets_in_checked_baggage": "Dogs, cats and household birds can fly as checked baggage with AirSial. The fee for this service is not included in a passenger's baggage allowance and is charged separately."
+        },
+        {
+          "pet_policy": "Pets are welcome to fly in the cabin and as checked baggage on select flights.",
+          "airline_name": "Air Manas",
+          "pets_in_cabin": "Only two pets are permitted in the cabin. Small pets can travel in the cabin if the combined weight of the pet and carrier does not exceed 11 lbs (5 kg). There's no fee for transporting pets in the cabin as they are considered a carry-on item.",
+          "pets_in_cargo": null,
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed 21\" x 16\" x 8\" (55 cm x 40 cm x 20 cm). For pets traveling as checked baggage, carriers must meet IATA regulations and be provided by the passenger. All carriers must be certified rigid metal or plastic cage that complies with IATA regulations.",
+          "pets_in_checked_baggage": "Pets who exceed 11 lbs (5 kg) may be accepted for transport as checked baggage. The fee for pets weighing 17-33 lbs (8-15 kg) on international flights is $65, and $30 on domestic flights. The fee for pets weighing more than 33 lbs (15 kg) on international flights is $80, and $40 on domestic flights."
+        },
+        {
+          "pet_policy": "Pets are allowed to travel in the cabin and as checked baggage in the hold with Air Canada.",
+          "airline_name": "Air Canada",
+          "pets_in_cabin": "Small cats and dogs are welcome to travel in the cabin if the combined weight of the pet and carrier is under 22 lbs (10 kg). Only 1 cat or small dog in the cabin is allowed per passenger. Pets count towards the passenger's carry-on allowance and must be stowed under the seat for the duration of the flight. The pet fee for travel in the cabin is $50 USD on domestic flights and $100 USD on international flights.",
+          "pets_in_cargo": "Air Canada Cargo can arrange safe transport of your pet as cargo if your pet does not meet requirements to travel in the cabin or as checked baggage.",
+          "carrier_guidelines": "For pets traveling in the cabin, the maximum dimensions allowed for carriers vary by the aircraft you'll be traveling on and carriers must be soft-sided on Airbus 223, 319, 320, 321, Boeing 7M8, Business Class of Airbus 333, and Boeing 777, 77L, 77W, 788, 789. For pets traveling in the hold, carriers must not exceed 115\" (292 cm) and must be hard-sided, leak-proof, and big enough to allow your pet to stand, turn around, and lie down comfortably.",
+          "pets_in_checked_baggage": "Cats and dogs are allowed to travel as checked baggage if the combined weight with the carrier does not exceed 100 lbs (45 kg). Each passenger is permitted to travel with up to 2 pets, charged separately, only if fully weaned puppies or kittens from 12 weeks to 6 months can be placed in the same carrier and both animals are of the same species. The pet fee for one-way travel within Canada/US is $105 and for one-way international flights is $270. Air Canada may refuse animals traveling in the hold if temperatures are too high."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage on select flights with Air France.",
+          "airline_name": "Air France",
+          "pets_in_cabin": "Dogs and cats are welcome on Air France flights, as long as the combined weight of the pet and carrier is under 17 lbs (8 kg). Each passenger may travel with 1 animal in the cabin. The fee for pets in the cabin on flights to Metropolitan France is 70 EUR; within the Caribbean is 125 EUR; in Europe or between Europe and North Africa is 125 EUR; between metropolitan France and Cayenne, Fort-de-France, Pointe-à-Pitre, and Saint-Denis de la Réunion is 125 EUR; and on all other flights is 200 EUR.",
+          "pets_in_cargo": "Animals and carriers that have a combined weight more than 165 lbs (75 kg) must be transported by freight.",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed the dimensions of 18\" x 11\" x 9\" (46 cm x 28 cm x 24 cm). Air France recommends that you use a flexible bag for your own comfort during the flight. The bag must be well-ventilated, big enough for Fido to stand up and turn around, but also fit in the area underneath the seat in front of you. For pets traveling as checked baggage, the size of carriers depends on your pet, but the carriers must have at least 2\" (5 cm) of room above the head. Pets must be able to stand upright without touching the sides and have room to turn around. Carriers must be made of hard plastic or fiberglass, have no wheels, be able to lock in two places, and have separate food and water dishes.",
+          "pets_in_checked_baggage": "Pets weighing between 17-165 lbs (8-75 kg) can be transported as checked baggage on Air France flights. Each passenger can transport 3 animals per flight. The fee for pets traveling in the hold on flights to Metropolitan France is 100 EUR; within the Caribbean is 200 EUR; in Europe or between Europe and North Africa is 200 EUR; between metropolitan France and Cayenne, Fort-de-France, Pointe-à-Pitre, and Saint-Denis de la Réunion is 200 EUR; and all other flights is 400 EUR."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage on select flights with Air Europa.",
+          "airline_name": "Air Europa",
+          "pets_in_cabin": "Air Europa allows small dogs and cats to travel in the cabin, except for Business class operated by a Boeing 787. Pets traveling in the cabin cannot exceed a weight of 17 lbs (8 kg), and pets and carriers cannot exceed 22 lbs (10 kg). Up to 3 pets may be transported in the same carrier, provided that they are all the same species and that the maximum size and weight limits are not exceeded.",
+          "pets_in_cargo": "To transport other animals in the hold, contact Air Europa Cargo team at (934) 90-40-38.",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers should not exceed the dimensions 15\" x 11\" x 11\" (40 cm x 30 cm x 30 cm) and the weight limitation for pets and carriers is 22 lbs (10 kg). The carrier must be a soft, flexible, ventilated and approved carrier. Each animal must have enough space to stand up, sit upright, lie in a natural position, and turn around while standing up. For pets traveling in the hold, carriers must be IATA-approved with a metal door. Wire mesh or welded mesh containers are not acceptable. You need to mark Fido's carrier with the passenger’s name, address, and contact telephone number marked clearly and visibly on the animal’s container.",
+          "pets_in_checked_baggage": "Amphibians, insects, crustaceans, reptiles (except tortoises), rodents (except hamsters, guinea pigs or small rabbits), ferrets, and some dog breeds can be transported in the hold. Up to 2 pets may be transported in the same carrier, provided that they are all the same species and that the maximum weight does not exceed 30 lbs (14 kg) or up to 3 pets if they are from the same litter and no older than 6 months. Pets and carriers should not exceed 110 lbs (50 kg) to travel in the hold."
+        },
+        {
+          "pet_policy": "Pets are only permitted to travel as cargo with British Airways.",
+          "airline_name": "British Airways",
+          "pets_in_cabin": "Unfortunately, British Airways does not allow animals to travel in the cabin.",
+          "pets_in_cargo": "British Airways allows animals to travel as cargo in the hold. British Airways works with PetAir UK, which is owned by qualified veterinarians, to transport pets from UK airports. If you are traveling to the UK, your pet can travel with British Airways' sister company, IAG Cargo.",
+          "carrier_guidelines": "For pets being transported by IAG Cargo, carriers must be strong, secure and have proper ventilation. Your pet's nose and paws should not be able to fit through any ventilation opening or door mesh. The carrier must have water and food bowls secured to the inside. Pets must be able to stand and sit erect without touching the top of the kennel. Fiberboard, wire mesh and wicker containers are not suitable for air transportation. Cats departing from the USA and Canada must travel in a carrier with the dimensions 27\" x 20\" x 19\" (68 cm x 50 cm x 48 cm). For all other countries and pets, the dimensions should be 21\" x 16\" x 15\" (53 cm x 40 cm x 38 cm), as long as the animal fits comfortably inside.",
+          "pets_in_checked_baggage": "Unfortunately, British Airways does not allow animals to travel as checked baggage."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage with Royal Jordanian. Pet reservations must be made at least 48 hrs before departure time.",
+          "airline_name": "Royal Jordanian",
+          "pets_in_cabin": "Small cats and dogs can travel in the economy class section of Royal Jordanian flights if the duration of the journey does not exceed 5 hours. The combined weight of your pet and carrier must not exceed 15 lbs (7 kg). Pets traveling in the cabin will be charged twice the usual excess baggage rate of $90-180 depending on the destination of your travel.",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must not exceed 19\" x 15\" x 10\" (50 cm x 40 cm x 26). For pets traveling as checked baggage, there are no restrictions on the size, but carriers over 98\" (250 cm) are charged a fee for each additional 20\" (50 cm). In addition to cats, dogs, and household pets, falcons are charged 3 times the normal excess baggage rate. More than 1 falcon per handler will require the booking of an adjacent seat. The maximum number of falcons allowed on board is between 10-15. There are a limited number of pets allowed on each flight: 2 in the cabin and 4 in the hold.",
+          "pets_in_checked_baggage": "Cats, dogs, and other household pets may be transported as checked baggage if they exceed the limitations for transport in the cabin. There is no weight limit, but animals are charged more depending on the combined weight of the pet and carrier. Passenger's 1st animal and carrier up to 70 lbs (32 kg) under 80\" (203 cm) is charged at twice the usual excess baggage rate. Any additional pet carriers of this weight and size are charged at twice the rate. Carriers between 70-100 lbs (32-45 kg) under 80\" (203 cm) are charged 3 times the usual excess baggage rate; and between 80-98\" (203-250 cm) are charged at 4 times the usual baggage rate. Animals and carriers below 70 lbs (32 kg) between 80-100\" (203-250 cm) are charged 3 times the usual baggage rate. Animals and carriers over 100 lbs (45 kg) and for each additional 25 lbs (10 kg) are charged the same as animals below, plus additional excess baggage."
+        },
+        {
+          "pet_policy": "Pets are welcome to fly as checked baggage on domestic flights and as cargo on international flights with Air New Zealand.",
+          "airline_name": "Air New Zealand",
+          "pets_in_cabin": "Unfortunately, pets are not permitted to travel in the cabin with Air New Zealand.",
+          "pets_in_cargo": "Animals traveling internationally must be transported as cargo in the hold instead. Costs vary depending on the destination, size, carrier, and administration time to prepare required travel documents such as vet certificates. Customers must contact an approved pet transporter.",
+          "carrier_guidelines": "For pets traveling as checked baggage, carriers vary depending on the aircraft you are flying on. On A320 aircraft, the dimensions can be 38\" x 31\" x 52\" (97 cm x 79 cm x 131 cm). On ATR72 aircraft, the dimensions should be 40\" x 24\" x 40\" (100 cm x 60 cm x 100 cm). On Q300, the dimensions should be 32\" x 30\" x 47\" (82 cm x 75 cm x 120 cm). Additionally, carriers should be rigid without a pop-up hatch, be fitted with a water container fillable from the outside, have ventilation holes only on the upper half of three sides, excluding the door, and the floor must be solid and leak-proof. You must include appropriate and proportionate absorbent material e.g. paper, shredded newspaper or puppy pee pad.",
+          "pets_in_checked_baggage": "Dogs, cats and small caged birds can travel as checked-in baggage on all domestic flights around New Zealand provided they fly in pet carriers suitable for air travel. Two adult animals of comparable size up to 30 lbs (14 kg) each that are used to cohabitation may be shipped in the same container. Animals over 30 lbs (14 kg) must travel individually. Three animals up to six months old from the same litter may be shipped in the same carrier. There's an additional fee of NZD $120 for all pet sizes."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage with Tap Air Portugal.",
+          "airline_name": "Tap Air Portugal",
+          "pets_in_cabin": "TAP Air Portugal allows small cats and dogs to travel in the cabin on select flights if they are at least 12 weeks old and do not exceed 17 lbs (8 kg). The fee for this service is $48-199, depending on the destination of your travel.",
+          "pets_in_cargo": "Pets that exceed the weight restrictions to travel as checked baggage, or those being transported alone, can be transported as cargo with TAP Air Portugal's Cargo Department.",
+          "carrier_guidelines": "For animals traveling in the cabin, carriers not exceed the dimensions of 18\" x 12\" x 9\"(45 cm x 30 cm x 23 cm).",
+          "pets_in_checked_baggage": "Tap Air Portugal welcomes pets to travel as checked baggage on select flights. Pets and carriers with a combined weight under 70 lbs (32 kg) on flights to/from or stopping over in the USA, Hungary, France, and the Netherlands can travel in the hold. Pets that do not exceed 99 lbs (45 kg) on all other flights offered by TAP Air can travel in the hold. Animals and carriers with a combined weight up to 70 lbs (32 kg) will be charged a fee of $101-282. Animals and carriers with a combined weight between 70-99 lbs (32-45 kg) will be charged a fee of $162-367."
+        },
+        {
+          "pet_policy": "Qatar Airways allows up to six falcons in the economy section of the cabin of aircrafts, with one per passenger. Dogs and cats are not permitted in the cabin. Domesticated dogs, cats, and birds can be accepted as checked baggage, with no limit on the number of pets, but fees apply based on weight and size. Pets exceeding 165 lbs can be handled as cargo. Specific carrier guidelines and restrictions apply.",
+          "airline_name": "Qatar Airways",
+          "pets_in_cabin": "1 falcon in the economy class cabin; dogs and cats not permitted.",
+          "pets_in_cargo": "Pets exceeding 165 lbs (75 kg) can be handled as cargo.",
+          "carrier_guidelines": "Carriers must be well-ventilated, adequate size, and strong enough to prevent escape. Pet owners must supply food and water for the journey. Small carriers should not exceed 69\" (175 cm), medium carriers should not exceed 85\" (217 cm), and large carriers should not exceed 96\" (245 cm).",
+          "pets_in_checked_baggage": "Domesticated dogs, cats, and birds accepted; no limit on number, but fees apply based on weight and size."
+        },
+        {
+          "pet_policy": "Pets are welcome to travel in the cabin and as checked baggage on select flights with Air Transat. Air Transat requests that you reserve Fido's spot on board at least three days prior to departure to ensure that the maximum number of pets hasn't been reached. Passengers will be charged an additional $30 CAD fee to cover costs of inspection by the Canadian Food Inspection Agency. Arrivals from USA are exempt.",
+          "airline_name": "Air Transat",
+          "pets_in_cabin": "Air Transat welcomes small pets who weigh less than 22 lbs (10 kg) in a carrier to travel in the cabin. Animals must remain inside the carrier throughout and be stored underneath the seat in front of you. For flights inside Canada and to the U.S., the fee for each segment of travel is $50 in advance or $75 at the airport. For flights to Europe or South America, the fee for each segment of travel is $100 in advance or $115 at the airport.",
+          "pets_in_cargo": "Animals who exceed the limitations of traveling as checked baggage may qualify for transport as cargo. Contact Air Transat at (877) 872-6728 for more information.",
+          "carrier_guidelines": "For pets traveling in the cabin, carriers must fit under the seat and must not exceed the specified dimensions of 17\" x 9.5\" x 10\" (43 cm x 24 cm x 25 cm). The carrier must be leak-proof, well ventilated and soft-sided. A hard-sided carrier or any other type of bag is not permitted in the cabin. For pets traveling as checked baggage, carriers should not exceed 48\" x 32\" x 35\" (122 cm x 81.3 cm x 89 cm). All carriers must be properly ventilated and provide enough space for Fido to stand up straight-legged, turn around, and lie down inside.",
+          "pets_in_checked_baggage": "Air Transat permits pets to travel as checked baggage if the combined weight of the pet and carrier does not exceed 99 lbs (45 kg). Only one animal per cage is accepted, and no animal under 12 weeks (3 months) of age may travel. For flights inside Canada or to the U.S., the fee for each segment of travel is $100 in advance or $115 at the airport. For flights to the U.S., the fee for each segment of travel is $150 in advance or $175 at the airport. For flights to South America, Europe or Africa, the fee for each segment of travel is $275 in advance or $300 at the airport."
+        },
+        {
+          "pet_policy": "Hawaiian Airlines welcomes pets to travel in the cabin and as checked baggage. Pets in the cabin must not exceed 25 lbs (11 kg) including the carrier, and there is a fee of $35 for inter-island flights and $125 for other flights. Pets in checked baggage must not exceed 70 lbs (32 kg) and the fee is $60 for inter-island flights and $225 for other flights. Pets can also be transported in cargo if they exceed the weight limits.",
+          "airline_name": "Hawaiian Airlines",
+          "pets_in_cabin": "Small dogs and cats are allowed in the cabin on inter-island flights and flights between Hawaii and the US Mainland, with a maximum weight of 25 lbs (11 kg) including the carrier. Only one pet per carrier is allowed, except for two puppies or kittens from the same litter. Pets are not accepted on international flights or flights to/from JFK, Boston, or Austin.",
+          "pets_in_cargo": "Pets that exceed the weight limit for checked baggage or are traveling alone can be transported via Hawaiian Airlines Cargo. Contact them directly for more information.",
+          "carrier_guidelines": "Carriers for pets in the cabin must be soft-sided, leak-proof, and allow the animal to sit, stand, turn, and lie down comfortably. The maximum dimensions are 16\" x 10\" x 9.5\" (40 cm x 25 cm x 24 cm). For checked baggage, kennels must be hard-sided with maximum sizes of 36\" x 25\" x 27\" for 717 aircraft and 40\" x 27\" x 30\" for 767 aircraft.",
+          "pets_in_checked_baggage": "Dogs, cats, and household birds can be transported as checked baggage on inter-island flights and flights between Hawaii and the US Mainland, with a maximum weight of 70 lbs (32 kg) including the carrier. The fee is $60 for inter-island flights and $225 for other flights. Only one animal per carrier is allowed, except for two puppies or kittens from the same litter."
+        },
+        {
+          "pet_policy": "Hawaiian Airlines is the largest airline in Hawaii. Pets are welcome to travel in the cabin and as checked baggage with Hawaiian Airlines.",
+          "airline_name": "Hawaiian Airlines",
+          "pets_in_cabin": "Hawaiian Airlines welcomes small dogs and cats to fly in the passenger cabin on inter-island flights and flights between the State of Hawaii and the US Mainland, as long as the combined weight of the pet and carrier does not exceed 25 lbs (11 kg). Each passenger can travel with 1 carrier. Only 1 animal is permitted in each carrier, except for 2 puppies or kittens from the same litter or breed. There is a $35 fee for pets traveling in the passenger cabin on inter-island flights. For all other flights, the fee is $125 (each way). Pets are not accepted on international flights or flights to/from JFK, Boston or Austin.",
+          "pets_in_cargo": "If the weight of your pet exceeds the weight limit permitted in the hold or Fido is traveling alone, you can transport them with Hawaiian Airlines Cargo Department. Contact them directly at 1-877-422-2746 for more information.",
+          "carrier_guidelines": "For pets traveling in the passenger cabin, carriers must be soft-sided, leak proof, and large enough to allow the animal to sit, stand upright, turn, and lay down in a natural position. They must not exceed the dimensions of 16\" x 10\" x 9.5\" (40 cm x 25 cm x 24 cm). The animal is required to stay in the carrier throughout the journey. For pets traveling as checked baggage, kennels must be hard-sided. The maximum size for kennels in the hold is 36\" x 25\" x 27\" (91 cm x 60 cm x 66 cm) for 717 aircraft and 40\" x 27\" x 30\" (101 cm x 68 cm x 76 cm) for 767 aircraft.",
+          "pets_in_checked_baggage": "Hawaiian Airlines welcomes dogs, cats, and household birds to be transported as checked baggage on inter-island flights and flights between the State of Hawaii and the US Mainland if the combined weight of the pet and carrier does not exceed 70 lbs (32 kg). The fee is $60 (each way) for inter-island flights and $225 (each way) for all other flights. Only 1 animal is permitted in each carrier, except for 2 puppies or kittens from the same litter or breed. In cases of extreme temperatures, Hawaiian Airlines reserves the right to restrict the transportation of your pet in cargo. Animals are not accepted as checked baggage from April 15 through October 15 from San Jose, CA; Sacramento, CA; Las Vegas, NV; and Phoenix, AZ."
+        },
+        {
+          "pet_policy": "Hawaiian Airlines welcomes small dogs and cats to fly in the passenger cabin on inter-island flights and flights between the State of Hawaii and the US Mainland, as long as the combined weight of the pet and carrier does not exceed 25 lbs (11 kg). Pets are also welcomed as checked baggage on inter-island flights and flights between the State of Hawaii and the US Mainland if the combined weight of the pet and carrier does not exceed 70 lbs (32 kg).",
+          "airline_name": "Hawaiian Airlines",
+          "pets_in_cabin": "Pets in the cabin are allowed for a fee of $35 on inter-island flights and $125 on all other flights. Only 1 animal is permitted in each carrier, except for 2 puppies or kittens from the same litter or breed. Pets are not accepted on international flights or flights to/from JFK, Boston or Austin.",
+          "pets_in_cargo": "Pets exceeding the weight limit for checked baggage or traveling alone can be transported via Hawaiian Airlines Cargo Department. Contact them directly for more information.",
+          "carrier_guidelines": "Carriers for pets traveling in the cabin must be soft-sided, leak proof, and not exceed the dimensions of 16\" x 10\" x 9.5\" (40 cm x 25 cm x 24 cm). For checked baggage, kennels must be hard-sided with specific size limits depending on the aircraft.",
+          "pets_in_checked_baggage": "Pets can be transported as checked baggage for a fee of $60 on inter-island flights and $225 on all other flights. Only 1 animal is permitted in each carrier, except for 2 puppies or kittens from the same litter or breed. Restrictions apply during extreme temperatures and certain routes."
+        },
+        {
+          "pet_policy": "Hawaiian Airlines welcomes small dogs and cats to fly in the passenger cabin on inter-island flights and flights between the State of Hawaii and the US Mainland, as long as the combined weight of the pet and carrier does not exceed 25 lbs (11 kg). Pets are also welcomed as checked baggage on inter-island flights and flights between the State of Hawaii and the US Mainland if the combined weight of the pet and carrier does not exceed 70 lbs (32 kg).",
+          "airline_name": "Hawaiian Airlines",
+          "pets_in_cabin": "Pets are welcome in the cabin on inter-island flights and flights between Hawaii and the US Mainland. The combined weight of the pet and carrier must not exceed 25 lbs (11 kg). There is a fee of $35 for inter-island flights and $125 for other flights.",
+          "pets_in_cargo": "Pets exceeding the weight limit for checked baggage or traveling alone can be transported via Hawaiian Airlines Cargo Department. Contact them directly for more information.",
+          "carrier_guidelines": "Carriers for pets in the cabin must be soft-sided, leak-proof, and allow the animal to sit, stand, turn, and lie down naturally. The maximum dimensions are 16\" x 10\" x 9.5\" (40 cm x 25 cm x 24 cm). For checked baggage, kennels must be hard-sided with maximum sizes of 36\" x 25\" x 27\" for 717 aircraft and 40\" x 27\" x 30\" for 767 aircraft.",
+          "pets_in_checked_baggage": "Pets can be transported as checked baggage on inter-island flights and flights between Hawaii and the US Mainland, with a weight limit of 70 lbs (32 kg). The fee is $60 for inter-island flights and $225 for other flights."
+        },
+        {
+          "pet_policy": "Hawaiian Airlines welcomes pets to travel in the cabin and as checked baggage. Pets in the cabin must not exceed 25 lbs (11 kg) including the carrier, and there is a fee of $35 for inter-island flights and $125 for other flights. Pets in checked baggage must not exceed 70 lbs (32 kg) and the fee is $60 for inter-island flights and $225 for other flights. Pets can also be transported in cargo if they exceed the weight limits.",
+          "airline_name": "Hawaiian Airlines",
+          "pets_in_cabin": "Small dogs and cats are allowed in the cabin on inter-island flights and flights between Hawaii and the US Mainland, with a maximum weight of 25 lbs (11 kg) including the carrier. Only one pet per carrier is allowed, except for two puppies or kittens from the same litter. Pets are not accepted on international flights or flights to/from JFK, Boston, or Austin.",
+          "pets_in_cargo": "Pets that exceed the weight limit for checked baggage or are traveling alone can be transported via Hawaiian Airlines Cargo. Contact them directly for more information.",
+          "carrier_guidelines": "For cabin travel, carriers must be soft-sided, leak-proof, and not exceed 16\" x 10\" x 9.5\" (40 cm x 25 cm x 24 cm). For checked baggage, kennels must be hard-sided with a maximum size of 36\" x 25\" x 27\" for 717 aircraft and 40\" x 27\" x 30\" for 767 aircraft.",
+          "pets_in_checked_baggage": "Dogs, cats, and household birds can be transported as checked baggage on inter-island flights and flights between Hawaii and the US Mainland, with a maximum weight of 70 lbs (32 kg) including the carrier. Only one animal per carrier is allowed, except for two puppies or kittens from the same litter. Fees are $60 for inter-island flights and $225 for other flights."
+        },
+        {
+          "pet_policy": "Hawaiian Airlines welcomes small dogs and cats to fly in the passenger cabin on inter-island flights and flights between the State of Hawaii and the US Mainland, as long as the combined weight of the pet and carrier does not exceed 25 lbs (11 kg). Pets are also accepted as checked baggage on inter-island flights and flights between the State of Hawaii and the US Mainland if the combined weight of the pet and carrier does not exceed 70 lbs (32 kg).",
+          "airline_name": "Hawaiian Airlines",
+          "pets_in_cabin": "Pets are welcome in the cabin on inter-island flights and flights between Hawaii and the US Mainland. The combined weight of the pet and carrier must not exceed 25 lbs (11 kg). There is a fee of $35 for inter-island flights and $125 for other flights.",
+          "pets_in_cargo": "If the pet exceeds the weight limit for checked baggage or is traveling alone, they can be transported via Hawaiian Airlines Cargo Department. Contact them directly for more information.",
+          "carrier_guidelines": "For pets in the cabin, carriers must be soft-sided, leak proof, and not exceed 16\" x 10\" x 9.5\" (40 cm x 25 cm x 24 cm). For checked baggage, kennels must be hard-sided with specific size limits depending on the aircraft.",
+          "pets_in_checked_baggage": "Dogs, cats, and household birds can be transported as checked baggage on inter-island flights and flights between Hawaii and the US Mainland, with a weight limit of 70 lbs (32 kg). The fee is $60 for inter-island flights and $225 for other flights."
+        },
+        {
+          "pet_policy": "Hawaiian Airlines welcomes small dogs and cats to fly in the passenger cabin on inter-island flights and flights between the State of Hawaii and the US Mainland, as long as the combined weight of the pet and carrier does not exceed 25 lbs (11 kg). Pets are also accepted as checked baggage on inter-island flights and flights between the State of Hawaii and the US Mainland if the combined weight of the pet and carrier does not exceed 70 lbs (32 kg).",
+          "airline_name": "Hawaiian Airlines",
+          "pets_in_cabin": "Pets in the cabin are allowed for a fee of $35 on inter-island flights and $125 on all other flights. Only 1 animal is permitted in each carrier, except for 2 puppies or kittens from the same litter or breed. Pets are not accepted on international flights or flights to/from JFK, Boston or Austin.",
+          "pets_in_cargo": "If the weight of your pet exceeds the weight limit permitted in the hold or if the pet is traveling alone, they can be transported with Hawaiian Airlines Cargo Department. Contact them directly for more information.",
+          "carrier_guidelines": "For pets traveling in the passenger cabin, carriers must be soft-sided, leak proof, and large enough to allow the animal to sit, stand upright, turn, and lay down in a natural position. They must not exceed the dimensions of 16\" x 10\" x 9.5\" (40 cm x 25 cm x 24 cm). For pets traveling as checked baggage, kennels must be hard-sided with specific size limits depending on the aircraft.",
+          "pets_in_checked_baggage": "Pets can be transported as checked baggage for a fee of $60 on inter-island flights and $225 on all other flights. Only 1 animal is permitted in each carrier, except for 2 puppies or kittens from the same litter or breed. Restrictions apply during extreme temperatures and certain routes."
+        },
+        {
+          "pet_policy": "Pets are permitted to travel on select flights with Myanmar Airways International. For more information, contact the call center via csc@maiair.aero or the number listed below.",
+          "airline_name": "Myanmar Airways International",
+          "pets_in_cabin": "",
+          "pets_in_cargo": "",
+          "carrier_guidelines": "",
+          "pets_in_checked_baggage": ""
+        }
+      ]
+    }
+  ]
