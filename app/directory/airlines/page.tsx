@@ -1,48 +1,31 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Airplay, Hotel, FileText } from "lucide-react";
+import { Airplay, Hotel, FileText } from "lucide-react"; // Add missing imports
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
-import { createClient } from "@/lib/supabase-server";
 import AirlinesList from "./AirlinesList";
+import { createClient } from "@/lib/supabase-server";
 
-export const revalidate = 0;
-
+// Define and export AirlineData type
 export type AirlineData = {
   airline: string;
   slug: string;
   logo: string;
   country: string | null;
-  fees_usd?: number | null;
-  last_updated?: string | null;
   user_rating?: number | null;
 };
 
-export default async function AirlinesDirectoryPage() {
+async function AirlinesData() {
   const supabase = await createClient();
-  const initialItemsPerPage = 12;
-
-  // Fetch initial page from the sorted view
-  const { data: initialAirlines, error } = await supabase
+  const { data } = await supabase
     .from("airline_pet_policies_sorted")
-    .select("airline, slug, logo, country, fees_usd, last_updated, user_rating")
-    .limit(initialItemsPerPage);
+    .select("airline, slug, logo, country, user_rating")
+    .limit(12);
+  return <AirlinesList initialAirlines={data ?? []} />;
+}
 
-  if (error) {
-    //console.error("Error fetching initial airlines:", error);
-    throw new Error("Failed to fetch airlines");
-  }
-
-  const airlinesData: AirlineData[] = initialAirlines ?? [];
-  //console.log("Initial airlines:", airlinesData);
-
+export default function AirlinesDirectoryPage() {
   return (
     <div className="container mx-auto p-4 space-y-8">
       <div className="mt-20" />
@@ -66,20 +49,6 @@ export default async function AirlinesDirectoryPage() {
         ))}
       </nav>
 
-      <div className="mb-8 flex justify-center">
-        <input
-          type="text"
-          placeholder="Search airlines..."
-          className="p-2 border rounded-md border-brand-teal text-offblack"
-        />
-        <Button
-          type="submit"
-          className="ml-4 bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack"
-        >
-          Search
-        </Button>
-      </div>
-
       <Card className="bg-brand-pink border-none shadow-md">
         <CardHeader className="flex flex-col space-y-4">
           <div className="flex flex-row items-center space-x-4">
@@ -97,7 +66,9 @@ export default async function AirlinesDirectoryPage() {
 
       <DirectoryBreadcrumb currentCategory="airlines" />
 
-      <AirlinesList initialAirlines={airlinesData} />
+      <Suspense fallback={<div className="text-center text-xl">Loading airlines...</div>}>
+        <AirlinesData />
+      </Suspense>
 
       <div className="text-center mt-16 p-8 bg-brand-pink rounded-2xl">
         <h2 className="text-3xl font-display text-brand-teal mb-4">
@@ -107,13 +78,12 @@ export default async function AirlinesDirectoryPage() {
           Our team can help you navigate the complex requirements for
           international air travel with pets.
         </p>
-        <Button
-          asChild
-          className="bg-brand-teal text-white hover:bg-white hover:text-brand-teal"
-        >
+        <Button asChild className="bg-brand-teal text-white hover:bg-white hover:text-brand-teal">
           <Link href="/contact">Contact Us</Link>
         </Button>
       </div>
     </div>
   );
 }
+
+export const revalidate = 300; // Cache for 5 minutes

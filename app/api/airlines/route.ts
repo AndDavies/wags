@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const offset = parseInt(searchParams.get("offset") || "0", 10);
   const limit = parseInt(searchParams.get("limit") || "12", 10);
 
-  console.log("API Offset:", offset, "Limit:", limit);
+  //console.log("API Offset:", offset, "Limit:", limit);
 
   const supabase = await createClient();
 
@@ -20,6 +20,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to fetch airlines" }, { status: 500 });
   }
 
-  console.log("API response data:", data);
+  //console.log("API response data:", data);
   return NextResponse.json(data || []);
 }
