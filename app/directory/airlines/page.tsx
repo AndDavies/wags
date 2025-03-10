@@ -36,12 +36,12 @@ export default async function AirlinesDirectoryPage() {
     .limit(initialItemsPerPage);
 
   if (error) {
-    console.error("Error fetching initial airlines:", error);
+    //console.error("Error fetching initial airlines:", error);
     throw new Error("Failed to fetch airlines");
   }
 
   const airlinesData: AirlineData[] = initialAirlines ?? [];
-  console.log("Initial airlines:", airlinesData);
+  //console.log("Initial airlines:", airlinesData);
 
   return (
     <div className="container mx-auto p-4 space-y-8">
