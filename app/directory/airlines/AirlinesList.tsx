@@ -15,10 +15,13 @@ import {
 import { ChevronRight } from "lucide-react";
 import { AirlineData } from "./page";
 
-// Simple debounce utility
-const debounce = (func: (...args: any[]) => void, wait: number) => {
+// Debounce utility with explicit types
+const debounce = <T extends unknown[]>(
+  func: (...args: T) => void,
+  wait: number
+): ((...args: T) => void) => {
   let timeout: NodeJS.Timeout;
-  return (...args: any[]) => {
+  return (...args: T) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
@@ -61,7 +64,7 @@ export default function AirlinesList({
         setIsLoading(false);
       }
     }, 300),
-    [airlines, offset, isLoading, sortBy]
+    [airlines, offset, isLoading, sortBy] // Explicit dependencies
   );
 
   const handleSortChange = (value: "popularity" | "alphabetical") => {
