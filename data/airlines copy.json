@@ -1,0 +1,2752 @@
+[
+    {
+      "slug": "air-rarotonga",
+      "airline": "Air Rarotonga",
+      "user_rating": null
+    },
+    {
+      "slug": "yeti",
+      "airline": "Yeti",
+      "user_rating": null
+    },
+    {
+      "slug": "white-airways",
+      "airline": "White Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "cambodia-angkor-air",
+      "airline": "Cambodia Angkor Air",
+      "user_rating": null
+    },
+    {
+      "slug": "iraero",
+      "airline": "IrAero",
+      "user_rating": null
+    },
+    {
+      "slug": "hi-fly",
+      "airline": "Hi Fly",
+      "user_rating": null
+    },
+    {
+      "slug": "owg-airlines",
+      "airline": "OWG Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "kam-air",
+      "airline": "Kam Air",
+      "user_rating": null
+    },
+    {
+      "slug": "mahfooz-aviation",
+      "airline": "Mahfooz Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "tag-airlines",
+      "airline": "TAG Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "orenburzhye-airline",
+      "airline": "Orenburzhye Airline",
+      "user_rating": null
+    },
+    {
+      "slug": "southwind-airlines",
+      "airline": "Southwind Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "srilankan-airlines",
+      "airline": "Srilankan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "skywest-airlines",
+      "airline": "SkyWest Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "southwest-airlines",
+      "airline": "Southwest Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "garuda-indonesia",
+      "airline": "Garuda Indonesia",
+      "user_rating": null
+    },
+    {
+      "slug": "motor-sich-airlines",
+      "airline": "Motor Sich Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "nyxair",
+      "airline": "NyxAir",
+      "user_rating": null
+    },
+    {
+      "slug": "vueling",
+      "airline": "Vueling",
+      "user_rating": null
+    },
+    {
+      "slug": "northwestern-air",
+      "airline": "Northwestern Air",
+      "user_rating": null
+    },
+    {
+      "slug": "aeromexico",
+      "airline": "Aeromexico",
+      "user_rating": null
+    },
+    {
+      "slug": "lift",
+      "airline": "LIFT",
+      "user_rating": null
+    },
+    {
+      "slug": "nok-air",
+      "airline": "Nok Air",
+      "user_rating": null
+    },
+    {
+      "slug": "jiangxi-air",
+      "airline": "Jiangxi Air",
+      "user_rating": null
+    },
+    {
+      "slug": "air-tahiti",
+      "airline": "Air Tahiti",
+      "user_rating": null
+    },
+    {
+      "slug": "asl-airlines-france",
+      "airline": "ASL Airlines France",
+      "user_rating": null
+    },
+    {
+      "slug": "kenmore-air",
+      "airline": "Kenmore Air",
+      "user_rating": null
+    },
+    {
+      "slug": "japan-airlines",
+      "airline": "Japan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "hunnu-air",
+      "airline": "Hunnu Air",
+      "user_rating": null
+    },
+    {
+      "slug": "bering-air",
+      "airline": "Bering Air",
+      "user_rating": null
+    },
+    {
+      "slug": "turkmenistan-airlines",
+      "airline": "Turkmenistan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "eastern-airways",
+      "airline": "Eastern Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "sudan-airways",
+      "airline": "Sudan Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "cubana-de-aviación",
+      "airline": "Cubana de Aviación",
+      "user_rating": null
+    },
+    {
+      "slug": "novoair",
+      "airline": "Novoair",
+      "user_rating": null
+    },
+    {
+      "slug": "9air",
+      "airline": "9Air",
+      "user_rating": null
+    },
+    {
+      "slug": "aero-nomad",
+      "airline": "Aero Nomad",
+      "user_rating": null
+    },
+    {
+      "slug": "us-bangla-airlines",
+      "airline": "US-Bangla Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "yemenia",
+      "airline": "Yemenia",
+      "user_rating": null
+    },
+    {
+      "slug": "star-flyer",
+      "airline": "Star Flyer",
+      "user_rating": null
+    },
+    {
+      "slug": "flyadeal",
+      "airline": "Flyadeal",
+      "user_rating": null
+    },
+    {
+      "slug": "loong-air",
+      "airline": "Loong Air",
+      "user_rating": null
+    },
+    {
+      "slug": "drukair",
+      "airline": "Drukair",
+      "user_rating": null
+    },
+    {
+      "slug": "jubba-airways",
+      "airline": "Jubba Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "fly-one",
+      "airline": "Fly One",
+      "user_rating": null
+    },
+    {
+      "slug": "akasa-air",
+      "airline": "Akasa Air",
+      "user_rating": null
+    },
+    {
+      "slug": "flydubai",
+      "airline": "flydubai",
+      "user_rating": null
+    },
+    {
+      "slug": "canaryfly",
+      "airline": "Canaryfly",
+      "user_rating": null
+    },
+    {
+      "slug": "east-african",
+      "airline": "East African",
+      "user_rating": null
+    },
+    {
+      "slug": "precision-air",
+      "airline": "Precision Air",
+      "user_rating": null
+    },
+    {
+      "slug": "air-india",
+      "airline": "Air India",
+      "user_rating": null
+    },
+    {
+      "slug": "cham-wings-airlines",
+      "airline": "Cham Wings Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "fly-arna",
+      "airline": "Fly Arna",
+      "user_rating": null
+    },
+    {
+      "slug": "aer-lingus",
+      "airline": "Aer Lingus",
+      "user_rating": null
+    },
+    {
+      "slug": "ryanair",
+      "airline": "Ryanair",
+      "user_rating": null
+    },
+    {
+      "slug": "air-europa",
+      "airline": "Air Europa",
+      "user_rating": null
+    },
+    {
+      "slug": "air-canada",
+      "airline": "Air Canada",
+      "user_rating": null
+    },
+    {
+      "slug": "scoot",
+      "airline": "Scoot",
+      "user_rating": null
+    },
+    {
+      "slug": "eastern-airlines",
+      "airline": "Eastern Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "tibet-airlines",
+      "airline": "Tibet Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "calafia-airlines",
+      "airline": "Calafia Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "ravn-alaska",
+      "airline": "Ravn Alaska",
+      "user_rating": null
+    },
+    {
+      "slug": "xiamen-airlines",
+      "airline": "Xiamen Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "norra",
+      "airline": "Norra",
+      "user_rating": null
+    },
+    {
+      "slug": "jazeera-airways",
+      "airline": "Jazeera Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "jordan-aviation",
+      "airline": "Jordan Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "ais-airlines",
+      "airline": "AIS Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "juneyao-airlines",
+      "airline": "Juneyao Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "sun-air-of-scandinavia",
+      "airline": "Sun-Air of Scandinavia",
+      "user_rating": null
+    },
+    {
+      "slug": "eswatini-air",
+      "airline": "Eswatini Air",
+      "user_rating": null
+    },
+    {
+      "slug": "flynas",
+      "airline": "flynas",
+      "user_rating": null
+    },
+    {
+      "slug": "equaflight",
+      "airline": "Equaflight",
+      "user_rating": null
+    },
+    {
+      "slug": "sky-alps",
+      "airline": "Sky Alps",
+      "user_rating": null
+    },
+    {
+      "slug": "air-panama",
+      "airline": "Air Panama",
+      "user_rating": null
+    },
+    {
+      "slug": "air-juan",
+      "airline": "Air Juan",
+      "user_rating": null
+    },
+    {
+      "slug": "euroatlantic-airways",
+      "airline": "EuroAtlantic Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "air-cote-divoire",
+      "airline": "Air Cote d'Ivoire",
+      "user_rating": null
+    },
+    {
+      "slug": "buddha-air",
+      "airline": "Buddha Air",
+      "user_rating": null
+    },
+    {
+      "slug": "tunisair-express",
+      "airline": "Tunisair Express",
+      "user_rating": null
+    },
+    {
+      "slug": "utair",
+      "airline": "Utair",
+      "user_rating": null
+    },
+    {
+      "slug": "samoa-airways",
+      "airline": "Samoa Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "sriwijaya-air",
+      "airline": "Sriwijaya Air",
+      "user_rating": null
+    },
+    {
+      "slug": "emirates",
+      "airline": "Emirates",
+      "user_rating": null
+    },
+    {
+      "slug": "breeze-airways",
+      "airline": "Breeze Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "gojet-airlines",
+      "airline": "GoJet Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "omni-aviation",
+      "airline": "Omni Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "air-dilijans",
+      "airline": "Air Dilijans",
+      "user_rating": null
+    },
+    {
+      "slug": "beijing-capital-airlines",
+      "airline": "Beijing Capital Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "chalair-aviation",
+      "airline": "Chalair Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "mahan-air",
+      "airline": "Mahan Air",
+      "user_rating": null
+    },
+    {
+      "slug": "arkia-israel-airline",
+      "airline": "Arkia Israel Airline",
+      "user_rating": null
+    },
+    {
+      "slug": "philippine-airlines",
+      "airline": "Philippine Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "nordica",
+      "airline": "Nordica",
+      "user_rating": null
+    },
+    {
+      "slug": "south-africa-airways",
+      "airline": "South Africa Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "rusline",
+      "airline": "Rusline",
+      "user_rating": null
+    },
+    {
+      "slug": "albastar",
+      "airline": "AlbaStar",
+      "user_rating": null
+    },
+    {
+      "slug": "wizz-air",
+      "airline": "Wizz Air",
+      "user_rating": null
+    },
+    {
+      "slug": "china-southern-airlines",
+      "airline": "China Southern Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "saudia",
+      "airline": "Saudia",
+      "user_rating": null
+    },
+    {
+      "slug": "sprintair",
+      "airline": "SprintAir",
+      "user_rating": null
+    },
+    {
+      "slug": "azul",
+      "airline": "Azul",
+      "user_rating": null
+    },
+    {
+      "slug": "air-belgium",
+      "airline": "Air Belgium",
+      "user_rating": null
+    },
+    {
+      "slug": "air-seoul",
+      "airline": "Air Seoul",
+      "user_rating": null
+    },
+    {
+      "slug": "iran-aseman-airlines",
+      "airline": "Iran Aseman Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "azores-airlines",
+      "airline": "Azores Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "north-wright-airways",
+      "airline": "North-Wright Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "myanmar-national-airlines",
+      "airline": "Myanmar National Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "ibex-airlines",
+      "airline": "IBEX Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "okay-airways",
+      "airline": "Okay Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "brussels-airlines",
+      "airline": "Brussels Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "jet2",
+      "airline": "Jet2",
+      "user_rating": null
+    },
+    {
+      "slug": "lufthansa-cityline",
+      "airline": "Lufthansa CityLine",
+      "user_rating": null
+    },
+    {
+      "slug": "enterair",
+      "airline": "EnterAir",
+      "user_rating": null
+    },
+    {
+      "slug": "caribbean-airlines",
+      "airline": "Caribbean Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "azimuth-airlines",
+      "airline": "Azimuth Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "loganair",
+      "airline": "Loganair",
+      "user_rating": null
+    },
+    {
+      "slug": "aerosul-linhas-aéreas",
+      "airline": "Aerosul Linhas Aéreas",
+      "user_rating": null
+    },
+    {
+      "slug": "felix-airways",
+      "airline": "Felix Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "czech-airlines",
+      "airline": "Czech Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "avion-express",
+      "airline": "Avion Express",
+      "user_rating": null
+    },
+    {
+      "slug": "cargolux",
+      "airline": "Cargolux",
+      "user_rating": null
+    },
+    {
+      "slug": "shenzhen-airlines",
+      "airline": "Shenzhen Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "european-air-charter",
+      "airline": "European Air Charter",
+      "user_rating": null
+    },
+    {
+      "slug": "pobeda",
+      "airline": "Pobeda",
+      "user_rating": null
+    },
+    {
+      "slug": "kenya-airways",
+      "airline": "Kenya Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "israir-airlines",
+      "airline": "Israir Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "northwest-seaplanes",
+      "airline": "Northwest Seaplanes",
+      "user_rating": null
+    },
+    {
+      "slug": "skymark-airlines",
+      "airline": "Skymark Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-burkina",
+      "airline": "Air Burkina",
+      "user_rating": null
+    },
+    {
+      "slug": "grant-aviation",
+      "airline": "Grant Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "vieques-air-link",
+      "airline": "Vieques Air Link",
+      "user_rating": null
+    },
+    {
+      "slug": "portugalia",
+      "airline": "Portugalia",
+      "user_rating": null
+    },
+    {
+      "slug": "vivaaerobus",
+      "airline": "VivaAerobus",
+      "user_rating": null
+    },
+    {
+      "slug": "st-barth-commuter",
+      "airline": "St Barth Commuter",
+      "user_rating": null
+    },
+    {
+      "slug": "avior-airlines",
+      "airline": "Avior Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "azerbaijan-airlines",
+      "airline": "Azerbaijan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "yamal-airlines",
+      "airline": "Yamal Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-mediterranean",
+      "airline": "Air Mediterranean",
+      "user_rating": null
+    },
+    {
+      "slug": "asiana-airlines",
+      "airline": "Asiana Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "smartlynx-airlines",
+      "airline": "SmartLynx Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "cyprus-airways",
+      "airline": "Cyprus Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "condor",
+      "airline": "Condor",
+      "user_rating": null
+    },
+    {
+      "slug": "amakusa-airlines",
+      "airline": "Amakusa Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "thai-airways",
+      "airline": "Thai Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "aegean-airlines",
+      "airline": "Aegean Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "jeju-air",
+      "airline": "Jeju Air",
+      "user_rating": null
+    },
+    {
+      "slug": "ethiopian-airlines",
+      "airline": "Ethiopian Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "advanced-air",
+      "airline": "Advanced Air",
+      "user_rating": null
+    },
+    {
+      "slug": "auric-air",
+      "airline": "Auric Air",
+      "user_rating": null
+    },
+    {
+      "slug": "china-airlines",
+      "airline": "China Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-caraibes",
+      "airline": "Air Caraibes",
+      "user_rating": null
+    },
+    {
+      "slug": "asl-airlines-ireland",
+      "airline": "ASL Airlines Ireland",
+      "user_rating": null
+    },
+    {
+      "slug": "airasia-india",
+      "airline": "AirAsia India",
+      "user_rating": null
+    },
+    {
+      "slug": "twin-jet-airlines",
+      "airline": "Twin Jet Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-cairo",
+      "airline": "Air Cairo",
+      "user_rating": null
+    },
+    {
+      "slug": "lao-skyway",
+      "airline": "Lao Skyway",
+      "user_rating": null
+    },
+    {
+      "slug": "air-austral",
+      "airline": "Air Austral",
+      "user_rating": null
+    },
+    {
+      "slug": "flymontserrat",
+      "airline": "FlyMontserrat",
+      "user_rating": null
+    },
+    {
+      "slug": "air-tindi",
+      "airline": "Air Tindi",
+      "user_rating": null
+    },
+    {
+      "slug": "air-corsica",
+      "airline": "Air Corsica",
+      "user_rating": null
+    },
+    {
+      "slug": "egyptair",
+      "airline": "Egyptair",
+      "user_rating": null
+    },
+    {
+      "slug": "libyan-airlines",
+      "airline": "Libyan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "lufthansa",
+      "airline": "Lufthansa",
+      "user_rating": null
+    },
+    {
+      "slug": "qazac-air",
+      "airline": "Qazac Air",
+      "user_rating": null
+    },
+    {
+      "slug": "sky-airline",
+      "airline": "Sky Airline",
+      "user_rating": null
+    },
+    {
+      "slug": "bhutan-airlines",
+      "airline": "Bhutan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-transat",
+      "airline": "Air Transat",
+      "user_rating": null
+    },
+    {
+      "slug": "thai-vietjet-air",
+      "airline": "Thai Vietjet Air",
+      "user_rating": null
+    },
+    {
+      "slug": "i-fly",
+      "airline": "I-Fly",
+      "user_rating": null
+    },
+    {
+      "slug": "qatar-airways",
+      "airline": "Qatar Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "air-france",
+      "airline": "Air France",
+      "user_rating": null
+    },
+    {
+      "slug": "pegasus-airlines",
+      "airline": "Pegasus Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "regional-express-airlines",
+      "airline": "Regional Express Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "40-mile-air",
+      "airline": "40-Mile Air",
+      "user_rating": null
+    },
+    {
+      "slug": "aircalin",
+      "airline": "Aircalin",
+      "user_rating": null
+    },
+    {
+      "slug": "air-premia",
+      "airline": "Air Premia",
+      "user_rating": null
+    },
+    {
+      "slug": "suparna-airlines",
+      "airline": "Suparna Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-caledonie",
+      "airline": "Air Caledonie",
+      "user_rating": null
+    },
+    {
+      "slug": "sunwing-airlines",
+      "airline": "Sunwing Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "spicejet",
+      "airline": "SpiceJet",
+      "user_rating": null
+    },
+    {
+      "slug": "scandinavian-airlines",
+      "airline": "Scandinavian Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "olympic-air",
+      "airline": "Olympic Air",
+      "user_rating": null
+    },
+    {
+      "slug": "airbaltic",
+      "airline": "airBaltic",
+      "user_rating": null
+    },
+    {
+      "slug": "coastal-aviation",
+      "airline": "Coastal Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "dana-airlines",
+      "airline": "Dana Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "safair",
+      "airline": "Safair",
+      "user_rating": null
+    },
+    {
+      "slug": "iberia",
+      "airline": "Iberia",
+      "user_rating": null
+    },
+    {
+      "slug": "air-guyane-express",
+      "airline": "Air Guyane Express",
+      "user_rating": null
+    },
+    {
+      "slug": "virgin-atlantic",
+      "airline": "Virgin Atlantic",
+      "user_rating": null
+    },
+    {
+      "slug": "nauru-airlines",
+      "airline": "Nauru Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "smartwings",
+      "airline": "SmartWings",
+      "user_rating": null
+    },
+    {
+      "slug": "malaysia-airlines",
+      "airline": "Malaysia Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "ukraine-international-airlines",
+      "airline": "Ukraine International Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "cm-airlines",
+      "airline": "CM Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "hainan-airlines",
+      "airline": "Hainan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "iceland-air",
+      "airline": "Iceland Air",
+      "user_rating": null
+    },
+    {
+      "slug": "nippon-cargo-airlines",
+      "airline": "Nippon Cargo Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "krasavia",
+      "airline": "KrasAvia",
+      "user_rating": null
+    },
+    {
+      "slug": "sky-mali",
+      "airline": "Sky Mali",
+      "user_rating": null
+    },
+    {
+      "slug": "sun-country",
+      "airline": "Sun Country",
+      "user_rating": null
+    },
+    {
+      "slug": "tassili-airlines",
+      "airline": "Tassili Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "mandarin-airlines",
+      "airline": "Mandarin Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "tarom",
+      "airline": "TAROM",
+      "user_rating": null
+    },
+    {
+      "slug": "mango",
+      "airline": "Mango",
+      "user_rating": null
+    },
+    {
+      "slug": "wright-air-service",
+      "airline": "Wright Air Service",
+      "user_rating": null
+    },
+    {
+      "slug": "georgian-wings",
+      "airline": "Georgian Wings",
+      "user_rating": null
+    },
+    {
+      "slug": "tunisair",
+      "airline": "Tunisair",
+      "user_rating": null
+    },
+    {
+      "slug": "tui-airways",
+      "airline": "TUI Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "cargojet-airways",
+      "airline": "Cargojet Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "new-pacific-airlines",
+      "airline": "New Pacific Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "malindo-air",
+      "airline": "Malindo Air",
+      "user_rating": null
+    },
+    {
+      "slug": "republic-airways",
+      "airline": "Republic Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "jin-air",
+      "airline": "Jin Air",
+      "user_rating": null
+    },
+    {
+      "slug": "andes-lineas-aereas",
+      "airline": "Andes Lineas Aereas",
+      "user_rating": null
+    },
+    {
+      "slug": "firefly",
+      "airline": "FireFly",
+      "user_rating": null
+    },
+    {
+      "slug": "avianca-el-salvador",
+      "airline": "Avianca El Salvador",
+      "user_rating": null
+    },
+    {
+      "slug": "swiss-international-air-lines",
+      "airline": "Swiss International Air Lines",
+      "user_rating": null
+    },
+    {
+      "slug": "la-compagnie",
+      "airline": "La Compagnie",
+      "user_rating": null
+    },
+    {
+      "slug": "indigo",
+      "airline": "IndiGo",
+      "user_rating": null
+    },
+    {
+      "slug": "nouvelair",
+      "airline": "Nouvelair",
+      "user_rating": null
+    },
+    {
+      "slug": "air-dolomiti",
+      "airline": "Air Dolomiti",
+      "user_rating": null
+    },
+    {
+      "slug": "airnorth-regional",
+      "airline": "Airnorth Regional",
+      "user_rating": null
+    },
+    {
+      "slug": "air-india-express",
+      "airline": "Air India Express",
+      "user_rating": null
+    },
+    {
+      "slug": "singapore-airlines",
+      "airline": "Singapore Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "lion-air",
+      "airline": "Lion Air",
+      "user_rating": null
+    },
+    {
+      "slug": "myanmar-airways-international",
+      "airline": "Myanmar Airways International",
+      "user_rating": null
+    },
+    {
+      "slug": "shanghai-airlines",
+      "airline": "Shanghai Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "delta-air-lines",
+      "airline": "Delta Air Lines",
+      "user_rating": null
+    },
+    {
+      "slug": "yakutia-airlines",
+      "airline": "Yakutia Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "jsx-airlines",
+      "airline": "JSX Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "gazpromavia",
+      "airline": "Gazpromavia",
+      "user_rating": null
+    },
+    {
+      "slug": "pal-airlines",
+      "airline": "PAL Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "sun-dor-international-airlines",
+      "airline": "Sun D'Or International Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "tajik-air",
+      "airline": "Tajik Air",
+      "user_rating": null
+    },
+    {
+      "slug": "usa-jet-airlines",
+      "airline": "USA Jet Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "aeroitalia",
+      "airline": "Aeroitalia",
+      "user_rating": null
+    },
+    {
+      "slug": "avia-traffic-company",
+      "airline": "Avia Traffic Company",
+      "user_rating": null
+    },
+    {
+      "slug": "batik-air",
+      "airline": "Batik Air",
+      "user_rating": null
+    },
+    {
+      "slug": "alliance-airlines-pty",
+      "airline": "Alliance Airlines PTY",
+      "user_rating": null
+    },
+    {
+      "slug": "uzbekistan-airways",
+      "airline": "Uzbekistan Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "sky-jet-airlines",
+      "airline": "Sky Jet Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "nepal-airlines",
+      "airline": "Nepal Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "qantas",
+      "airline": "Qantas",
+      "user_rating": null
+    },
+    {
+      "slug": "joy-air",
+      "airline": "Joy Air",
+      "user_rating": null
+    },
+    {
+      "slug": "jetblue",
+      "airline": "JetBlue",
+      "user_rating": null
+    },
+    {
+      "slug": "asky",
+      "airline": "Asky",
+      "user_rating": null
+    },
+    {
+      "slug": "china-postal-airlines",
+      "airline": "China Postal Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "fedex-express",
+      "airline": "FedEx Express",
+      "user_rating": null
+    },
+    {
+      "slug": "air-algerie",
+      "airline": "Air Algerie",
+      "user_rating": null
+    },
+    {
+      "slug": "martinair-cargo",
+      "airline": "Martinair Cargo",
+      "user_rating": null
+    },
+    {
+      "slug": "acadian-seaplanes",
+      "airline": "Acadian Seaplanes",
+      "user_rating": null
+    },
+    {
+      "slug": "air-manas",
+      "airline": "Air Manas",
+      "user_rating": null
+    },
+    {
+      "slug": "airlink",
+      "airline": "Airlink",
+      "user_rating": null
+    },
+    {
+      "slug": "wasaya-airways",
+      "airline": "Wasaya Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "sunrise-airways",
+      "airline": "Sunrise Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "zanair",
+      "airline": "ZanAir",
+      "user_rating": null
+    },
+    {
+      "slug": "volotea",
+      "airline": "VOLOTEA",
+      "user_rating": null
+    },
+    {
+      "slug": "gx-airlines",
+      "airline": "GX Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "trigana-air-service",
+      "airline": "Trigana Air Service",
+      "user_rating": null
+    },
+    {
+      "slug": "fuzhou-airlines",
+      "airline": "Fuzhou Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-albania",
+      "airline": "Air Albania",
+      "user_rating": null
+    },
+    {
+      "slug": "taag-angola-airlines",
+      "airline": "Taag Angola Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "s7-airlines",
+      "airline": "S7 Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "japan-transocean",
+      "airline": "Japan Transocean",
+      "user_rating": null
+    },
+    {
+      "slug": "royal-jordanian",
+      "airline": "Royal Jordanian",
+      "user_rating": null
+    },
+    {
+      "slug": "alidaunia-s.r.l.",
+      "airline": "Alidaunia S.R.L.",
+      "user_rating": null
+    },
+    {
+      "slug": "berjaya-air",
+      "airline": "Berjaya Air",
+      "user_rating": null
+    },
+    {
+      "slug": "scat-airlines",
+      "airline": "SCAT Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "aurigny-air-services",
+      "airline": "Aurigny Air Services",
+      "user_rating": null
+    },
+    {
+      "slug": "tar-aerolineas",
+      "airline": "TAR Aerolineas",
+      "user_rating": null
+    },
+    {
+      "slug": "mann-yadanarpon-airlines",
+      "airline": "Mann Yadanarpon Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "solomon-airlines",
+      "airline": "Solomon Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "chongqing-airlines",
+      "airline": "Chongqing Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "hawaiian-airlines",
+      "airline": "Hawaiian Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "horizon-air",
+      "airline": "Horizon Air",
+      "user_rating": null
+    },
+    {
+      "slug": "trade-air",
+      "airline": "Trade Air",
+      "user_rating": null
+    },
+    {
+      "slug": "bassaka-air",
+      "airline": "Bassaka Air",
+      "user_rating": null
+    },
+    {
+      "slug": "somon-air",
+      "airline": "Somon Air",
+      "user_rating": null
+    },
+    {
+      "slug": "world2fly",
+      "airline": "World2Fly",
+      "user_rating": null
+    },
+    {
+      "slug": "tradewind-aviation",
+      "airline": "Tradewind Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "pascan-aviation",
+      "airline": "Pascan Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "dhl-aviation",
+      "airline": "DHL Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "bulgaria-air",
+      "airline": "Bulgaria Air",
+      "user_rating": null
+    },
+    {
+      "slug": "overland-airways",
+      "airline": "Overland Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "transnusa",
+      "airline": "TransNusa",
+      "user_rating": null
+    },
+    {
+      "slug": "intercaribbean-airways",
+      "airline": "interCaribbean Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "chengdu-airlines",
+      "airline": "Chengdu Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "neos-air",
+      "airline": "Neos Air",
+      "user_rating": null
+    },
+    {
+      "slug": "arik-air",
+      "airline": "Arik Air",
+      "user_rating": null
+    },
+    {
+      "slug": "lot-polish-airlines",
+      "airline": "LOT Polish Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "oman-air",
+      "airline": "Oman Air",
+      "user_rating": null
+    },
+    {
+      "slug": "sichuan-airlines",
+      "airline": "Sichuan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "trans-air-congo",
+      "airline": "Trans Air Congo",
+      "user_rating": null
+    },
+    {
+      "slug": "cinnamon-air",
+      "airline": "Cinnamon Air",
+      "user_rating": null
+    },
+    {
+      "slug": "afrijet",
+      "airline": "Afrijet",
+      "user_rating": null
+    },
+    {
+      "slug": "cebu-pacific",
+      "airline": "Cebu Pacific",
+      "user_rating": null
+    },
+    {
+      "slug": "aeroregional",
+      "airline": "Aeroregional",
+      "user_rating": null
+    },
+    {
+      "slug": "frontier-airlines",
+      "airline": "Frontier Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "widerøe",
+      "airline": "Widerøe",
+      "user_rating": null
+    },
+    {
+      "slug": "hong-kong-express-airways",
+      "airline": "Hong Kong Express Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "ecojet",
+      "airline": "EcoJet",
+      "user_rating": null
+    },
+    {
+      "slug": "iran-air",
+      "airline": "Iran Air",
+      "user_rating": null
+    },
+    {
+      "slug": "tui-fly-belgium",
+      "airline": "TUI fly Belgium",
+      "user_rating": null
+    },
+    {
+      "slug": "proflight-zambia",
+      "airline": "Proflight Zambia",
+      "user_rating": null
+    },
+    {
+      "slug": "maya-island-air",
+      "airline": "Maya Island Air",
+      "user_rating": null
+    },
+    {
+      "slug": "carpatair",
+      "airline": "Carpatair",
+      "user_rating": null
+    },
+    {
+      "slug": "bluebird-airways",
+      "airline": "Bluebird Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "kunming-airlines",
+      "airline": "Kunming Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "voepass-linhas-aéreas",
+      "airline": "VOEPASS Linhas Aéreas",
+      "user_rating": null
+    },
+    {
+      "slug": "titan-airways",
+      "airline": "Titan Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "alaska-seaplane",
+      "airline": "Alaska Seaplane",
+      "user_rating": null
+    },
+    {
+      "slug": "boutique-air",
+      "airline": "Boutique Air",
+      "user_rating": null
+    },
+    {
+      "slug": "win-air",
+      "airline": "Win Air",
+      "user_rating": null
+    },
+    {
+      "slug": "solaseed-air",
+      "airline": "Solaseed Air",
+      "user_rating": null
+    },
+    {
+      "slug": "el-al-israel-airlines",
+      "airline": "El Al Israel Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "spirit-airlines",
+      "airline": "Spirit Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "cemair",
+      "airline": "CemAir",
+      "user_rating": null
+    },
+    {
+      "slug": "heli-air-monaco",
+      "airline": "Heli Air Monaco",
+      "user_rating": null
+    },
+    {
+      "slug": "jambojet",
+      "airline": "Jambojet",
+      "user_rating": null
+    },
+    {
+      "slug": "nordstar",
+      "airline": "Nordstar",
+      "user_rating": null
+    },
+    {
+      "slug": "tailwind-airlines",
+      "airline": "Tailwind Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "cayman-airways",
+      "airline": "Cayman Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "cathay-pacific",
+      "airline": "Cathay Pacific",
+      "user_rating": null
+    },
+    {
+      "slug": "lanmei-airlines",
+      "airline": "Lanmei Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "eagle-air",
+      "airline": "Eagle Air",
+      "user_rating": null
+    },
+    {
+      "slug": "afriqiyah-airways",
+      "airline": "Afriqiyah Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "british-airways",
+      "airline": "British Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "all-nippon-airlines",
+      "airline": "All Nippon Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "buffalo-airways",
+      "airline": "Buffalo Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "gol-linhas-aereas",
+      "airline": "GOL Linhas Aereas",
+      "user_rating": null
+    },
+    {
+      "slug": "finnair",
+      "airline": "Finnair",
+      "user_rating": null
+    },
+    {
+      "slug": "sky-prime-aviation",
+      "airline": "Sky Prime Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "nam-air",
+      "airline": "NAM Air",
+      "user_rating": null
+    },
+    {
+      "slug": "air-north",
+      "airline": "Air North",
+      "user_rating": null
+    },
+    {
+      "slug": "qingdao-airlines",
+      "airline": "Qingdao Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "dan-air",
+      "airline": "Dan Air",
+      "user_rating": null
+    },
+    {
+      "slug": "air-seychelles",
+      "airline": "Air Seychelles",
+      "user_rating": null
+    },
+    {
+      "slug": "easyfly",
+      "airline": "EasyFly",
+      "user_rating": null
+    },
+    {
+      "slug": "air-china",
+      "airline": "Air China",
+      "user_rating": null
+    },
+    {
+      "slug": "k9-jets",
+      "airline": "K9 Jets",
+      "user_rating": null
+    },
+    {
+      "slug": "volaris",
+      "airline": "Volaris",
+      "user_rating": null
+    },
+    {
+      "slug": "corendon-dutch-airlines",
+      "airline": "Corendon Dutch Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "fiji-airways",
+      "airline": "Fiji Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "aruba-airlines",
+      "airline": "Aruba Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "airsial",
+      "airline": "AirSial",
+      "user_rating": null
+    },
+    {
+      "slug": "united-airlines",
+      "airline": "United Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "bangkok-airways",
+      "airline": "Bangkok Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "syrianair",
+      "airline": "SyrianAir",
+      "user_rating": null
+    },
+    {
+      "slug": "airkenya-express",
+      "airline": "Airkenya Express",
+      "user_rating": null
+    },
+    {
+      "slug": "china-united-airlines",
+      "airline": "China United Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-serbia",
+      "airline": "Air Serbia",
+      "user_rating": null
+    },
+    {
+      "slug": "boliviana-de-aviacion",
+      "airline": "Boliviana de Aviacion",
+      "user_rating": null
+    },
+    {
+      "slug": "flair-airlines",
+      "airline": "Flair Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "mokulele-airlines",
+      "airline": "Mokulele Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "avelo-airlines",
+      "airline": "Avelo Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "satena",
+      "airline": "Satena",
+      "user_rating": null
+    },
+    {
+      "slug": "canadian-north",
+      "airline": "Canadian North",
+      "user_rating": null
+    },
+    {
+      "slug": "ultimate-air-shuttle",
+      "airline": "Ultimate Air Shuttle",
+      "user_rating": null
+    },
+    {
+      "slug": "compagnie-africaine-daviation",
+      "airline": "Compagnie Africaine d'Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "amaszonas",
+      "airline": "Amaszonas",
+      "user_rating": null
+    },
+    {
+      "slug": "aurora-airlines",
+      "airline": "Aurora Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-saint-pierre",
+      "airline": "Air Saint-Pierre",
+      "user_rating": null
+    },
+    {
+      "slug": "biman-bangladesh-airlines",
+      "airline": "Biman Bangladesh Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "mng-airlines",
+      "airline": "MNG Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "iraqi-airways",
+      "airline": "Iraqi Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "seaborne-airlines",
+      "airline": "Seaborne Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "pal-express",
+      "airline": "PAL Express",
+      "user_rating": null
+    },
+    {
+      "slug": "air-creebec",
+      "airline": "Air Creebec",
+      "user_rating": null
+    },
+    {
+      "slug": "aeroflot",
+      "airline": "Aeroflot",
+      "user_rating": null
+    },
+    {
+      "slug": "yanair",
+      "airline": "Yanair",
+      "user_rating": null
+    },
+    {
+      "slug": "hinterland-aviation",
+      "airline": "Hinterland Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "pacific-coastal-airlines",
+      "airline": "Pacific Coastal Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-zimbabwe",
+      "airline": "Air Zimbabwe",
+      "user_rating": null
+    },
+    {
+      "slug": "azur-air",
+      "airline": "Azur Air",
+      "user_rating": null
+    },
+    {
+      "slug": "tus-airways",
+      "airline": "TUS Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "fly-red-wings",
+      "airline": "Fly Red Wings",
+      "user_rating": null
+    },
+    {
+      "slug": "klm-royal-dutch-airlines",
+      "airline": "KLM Royal Dutch Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-peace-airline",
+      "airline": "Air Peace Airline",
+      "user_rating": null
+    },
+    {
+      "slug": "flyegypt",
+      "airline": "FlyEgypt",
+      "user_rating": null
+    },
+    {
+      "slug": "airblue",
+      "airline": "Airblue",
+      "user_rating": null
+    },
+    {
+      "slug": "tianjin-airlines",
+      "airline": "Tianjin Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "aerovias-dap",
+      "airline": "Aerovias DAP",
+      "user_rating": null
+    },
+    {
+      "slug": "helvetic-airways",
+      "airline": "Helvetic Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "rwandair",
+      "airline": "RwandAir",
+      "user_rating": null
+    },
+    {
+      "slug": "air-botswana",
+      "airline": "Air Botswana",
+      "user_rating": null
+    },
+    {
+      "slug": "buraq-air",
+      "airline": "Buraq Air",
+      "user_rating": null
+    },
+    {
+      "slug": "populair",
+      "airline": "populAir",
+      "user_rating": null
+    },
+    {
+      "slug": "lam",
+      "airline": "LAM",
+      "user_rating": null
+    },
+    {
+      "slug": "fly-baghdad",
+      "airline": "Fly Baghdad",
+      "user_rating": null
+    },
+    {
+      "slug": "laser-airlines",
+      "airline": "Laser Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "lucky-air",
+      "airline": "Lucky Air",
+      "user_rating": null
+    },
+    {
+      "slug": "kuwait-airways",
+      "airline": "Kuwait Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "city-jet",
+      "airline": "City Jet",
+      "user_rating": null
+    },
+    {
+      "slug": "discover-airlines",
+      "airline": "Discover Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "skippers-aviation",
+      "airline": "Skippers Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "nesma-airlines",
+      "airline": "Nesma Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "regional-air",
+      "airline": "Regional Air",
+      "user_rating": null
+    },
+    {
+      "slug": "pineapple-air",
+      "airline": "Pineapple Air",
+      "user_rating": null
+    },
+    {
+      "slug": "transavia",
+      "airline": "Transavia",
+      "user_rating": null
+    },
+    {
+      "slug": "nordwind-airlines",
+      "airline": "Nordwind Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "allegiant",
+      "airline": "Allegiant",
+      "user_rating": null
+    },
+    {
+      "slug": "airbridgecargo",
+      "airline": "AirBridgeCargo",
+      "user_rating": null
+    },
+    {
+      "slug": "shandong-airlines",
+      "airline": "Shandong Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "qeshm-air",
+      "airline": "Qeshm Air",
+      "user_rating": null
+    },
+    {
+      "slug": "austrian-airlines",
+      "airline": "Austrian Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "royal-air-maroc",
+      "airline": "Royal Air Maroc",
+      "user_rating": null
+    },
+    {
+      "slug": "cape-air",
+      "airline": "Cape Air",
+      "user_rating": null
+    },
+    {
+      "slug": "gulf-air",
+      "airline": "Gulf Air",
+      "user_rating": null
+    },
+    {
+      "slug": "central-mountain-air",
+      "airline": "Central Mountain Air",
+      "user_rating": null
+    },
+    {
+      "slug": "freebird-airlines",
+      "airline": "Freebird Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "smartavia",
+      "airline": "Smartavia",
+      "user_rating": null
+    },
+    {
+      "slug": "air-moldova",
+      "airline": "Air Moldova",
+      "user_rating": null
+    },
+    {
+      "slug": "latam-airlines",
+      "airline": "LATAM Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "camair-co",
+      "airline": "Camair-Co",
+      "user_rating": null
+    },
+    {
+      "slug": "air-do",
+      "airline": "Air Do",
+      "user_rating": null
+    },
+    {
+      "slug": "southern-air-charter",
+      "airline": "Southern Air Charter",
+      "user_rating": null
+    },
+    {
+      "slug": "air-tanzania",
+      "airline": "Air Tanzania",
+      "user_rating": null
+    },
+    {
+      "slug": "fastjet-airlines",
+      "airline": "Fastjet Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "iberojet",
+      "airline": "Iberojet",
+      "user_rating": null
+    },
+    {
+      "slug": "uni-air",
+      "airline": "UNI Air",
+      "user_rating": null
+    },
+    {
+      "slug": "blue-air",
+      "airline": "Blue Air",
+      "user_rating": null
+    },
+    {
+      "slug": "corendon-airlines",
+      "airline": "Corendon Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "eritrean-airlines",
+      "airline": "Eritrean Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "aerolineas-argentinas",
+      "airline": "Aerolineas Argentinas",
+      "user_rating": null
+    },
+    {
+      "slug": "belavia-airlines",
+      "airline": "Belavia Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "middle-east-airlines",
+      "airline": "Middle East Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "silk-way-west-airlines",
+      "airline": "Silk Way West Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "apg-airlines",
+      "airline": "APG Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "spring-airlines",
+      "airline": "Spring Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "atlantic-airways",
+      "airline": "Atlantic Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "png-air",
+      "airline": "PNG Air",
+      "user_rating": null
+    },
+    {
+      "slug": "endeavor-airlines",
+      "airline": "Endeavor Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "sansa",
+      "airline": "SANSA",
+      "user_rating": null
+    },
+    {
+      "slug": "corsair",
+      "airline": "Corsair",
+      "user_rating": null
+    },
+    {
+      "slug": "edelweiss-air",
+      "airline": "Edelweiss Air",
+      "user_rating": null
+    },
+    {
+      "slug": "air-busan",
+      "airline": "Air Busan",
+      "user_rating": null
+    },
+    {
+      "slug": "hong-kong-airlines",
+      "airline": "Hong Kong Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "liat-airlines",
+      "airline": "LIAT Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "salam-air",
+      "airline": "Salam Air",
+      "user_rating": null
+    },
+    {
+      "slug": "bearskin-airlines",
+      "airline": "Bearskin Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-madagascar",
+      "airline": "Air Madagascar",
+      "user_rating": null
+    },
+    {
+      "slug": "luxair",
+      "airline": "Luxair",
+      "user_rating": null
+    },
+    {
+      "slug": "air-astana",
+      "airline": "Air Astana",
+      "user_rating": null
+    },
+    {
+      "slug": "southern-airways-express",
+      "airline": "Southern Airways Express",
+      "user_rating": null
+    },
+    {
+      "slug": "conviasa",
+      "airline": "Conviasa",
+      "user_rating": null
+    },
+    {
+      "slug": "himalaya-airlines",
+      "airline": "Himalaya Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "norwegian",
+      "airline": "Norwegian",
+      "user_rating": null
+    },
+    {
+      "slug": "nile-air",
+      "airline": "Nile Air",
+      "user_rating": null
+    },
+    {
+      "slug": "tap-air-portugal",
+      "airline": "Tap Air Portugal",
+      "user_rating": null
+    },
+    {
+      "slug": "ita-airways",
+      "airline": "ITA Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "mingalar",
+      "airline": "Mingalar",
+      "user_rating": null
+    },
+    {
+      "slug": "china-express-airlines",
+      "airline": "China Express Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "flybondi",
+      "airline": "Flybondi",
+      "user_rating": null
+    },
+    {
+      "slug": "polar-airlines-cargo",
+      "airline": "Polar Airlines Cargo",
+      "user_rating": null
+    },
+    {
+      "slug": "thai-smile",
+      "airline": "Thai Smile",
+      "user_rating": null
+    },
+    {
+      "slug": "sylt-air",
+      "airline": "Sylt Air",
+      "user_rating": null
+    },
+    {
+      "slug": "copa-airlines",
+      "airline": "Copa Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "vietnam-airlines",
+      "airline": "Vietnam Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-namibia",
+      "airline": "Air Namibia",
+      "user_rating": null
+    },
+    {
+      "slug": "peach-aviation",
+      "airline": "Peach Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "aerounion",
+      "airline": "AeroUnion",
+      "user_rating": null
+    },
+    {
+      "slug": "eurowings",
+      "airline": "Eurowings",
+      "user_rating": null
+    },
+    {
+      "slug": "severstal-aircompany",
+      "airline": "Severstal Aircompany",
+      "user_rating": null
+    },
+    {
+      "slug": "airswift",
+      "airline": "AirSWIFT",
+      "user_rating": null
+    },
+    {
+      "slug": "braathens-regional-aviation",
+      "airline": "Braathens Regional Aviation",
+      "user_rating": null
+    },
+    {
+      "slug": "blue-islands",
+      "airline": "Blue Islands",
+      "user_rating": null
+    },
+    {
+      "slug": "jetstar",
+      "airline": "Jetstar",
+      "user_rating": null
+    },
+    {
+      "slug": "ewa-air",
+      "airline": "Ewa Air",
+      "user_rating": null
+    },
+    {
+      "slug": "air-macau",
+      "airline": "Air Macau",
+      "user_rating": null
+    },
+    {
+      "slug": "cabo-verde-airlines",
+      "airline": "Cabo Verde Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "ural-airlines",
+      "airline": "Ural Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "costa-rica-green-airways",
+      "airline": "Costa Rica Green Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "georgian-airways",
+      "airline": "Georgian Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "binter-canarias",
+      "airline": "Binter Canarias",
+      "user_rating": null
+    },
+    {
+      "slug": "star-peru",
+      "airline": "Star Peru",
+      "user_rating": null
+    },
+    {
+      "slug": "air-century",
+      "airline": "Air Century",
+      "user_rating": null
+    },
+    {
+      "slug": "fuji-dream-airlines",
+      "airline": "Fuji Dream Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "ariana-afghan-airlines",
+      "airline": "Ariana Afghan Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "american-airlines",
+      "airline": "American Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "tropic-air",
+      "airline": "Tropic Air",
+      "user_rating": null
+    },
+    {
+      "slug": "air-arabia",
+      "airline": "Air Arabia",
+      "user_rating": null
+    },
+    {
+      "slug": "air-koryo",
+      "airline": "Air Koryo",
+      "user_rating": null
+    },
+    {
+      "slug": "french-bee",
+      "airline": "French Bee",
+      "user_rating": null
+    },
+    {
+      "slug": "westjet",
+      "airline": "WestJet",
+      "user_rating": null
+    },
+    {
+      "slug": "turkish-airlines",
+      "airline": "Turkish Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "mayair",
+      "airline": "Mayair",
+      "user_rating": null
+    },
+    {
+      "slug": "uvt-aero",
+      "airline": "UVT Aero",
+      "user_rating": null
+    },
+    {
+      "slug": "caicos-express-airways",
+      "airline": "Caicos Express Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "alaska-airlines",
+      "airline": "Alaska Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "tailwind-air",
+      "airline": "Tailwind Air",
+      "user_rating": null
+    },
+    {
+      "slug": "calm-air-international",
+      "airline": "Calm Air International",
+      "user_rating": null
+    },
+    {
+      "slug": "skyward-express",
+      "airline": "Skyward Express",
+      "user_rating": null
+    },
+    {
+      "slug": "lynx-airlines",
+      "airline": "Lynx Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "german-airways",
+      "airline": "German Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "air-greenland",
+      "airline": "Air Greenland",
+      "user_rating": null
+    },
+    {
+      "slug": "easyjet",
+      "airline": "easyjet",
+      "user_rating": null
+    },
+    {
+      "slug": "hisky",
+      "airline": "HiSky",
+      "user_rating": null
+    },
+    {
+      "slug": "air-changan",
+      "airline": "Air Chang'an",
+      "user_rating": null
+    },
+    {
+      "slug": "eva-airways",
+      "airline": "Eva Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "izhavia",
+      "airline": "Izhavia",
+      "user_rating": null
+    },
+    {
+      "slug": "jetsmart",
+      "airline": "JetSMART",
+      "user_rating": null
+    },
+    {
+      "slug": "surinam-airways",
+      "airline": "Surinam Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "africa-world-airlines",
+      "airline": "Africa World Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "warbelows-air-venture",
+      "airline": "Warbelow's Air Venture",
+      "user_rating": null
+    },
+    {
+      "slug": "china-west-air",
+      "airline": "China West Air",
+      "user_rating": null
+    },
+    {
+      "slug": "daallo-airlines",
+      "airline": "Daallo Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "korean-air",
+      "airline": "Korean Air",
+      "user_rating": null
+    },
+    {
+      "slug": "mesa-airlines",
+      "airline": "Mesa Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "citilink",
+      "airline": "Citilink",
+      "user_rating": null
+    },
+    {
+      "slug": "danish-air-transport",
+      "airline": "Danish Air Transport",
+      "user_rating": null
+    },
+    {
+      "slug": "bamboo-airways",
+      "airline": "Bamboo Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "croatia-airlines",
+      "airline": "Croatia Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-chathams",
+      "airline": "Air Chathams",
+      "user_rating": null
+    },
+    {
+      "slug": "lao-airlines",
+      "airline": "Lao Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-new-zealand",
+      "airline": "Air New Zealand",
+      "user_rating": null
+    },
+    {
+      "slug": "atlas-air",
+      "airline": "Atlas Air",
+      "user_rating": null
+    },
+    {
+      "slug": "plus-ultra-líneas-aéreas",
+      "airline": "Plus Ultra Líneas Aéreas",
+      "user_rating": null
+    },
+    {
+      "slug": "windrose",
+      "airline": "Windrose",
+      "user_rating": null
+    },
+    {
+      "slug": "ruili-airlines",
+      "airline": "Ruili Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-inuit",
+      "airline": "Air Inuit",
+      "user_rating": null
+    },
+    {
+      "slug": "hebei-airlines",
+      "airline": "Hebei Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "miat-mongolian-airlines",
+      "airline": "MIAT Mongolian Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "airasia",
+      "airline": "AirAsia",
+      "user_rating": null
+    },
+    {
+      "slug": "porter-airlines",
+      "airline": "Porter Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "royal-brunei-airlines",
+      "airline": "Royal Brunei Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "thai-lion-air",
+      "airline": "Thai Lion Air",
+      "user_rating": null
+    },
+    {
+      "slug": "bahamas-air",
+      "airline": "Bahamas Air",
+      "user_rating": null
+    },
+    {
+      "slug": "rossiya",
+      "airline": "Rossiya",
+      "user_rating": null
+    },
+    {
+      "slug": "sky-express-airlines",
+      "airline": "Sky Express Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "air-mauritius",
+      "airline": "Air Mauritius",
+      "user_rating": null
+    },
+    {
+      "slug": "pegas-fly",
+      "airline": "Pegas Fly",
+      "user_rating": null
+    },
+    {
+      "slug": "china-eastern",
+      "airline": "China Eastern",
+      "user_rating": null
+    },
+    {
+      "slug": "air-vanuatu",
+      "airline": "Air Vanuatu",
+      "user_rating": null
+    },
+    {
+      "slug": "mauritania-airlines",
+      "airline": "Mauritania Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "etihad",
+      "airline": "Etihad",
+      "user_rating": null
+    },
+    {
+      "slug": "silver-airways",
+      "airline": "Silver Airways",
+      "user_rating": null
+    },
+    {
+      "slug": "urumqi-air",
+      "airline": "Urumqi Air",
+      "user_rating": null
+    },
+    {
+      "slug": "peoples-viennaline",
+      "airline": "People's Viennaline",
+      "user_rating": null
+    },
+    {
+      "slug": "air-alsie",
+      "airline": "Air Alsie",
+      "user_rating": null
+    },
+    {
+      "slug": "ups-airlines",
+      "airline": "UPS Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "wingo",
+      "airline": "Wingo",
+      "user_rating": null
+    },
+    {
+      "slug": "air-niugini",
+      "airline": "Air Niugini",
+      "user_rating": null
+    },
+    {
+      "slug": "avianca",
+      "airline": "Avianca",
+      "user_rating": null
+    },
+    {
+      "slug": "arajet",
+      "airline": "Arajet",
+      "user_rating": null
+    },
+    {
+      "slug": "sun-express",
+      "airline": "Sun Express",
+      "user_rating": null
+    },
+    {
+      "slug": "pakistan-international-airlines",
+      "airline": "Pakistan International Airlines",
+      "user_rating": null
+    },
+    {
+      "slug": "tway-air",
+      "airline": "T'way Air",
+      "user_rating": null
+    },
+    {
+      "slug": "wamos-air",
+      "airline": "Wamos Air",
+      "user_rating": null
+    },
+    {
+      "slug": "animawings",
+      "airline": "Animawings",
+      "user_rating": null
+    },
+    {
+      "slug": "virgin-australia-airlines",
+      "airline": "Virgin Australia Airlines",
+      "user_rating": null
+    }
+  ]
