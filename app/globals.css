@@ -35,6 +35,15 @@ html {
   margin-bottom: 0.75rem;
 }
 
+.key-takeaways {
+  color: #f97316; /* Orange */
+  font-weight: 600;
+  background-color: #fef3c7; /* Light amber bg */
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+
 /* Optionally style <figure> and <figcaption> */
 figure {
   margin: 1.5rem 0;
