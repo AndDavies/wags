@@ -1,9 +1,36 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Heart } from "lucide-react"
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useState } from "react";
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Heart } from "lucide-react";
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear();
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const result = await response.json();
+      console.log("Subscribe response:", result); // Log for debugging
+      setMessage(response.ok ? "Subscribed!" : result.message);
+      if (response.ok) setEmail("");
+    } catch (error) {
+      console.error("Fetch error:", error);
+      setMessage("Failed to subscribe. Try again!");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <footer className="bg-gradient-to-r from-brand-teal/10 via-brand-pink/10 to-brand-teal/10 border-t border-brand-teal/20">
@@ -171,7 +198,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Newsletter subscription */}
+        {/* Newsletter subscription with functionality */}
         <div className="bg-white rounded-xl p-6 shadow-sm mb-12 border border-brand-pink/20">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
             <div className="lg:col-span-2">
@@ -179,18 +206,26 @@ const Footer = () => {
               <p className="text-gray-600">Subscribe to our newsletter for the latest pet travel tips and updates.</p>
             </div>
             <div>
-              <form className="flex">
-                <input
-                  type="email"
-                  placeholder="Your email"
-                  className="flex-1 px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-teal"
-                />
-                <button
-                  type="submit"
-                  className="bg-brand-teal text-white px-4 py-2 rounded-r-md hover:bg-brand-pink transition-colors"
-                >
-                  Subscribe
-                </button>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+                <div className="flex">
+                  <input
+                    type="email"
+                    placeholder="Your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-teal disabled:opacity-50"
+                    required
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="submit"
+                    className="bg-brand-teal text-white px-4 py-2 rounded-r-md hover:bg-brand-pink transition-colors disabled:opacity-50"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Subscribing..." : "Subscribe"}
+                  </button>
+                </div>
+                {message && <p className="text-sm text-gray-600 text-center">{message}</p>}
               </form>
             </div>
           </div>
@@ -199,7 +234,7 @@ const Footer = () => {
         {/* Bottom section with copyright */}
         <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-center md:text-left mb-4 md:mb-0">
-            &copy; {currentYear} Wags & Wanders. All rights reserved.
+            © {currentYear} Wags & Wanders. All rights reserved.
           </p>
           <div className="flex items-center text-gray-500">
             <span>Made with</span>
@@ -209,8 +244,7 @@ const Footer = () => {
         </div>
       </div>
     </footer>
-  )
-}
+  );
+};
 
-export default Footer
-
+export default Footer;
