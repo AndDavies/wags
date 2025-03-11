@@ -47,7 +47,7 @@ const Footer = () => {
             />
           </div>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Making pet travel easy and stress-free for pet owners around the globe.
+            Making pet travel stress-free and tail-waginly easy for pet owners around the globe.
           </p>
           <div className="flex space-x-6 mt-6">
             <a href="#" className="text-brand-teal hover:text-brand-pink transition-colors" aria-label="Facebook">
@@ -76,7 +76,7 @@ const Footer = () => {
               <li className="flex items-start">
                 <Mail className="h-5 w-5 mr-2 text-brand-teal flex-shrink-0 mt-0.5" />
                 <a
-                  href="mailto:hello@wagsandwanders.com"
+                  href="mailto:m.andrew.davies@gmail.com"
                   className="text-gray-600 hover:text-brand-teal transition-colors"
                 >
                   hello@wagsandwanders.com
@@ -84,13 +84,13 @@ const Footer = () => {
               </li>
               <li className="flex items-start">
                 <Phone className="h-5 w-5 mr-2 text-brand-teal flex-shrink-0 mt-0.5" />
-                <a href="tel:+1234567890" className="text-gray-600 hover:text-brand-teal transition-colors">
-                  +1 (234) 567-890
+                <a href="tel:+12894725592" className="text-gray-600 hover:text-brand-teal transition-colors">
+                  +1 (289) 472-5592
                 </a>
               </li>
               <li className="flex items-start">
                 <MapPin className="h-5 w-5 mr-2 text-brand-teal flex-shrink-0 mt-0.5" />
-                <span className="text-gray-600">Vancouver, BC, Canada</span>
+                <span className="text-gray-600">Toronto, Canada</span>
               </li>
             </ul>
           </div>
@@ -107,7 +107,7 @@ const Footer = () => {
                   Pet-Friendly Directory
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link
                   href="/travel-planner"
                   className="text-gray-600 hover:text-brand-teal transition-colors flex items-center"
@@ -115,8 +115,8 @@ const Footer = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
                   Travel Planner
                 </Link>
-              </li>
-              <li>
+              </li> */}
+              {/* <li>
                 <Link
                   href="/document-manager"
                   className="text-gray-600 hover:text-brand-teal transition-colors flex items-center"
@@ -124,7 +124,7 @@ const Footer = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
                   Document Manager
                 </Link>
-              </li>
+              </li> */}
             </ul>
           </div>
 
@@ -141,21 +141,6 @@ const Footer = () => {
                 <Link href="/blog" className="text-gray-600 hover:text-brand-teal transition-colors flex items-center">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
                   Blog
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/careers"
-                  className="text-gray-600 hover:text-brand-teal transition-colors flex items-center"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="/press" className="text-gray-600 hover:text-brand-teal transition-colors flex items-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
-                  Press
                 </Link>
               </li>
             </ul>
