@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps) {
   const supabase = await createClient();
   const { data: post, error } = await supabase
     .from("blog_posts")
-    .select("title, description, tags, featured_image")
+    .select("title, description, tags, featured_image, meta_description")
     .eq("slug", slug)
     .single();
 
@@ -43,14 +43,18 @@ export async function generateMetadata({ params }: PageProps) {
     };
   }
 
+  // Use meta_description if available, otherwise fall back to description or default
+  const description = post.meta_description || post.description || "Read the latest pet travel insights from Wags & Wanders.";
+
   return {
     title: `${post.title} | Wags & Wanders`,
-    description: post.description || "Read the latest pet travel insights from Wags & Wanders.",
+    description: description,
     keywords: post.tags ? [...post.tags, "pet travel", "Wags & Wanders"] : ["pet travel", "Wags & Wanders"],
     openGraph: {
       title: `${post.title} | Wags & Wanders`,
-      description: post.description || "Read the latest pet travel insights from Wags & Wanders.",
+      description: description,
       url: `https://www.wagsandwanders.com/blog/${slug}`,
+      siteName: "Wags & Wanders",
       images: [
         {
           url: post.featured_image || "/images/og-image.jpg",
@@ -59,13 +63,15 @@ export async function generateMetadata({ params }: PageProps) {
           alt: post.title,
         },
       ],
+      locale: "en_US",
       type: "article",
     },
     twitter: {
       card: "summary_large_image",
       title: `${post.title} | Wags & Wanders`,
-      description: post.description || "Read the latest pet travel insights from Wags & Wanders.",
+      description: description,
       images: [post.featured_image || "/images/og-image.jpg"],
+      creator: "@WagsAndWanders",
     },
   };
 }
@@ -223,7 +229,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       <footer className="bg-brand-pink mt-16 py-8">
         <div className="container mx-auto px-4 text-center text-sm text-offblack">
           <p>Published on: {format(new Date(post.published_at), "MMMM d, yyyy")}</p>
-          <p className="mt-2">© 2023 Wags Travel Hub. All rights reserved.</p>
+          <p className="mt-2">© 2025 Wags & Wanders. All rights reserved.</p> {/* Updated branding and year */}
         </div>
       </footer>
     </div>
