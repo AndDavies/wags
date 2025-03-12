@@ -17,10 +17,10 @@ const outfit = Outfit({
 
 export const metadata = {
   title: {
-    default: "Wags & Wanders: AI-Powered Pet Travel Companion",
+    default: "Wags & Wanders: Explore the World with Your Pet, Stress-Free",
     template: "%s | Wags & Wanders",
   },
-  description: "Discover Wags & Wanders, your AI-powered companion for stress-free pet travel. Plan itineraries, manage documents, and explore pet-friendly destinations worldwide.",
+  description: "Discover Wags & Wanders, Explore the World with Your Pet, Stress-Free. Travel Confidently with Your Pet. Plan itineraries, manage documents, and explore pet-friendly destinations and activities worldwide.",
   keywords: [
     "pet travel",
     "AI travel app",
@@ -34,8 +34,8 @@ export const metadata = {
   ],
   authors: [{ name: "Wags & Wanders Team", url: "https://wagsandwanders.com" }],
   openGraph: {
-    title: "Wags & Wanders: AI-Powered Pet Travel Companion",
-    description: "Discover Wags & Wanders, your AI-powered companion for stress-free pet travel.",
+    title: "Wags & Wanders: Explore the World with Your Pet, Stress-Free",
+    description: "Discover Wags & Wanders, Explore the World with Your Pet, Stress-Free. Travel Confidently with Your Pet. Plan itineraries, manage documents, and explore pet-friendly destinations and activities worldwide.",
     url: "https://www.wagsandwanders.com",
     siteName: "Wags & Wanders",
     images: [
