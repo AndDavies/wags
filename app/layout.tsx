@@ -1,24 +1,43 @@
-import type React from "react"
-import "./globals.css"
-import { Outfit } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import Navbar from "@/components/Navbar"
-import Footer from "@/components/Footer"
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Analytics } from "@vercel/analytics/react"
-import Script from "next/script"
+// app/layout.tsx
+import type React from "react";
+import "./globals.css";
+import { Outfit } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
+import Script from "next/script";
+import { createClient } from "@/lib/supabase-server";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
-})
+});
 
 export const metadata = {
   title: "Wags and Wanders: AI-Powered Pet Travel Companion",
   description: "Your all-in-one pet travel services hub for stress-free journeys with your furry companion.",
-}
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Fetch user session server-side
+  const supabase = await createClient();
+  let user: SupabaseUser | null = null;
+
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
+      user = null;
+    } else {
+      user = userData.user;
+    }
+  } catch (err) {
+    console.error('Unexpected error in RootLayout:', err);
+    user = null;
+  }
+
   return (
     <html lang="en" className={`${outfit.variable} font-sans`} suppressHydrationWarning>
       <head>
@@ -56,15 +75,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Script>
       </head>
       <body className="bg-background text-foreground min-h-screen flex flex-col">
-        <SpeedInsights/>
+        <SpeedInsights />
         <Analytics />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Navbar />
+          <Navbar user={user} />
           <main className="flex-grow">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
-

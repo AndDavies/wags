@@ -21,7 +21,7 @@ interface BlogPost {
 export default async function BlogIndexPage() {
   try {
     const supabase = await createClient();
-    console.log("Supabase client initialized:", !!supabase); // Debug client
+    //console.log("Supabase client initialized:", !!supabase); // Debug client
 
     const [
       { data: featuredPosts, error: featuredError },
@@ -52,9 +52,9 @@ export default async function BlogIndexPage() {
       return <div>Error loading blog posts. Check server logs for details.</div>;
     }
 
-    console.log("Featured posts:", featuredPosts); // Debug data
-    console.log("Regular posts:", regularPosts);
-    console.log("All tags:", allTags);
+    // console.log("Featured posts:", featuredPosts); // Debug data
+    // console.log("Regular posts:", regularPosts);
+    // console.log("All tags:", allTags);
 
     const featuredPost = featuredPosts && featuredPosts.length > 0 ? featuredPosts[0] : null;
     const posts = regularPosts || [];

@@ -1,33 +1,54 @@
-"use client"
+// components/Navbar.tsx
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Menu, X } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Menu, X, User, LogOut } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const routes = [
   { href: "/", label: "Home" },
-  { href: "/directory", label: "Directory" },
+  { href: "/services", label: "Services" },
   { href: "/about", label: "About" },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
-]
+];
 
-export function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+interface NavbarProps {
+  user: SupabaseUser | null;
+}
+
+export function Navbar({ user }: NavbarProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const getGreeting = (email: string | undefined) => {
+    if (!email) return "Hello, friend!";
+    const name = email.split('@')[0];
+    return `Hello, ${name} and your furry friend!`;
+  };
+
+  const defaultAvatar = <User className="h-8 w-8 text-white" />;
 
   return (
     <header
@@ -67,11 +88,78 @@ export function Navbar() {
           </nav>
 
           <div className="flex items-center space-x-4">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full" aria-label="User menu">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-teal text-white">
+                      {defaultAvatar}
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-teal/20">
+                      <User className="h-4 w-4 text-brand-teal" />
+                    </div>
+                    <div className="flex flex-col space-y-0.5">
+                      <p className="text-sm font-medium text-offblack">
+                        {getGreeting(user.email)}
+                      </p>
+                      <p className="text-xs text-offblack/60">{user.email}</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="cursor-pointer">
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile#trips" className="cursor-pointer">
+                      My Trips
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile#settings" className="cursor-pointer">
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/signout" className="text-red-600 focus:text-red-600 cursor-pointer">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="hidden md:flex items-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-brand-teal hover:text-brand-pink hover:bg-transparent"
+                  asChild
+                >
+                  <Link href="/login">Log In</Link>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-brand-teal text-white hover:bg-brand-pink hover:text-white rounded-full"
+                  asChild
+                >
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </div>
+            )}
+
             <Button
               variant="default"
               className={cn(
-                "bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack",
-                "transition-all duration-300 rounded-full px-6",
+                "bg-brand-teal text-white hover:bg-brand-pink hover:text-white",
+                "transition-all duration-300 rounded-full px-4 py-2 hidden md:flex",
               )}
               asChild
             >
@@ -110,14 +198,80 @@ export function Navbar() {
                     {route.label}
                   </Link>
                 ))}
+
+                <div className="h-px bg-gray-200 my-2"></div>
+
+                {user ? (
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-teal/20">
+                        {defaultAvatar}
+                      </div>
+                      <span className="text-offblack">{getGreeting(user.email)}</span>
+                    </div>
+                    <Link
+                      href="/profile"
+                      className="text-offblack hover:text-brand-teal transition-colors text-lg"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      My Profile
+                    </Link>
+                    <Link
+                      href="/trips"
+                      className="text-offblack hover:text-brand-teal transition-colors text-lg"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      My Trips
+                    </Link>
+                    <Link
+                      href="/settings"
+                      className="text-offblack hover:text-brand-teal transition-colors text-lg"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Settings
+                    </Link>
+                    <Link
+                      href="/signout"
+                      className="text-red-600 hover:text-red-700 transition-colors text-lg flex items-center"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col space-y-3">
+                    <Link
+                      href="/login"
+                      className="flex items-center justify-center py-2 text-brand-teal hover:text-brand-pink transition-colors border border-brand-teal rounded-md"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Log In
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="flex items-center justify-center py-2 bg-brand-teal text-white hover:bg-brand-pink transition-colors rounded-md"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <Button className="w-full bg-brand-teal text-white hover:bg-brand-pink" asChild>
+                    <Link href="/contact" onClick={() => setIsOpen(false)}>
+                      Book Now
+                    </Link>
+                  </Button>
+                </div>
               </nav>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </header>
-  )
+  );
 }
 
-export default Navbar
-
+export default Navbar;
