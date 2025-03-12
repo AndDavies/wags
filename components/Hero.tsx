@@ -1,28 +1,30 @@
-"use client"
+// components/Hero.tsx
+"use client";
 
-import { motion } from "framer-motion"
-import { Outfit, Pacifico } from "next/font/google"
-import Image from "next/image"
-import { cn } from "@/lib/utils"
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { Outfit, Pacifico } from "next/font/google";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
-})
+});
 
 const pacifico = Pacifico({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-pacifico",
-})
+});
 
 interface FloatingImageProps {
-  src: string
-  alt: string
-  width: number
-  height: number
-  className?: string
-  delay?: number
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  className?: string;
+  delay?: number;
 }
 
 function FloatingImage({ src, alt, width, height, className, delay = 0 }: FloatingImageProps) {
@@ -36,24 +38,32 @@ function FloatingImage({ src, alt, width, height, className, delay = 0 }: Floati
         ease: [0.25, 0.4, 0.25, 1],
       }}
       className={cn("absolute", className)}
+      style={{ background: "transparent" }}
     >
       <motion.div
         animate={{ y: [0, 15, 0] }}
         transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
         style={{ background: "transparent" }}
       >
-        <Image src={src || "/placeholder.svg"} alt={alt} width={width} height={height} />
+        <Image
+          src={src || "/placeholder.svg"}
+          alt={alt}
+          width={width}
+          height={height}
+          className="rounded-none"
+          style={{ borderRadius: "0", background: "transparent" }}
+        />
       </motion.div>
     </motion.div>
-  )
+  );
 }
 
 export function HeroSection({
-  title1 = "Travel Confidently",
-  title2 = "With Your Pet",
+  title1 = "Explore the World",
+  title2 = "With Your Pet By Your Side",
 }: {
-  title1?: string
-  title2?: string
+  title1?: string;
+  title2?: string;
 }) {
   const fadeUpVariants = {
     hidden: { opacity: 0, y: 30 },
@@ -66,7 +76,7 @@ export function HeroSection({
         ease: [0.25, 0.4, 0.25, 1],
       },
     }),
-  }
+  };
 
   return (
     <div
@@ -94,18 +104,34 @@ export function HeroSection({
       <div className="relative z-10 container mx-auto px-4 md:px-6">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div custom={0} variants={fadeUpVariants} initial="hidden" animate="visible" className="mb-8 md:mb-12">
-            <Image
-              src="/wags_and_wanders_logo_trans.png"
-              alt="Wags & Wanders"
-              width={120}
-              height={120}
-              className="mx-auto"
-            />
+            <div className="relative inline-block">
+              <Image
+                src="/wags_and_wanders_logo_trans.png"
+                alt="Wags & Wanders"
+                width={140}
+                height={140}
+                className="mx-auto"
+              />
+              <motion.div
+                className="absolute -inset-1 opacity-75 blur-md"
+                animate={{
+                  background: [
+                    "radial-gradient(circle, rgba(48,184,196,0.3) 0%, rgba(255,229,229,0.2) 70%, rgba(255,255,255,0) 100%)",
+                    "radial-gradient(circle, rgba(255,229,229,0.3) 0%, rgba(48,184,196,0.2) 70%, rgba(255,255,255,0) 100%)",
+                    "radial-gradient(circle, rgba(48,184,196,0.3) 0%, rgba(255,229,229,0.2) 70%, rgba(255,255,255,0) 100%)",
+                  ],
+                }}
+                transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                style={{ zIndex: -1 }}
+              />
+            </div>
           </motion.div>
 
           <motion.div custom={1} variants={fadeUpVariants} initial="hidden" animate="visible">
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 md:mb-8 tracking-tight leading-tight">
-              <span className="text-[#30B8C4]">{title1}</span>
+              <span className="text-[#30B8C4] inline-block relative">
+                {title1}
+              </span>
               <br />
               <span className={cn("text-[#FFE5E5]", pacifico.className)}>{title2}</span>
             </h1>
@@ -125,24 +151,39 @@ export function HeroSection({
             animate="visible"
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <a
-              href="/contact"
-              className="inline-flex h-12 sm:h-14 items-center justify-center rounded-full bg-[#30B8C4] px-6 sm:px-8 text-base sm:text-lg font-bold text-white transition-all hover:bg-[#FFE5E5] hover:text-[#30B8C4] hover:scale-105 transform"
+            <motion.a
+              href="/signup"
+              className="inline-flex items-center justify-center rounded-full bg-[#30B8C4] px-4 py-2 text-base sm:text-lg font-bold text-white transition-all hover:bg-[#FFE5E5] hover:text-[#30B8C4] hover:scale-105 transform"
             >
-              Plan Your Journey
-            </a>
-            <a
-              href="/about"
-              className="inline-flex h-12 sm:h-14 items-center justify-center rounded-full border-2 border-[#30B8C4] px-6 sm:px-8 text-base sm:text-lg font-bold text-[#30B8C4] transition-all hover:bg-[#30B8C4] hover:text-white hover:scale-105 transform"
+              Start Your Journey Together
+            </motion.a>
+            <motion.a
+              href="/how-it-works"
+              className="inline-flex items-center justify-center rounded-full border-2 border-[#30B8C4] px-4 py-2 text-base sm:text-lg font-bold text-[#30B8C4] transition-all hover:bg-[#30B8C4] hover:text-white hover:scale-105 transform"
             >
-              Learn More
-            </a>
+              See How We Help
+            </motion.a>
+          </motion.div>
+
+          {/* Added subtle mailing list CTA */}
+          <motion.div
+            custom={4}
+            variants={fadeUpVariants}
+            initial="hidden"
+            animate="visible"
+            className="mt-4"
+          >
+            <Link
+              href="/join-mailing-list"
+              className="text-sm text-[#30B8C4] hover:text-[#FFE5E5] underline"
+            >
+              Join Our Pack for Updates
+            </Link>
           </motion.div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default HeroSection
-
+export default HeroSection;

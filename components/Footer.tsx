@@ -1,32 +1,41 @@
+// components/Footer.tsx
 "use client";
 
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Heart } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Heart, Loader2, CheckCircle, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Added import
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError("");
+
     try {
       const response = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const result = await response.json();
-      console.log("Subscribe response:", result); // Log for debugging
-      setMessage(response.ok ? "Subscribed!" : result.message);
-      if (response.ok) setEmail("");
-    } catch (error) {
-      console.error("Fetch error:", error);
-      setMessage("Failed to subscribe. Try again!");
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to subscribe");
+      }
+
+      setIsSubmitted(true);
+      setEmail("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to subscribe. Please try again!");
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +85,7 @@ const Footer = () => {
               <li className="flex items-start">
                 <Mail className="h-5 w-5 mr-2 text-brand-teal flex-shrink-0 mt-0.5" />
                 <a
-                  href="mailto:m.andrew.davies@gmail.com"
+                  href="mailto:hello@wagsandwanders.com"
                   className="text-gray-600 hover:text-brand-teal transition-colors"
                 >
                   hello@wagsandwanders.com
@@ -107,24 +116,6 @@ const Footer = () => {
                   Pet-Friendly Directory
                 </Link>
               </li>
-              {/* <li>
-                <Link
-                  href="/travel-planner"
-                  className="text-gray-600 hover:text-brand-teal transition-colors flex items-center"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
-                  Travel Planner
-                </Link>
-              </li> */}
-              {/* <li>
-                <Link
-                  href="/document-manager"
-                  className="text-gray-600 hover:text-brand-teal transition-colors flex items-center"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
-                  Document Manager
-                </Link>
-              </li> */}
             </ul>
           </div>
 
@@ -183,7 +174,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Newsletter subscription with functionality */}
+        {/* Newsletter subscription with enhanced functionality */}
         <div className="bg-white rounded-xl p-6 shadow-sm mb-12 border border-brand-pink/20">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
             <div className="lg:col-span-2">
@@ -191,27 +182,53 @@ const Footer = () => {
               <p className="text-gray-600">Subscribe to our newsletter for the latest pet travel tips and updates.</p>
             </div>
             <div>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-                <div className="flex">
-                  <input
-                    type="email"
-                    placeholder="Your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-teal disabled:opacity-50"
-                    required
-                    disabled={isSubmitting}
-                  />
-                  <button
+              {isSubmitted ? (
+                <div className="text-center py-2">
+                  <div className="bg-green-50 rounded-full w-8 h-8 flex items-center justify-center mx-auto mb-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  </div>
+                  <p className="text-sm text-gray-600">Welcome to the Pack!</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-2">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="Your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-teal disabled:opacity-50"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-red-700 text-sm">
+                      {error}
+                    </div>
+                  )}
+                  <Button
                     type="submit"
-                    className="bg-brand-teal text-white px-4 py-2 rounded-r-md hover:bg-brand-pink transition-colors disabled:opacity-50"
+                    className="w-full bg-brand-teal hover:bg-brand-pink text-white rounded-full flex items-center justify-center gap-2"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Subscribing..." : "Subscribe"}
-                  </button>
-                </div>
-                {message && <p className="text-sm text-gray-600 text-center">{message}</p>}
-              </form>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Subscribe
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </form>
+              )}
             </div>
           </div>
         </div>
