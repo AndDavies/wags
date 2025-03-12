@@ -1,48 +1,95 @@
-import { createClient } from "@/lib/supabase-server"
-import Image from "next/image"
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import { format } from "date-fns"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import ShareButtons from "@/components/ShareButtons"
-import Breadcrumbs from "@/components/Breadcrumbs"
+// app/blog/[slug]/page.tsx
+import { createClient } from "@/lib/supabase-server";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { format } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import ShareButtons from "@/components/ShareButtons";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
-type BlogParams = Promise<{ slug: string }>
+type BlogParams = Promise<{ slug: string }>;
 
 interface PageProps {
-  params: BlogParams
+  params: BlogParams;
 }
 
 interface RecentPost {
-  id: string
-  title: string
-  slug: string
+  id: string;
+  title: string;
+  slug: string;
+}
+
+// Generate dynamic metadata for the blog post
+export async function generateMetadata({ params }: PageProps) {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
+
+  const supabase = await createClient();
+  const { data: post, error } = await supabase
+    .from("blog_posts")
+    .select("title, description, tags, featured_image")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !post) {
+    return {
+      title: "Blog Post Not Found | Wags & Wanders",
+      description: "The blog post you are looking for does not exist.",
+    };
+  }
+
+  return {
+    title: `${post.title} | Wags & Wanders`,
+    description: post.description || "Read the latest pet travel insights from Wags & Wanders.",
+    keywords: post.tags ? [...post.tags, "pet travel", "Wags & Wanders"] : ["pet travel", "Wags & Wanders"],
+    openGraph: {
+      title: `${post.title} | Wags & Wanders`,
+      description: post.description || "Read the latest pet travel insights from Wags & Wanders.",
+      url: `https://www.wagsandwanders.com/blog/${slug}`,
+      images: [
+        {
+          url: post.featured_image || "/images/og-image.jpg",
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${post.title} | Wags & Wanders`,
+      description: post.description || "Read the latest pet travel insights from Wags & Wanders.",
+      images: [post.featured_image || "/images/og-image.jpg"],
+    },
+  };
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  const resolvedParams = await params
-  const { slug } = resolvedParams
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
 
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  const { data: post, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).single()
+  const { data: post, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).single();
 
   if (error || !post) {
-    notFound()
+    notFound();
   }
 
-  let author = null
+  let author = null;
   if (post.author_id) {
     const { data: authorData } = await supabase
       .from("authors")
       .select("id, name, avatar_url, bio")
       .eq("id", post.author_id)
-      .single()
-    author = authorData
+      .single();
+    author = authorData;
   }
 
   const { data: recentPosts = [] } = await supabase
@@ -51,9 +98,9 @@ export default async function BlogPostPage({ params }: PageProps) {
     .eq("author_id", post.author_id)
     .neq("id", post.id)
     .order("created_at", { ascending: false })
-    .limit(5)
+    .limit(5);
 
-  const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Blog", href: "/blog" }, { label: post.title }]
+  const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Blog", href: "/blog" }, { label: post.title }];
 
   return (
     <div className="min-h-screen bg-offwhite">
@@ -176,10 +223,9 @@ export default async function BlogPostPage({ params }: PageProps) {
       <footer className="bg-brand-pink mt-16 py-8">
         <div className="container mx-auto px-4 text-center text-sm text-offblack">
           <p>Published on: {format(new Date(post.published_at), "MMMM d, yyyy")}</p>
-          <p className="mt-2">&copy; 2023 Wags Travel Hub. All rights reserved.</p>
+          <p className="mt-2">© 2023 Wags Travel Hub. All rights reserved.</p>
         </div>
       </footer>
     </div>
-  )
+  );
 }
-
