@@ -88,6 +88,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       user = null;
     } else {
       user = userData.user;
+      console.log("User session in layout:", user); // Debug log
     }
   } catch (err) {
     console.error("Unexpected error in RootLayout:", err);
