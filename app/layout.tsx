@@ -59,10 +59,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta property="og:url" content="https://www.wagsandwanders.com" />
         <meta property="og:image" content="https://www.wagsandwanders.com/images/og-image.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Wags and Wanders: AI-Powered Pet Travel Companion" />
+        <meta name="twitter:title" content="Wags and Wanders: Explore the World With Your Pet By Your Side" />
         <meta
           name="twitter:description"
-          content="Experience stress-free pet travel with our innovative AI-powered app. Plan your trip, manage travel documents, and connect with a global community of pet travelers—all in one place."
+          content="From personal experience to professional guidance - we help you navigate pet-friendly travel across the globe. Experience stress-free pet travel with our innovative AI-powered app. Plan your trip, manage travel documents, and connect with a global community of pet travelers—all in one place."
         />
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-BF9YNEQ2CH" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
