@@ -155,7 +155,7 @@ export function Navbar({ user }: NavbarProps) {
               </div>
             )}
 
-            <Button
+            {/* <Button
               variant="default"
               className={cn(
                 "bg-brand-teal text-white hover:bg-brand-pink hover:text-white",
@@ -164,7 +164,7 @@ export function Navbar({ user }: NavbarProps) {
               asChild
             >
               <Link href="/contact">Book Now</Link>
-            </Button>
+            </Button> */}
 
             <button className="md:hidden" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu">
               {isOpen ? (
