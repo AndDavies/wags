@@ -9,9 +9,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 export default async function ProfilePage() {
   const supabase = await createClient();
+  console.log("Profile page executing with supabase:", supabase); // Debug log
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
+  console.log("User data from getUser:", userData, "Error:", userError); // Debug log
   if (userError || !userData?.user) {
+    console.log("Redirecting to /login due to missing session"); // Debug log
     redirect('/login');
   }
 
