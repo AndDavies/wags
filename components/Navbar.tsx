@@ -35,11 +35,10 @@ export default function Navbar() {
 
   const handleSignout = async () => {
     await fetch("/signout", { method: "GET" });
-    // Explicitly clear cookie client-side
+    // Clear cookie client-side
     document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=.wagsandwanders.com";
     setIsLoggedIn(false); // Immediate state update
     router.push("/"); // Navigate to home
-    router.refresh(); // Force refresh
   };
 
   return (
