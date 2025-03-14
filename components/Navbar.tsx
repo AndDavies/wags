@@ -5,6 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase-client"; // Client-side Supabase
+import { User } from "@supabase/supabase-js";
+import md5 from "md5"; // For Gravatar hashing
 
 const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
   <Link href={href} prefetch={false} {...props}>
@@ -14,15 +17,29 @@ const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeo
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
+  const supabase = createClient();
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     const authToken = document.cookie
       .split("; ")
       .find(row => row.startsWith("auth-token="))
       ?.split("=")[1];
     const loggedIn = !!authToken && authToken.length > 0;
     console.log(`[Navbar] auth-token: ${authToken ? `${authToken.substring(0, 50)}...` : 'undefined'}, isLoggedIn: ${loggedIn}`);
+
+    if (loggedIn && !user) {
+      const { data: { user: fetchedUser }, error } = await supabase.auth.getUser(authToken);
+      if (error) {
+        console.error(`[Navbar] Error fetching user: ${error.message}`);
+      } else {
+        console.log(`[Navbar] User fetched: ${fetchedUser?.email}`);
+        setUser(fetchedUser);
+      }
+    } else if (!loggedIn) {
+      setUser(null);
+    }
     setIsLoggedIn(loggedIn);
   };
 
@@ -31,14 +48,20 @@ export default function Navbar() {
 
     const interval = setInterval(checkAuth, 500); // Poll every 500ms
     return () => clearInterval(interval);
-  }, []); // No dependencies, runs on mount
+  }, []);
 
   const handleSignout = async () => {
     await fetch("/signout", { method: "GET" });
-    // Clear cookie client-side
     document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=.wagsandwanders.com";
-    setIsLoggedIn(false); // Immediate state update
-    router.push("/"); // Navigate to home
+    setIsLoggedIn(false);
+    setUser(null); // Clear user data
+    router.push("/");
+  };
+
+  // Gravatar URL based on email
+  const getAvatarUrl = (email: string) => {
+    const hash = md5(email.trim().toLowerCase());
+    return `https://www.gravatar.com/avatar/${hash}?s=40&d=identicon`; // 40px, fallback to identicon
   };
 
   return (
@@ -62,9 +85,18 @@ export default function Navbar() {
             <NoPrefetchLink href="/about" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">About</NoPrefetchLink>
             <NoPrefetchLink href="/blog" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Blog</NoPrefetchLink>
             <NoPrefetchLink href="/contact" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Contact</NoPrefetchLink>
-            {isLoggedIn ? (
+            {isLoggedIn && user ? (
               <>
-                <span className="text-sm text-offblack">Logged In</span>
+                <div className="flex items-center space-x-2">
+                  <Image
+                    src={getAvatarUrl(user.email || "")}
+                    alt="User Avatar"
+                    width={24}
+                    height={24}
+                    className="rounded-full"
+                  />
+                  <span className="text-sm text-offblack">{user.email?.split("@")[0]}</span>
+                </div>
                 <NoPrefetchLink href="/profile" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Profile</NoPrefetchLink>
                 <button
                   onClick={handleSignout}
@@ -87,9 +119,18 @@ export default function Navbar() {
             <NoPrefetchLink href="/about" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">About</NoPrefetchLink>
             <NoPrefetchLink href="/blog" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Blog</NoPrefetchLink>
             <NoPrefetchLink href="/contact" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Contact</NoPrefetchLink>
-            {isLoggedIn ? (
+            {isLoggedIn && user ? (
               <>
-                <span className="text-lg text-offblack">Logged In</span>
+                <div className="flex items-center space-x-2">
+                  <Image
+                    src={getAvatarUrl(user.email || "")}
+                    alt="User Avatar"
+                    width={24}
+                    height={24}
+                    className="rounded-full"
+                  />
+                  <span className="text-lg text-offblack">{user.email?.split("@")[0]}</span>
+                </div>
                 <NoPrefetchLink href="/profile" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Profile</NoPrefetchLink>
                 <button
                   onClick={handleSignout}
