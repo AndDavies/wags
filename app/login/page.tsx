@@ -17,10 +17,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await login(formData);
-      // Delay redirect to ensure session sync
-      await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 seconds
-      window.location.href = "/"; // Full redirect
+      await login(formData); // Server handles redirect
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {

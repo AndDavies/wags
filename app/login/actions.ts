@@ -2,6 +2,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 export async function login(formData: FormData) {
@@ -29,5 +30,5 @@ export async function login(formData: FormData) {
   }
 
   console.log(`[Login] Login successful for ${email}`);
-  return { success: true }; // Return instead of redirect
+  redirect("/");
 }
