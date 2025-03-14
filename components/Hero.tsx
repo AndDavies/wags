@@ -7,16 +7,15 @@ import { Outfit, Pacifico } from "next/font/google";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-});
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const pacifico = Pacifico({ subsets: ["latin"], weight: ["400"], variable: "--font-pacifico" });
 
-const pacifico = Pacifico({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-pacifico",
-});
+// Custom NoPrefetchLink
+const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
+  <Link href={href} prefetch={false} {...props}>
+    {children}
+  </Link>
+);
 
 interface FloatingImageProps {
   src: string;
@@ -32,11 +31,7 @@ function FloatingImage({ src, alt, width, height, className, delay = 0 }: Floati
     <motion.div
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: 1,
-        delay,
-        ease: [0.25, 0.4, 0.25, 1],
-      }}
+      transition={{ duration: 1, delay, ease: [0.25, 0.4, 0.25, 1] }}
       className={cn("absolute", className)}
       style={{ background: "transparent" }}
     >
@@ -52,6 +47,7 @@ function FloatingImage({ src, alt, width, height, className, delay = 0 }: Floati
           height={height}
           className="rounded-none"
           style={{ borderRadius: "0", background: "transparent" }}
+          loading="lazy" // Optimize load
         />
       </motion.div>
     </motion.div>
@@ -79,9 +75,7 @@ export function HeroSection({
   };
 
   return (
-    <div
-      className={`relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-white ${outfit.variable}`}
-    >
+    <div className={`relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-white ${outfit.variable}`}>
       <div className="absolute inset-0 overflow-hidden">
         <FloatingImage
           src="/placeholders/hero_floating_wags_and_wanders_1.png"
@@ -111,6 +105,7 @@ export function HeroSection({
                 width={140}
                 height={140}
                 className="mx-auto"
+                loading="eager" // Load logo immediately
               />
               <motion.div
                 className="absolute -inset-1 opacity-75 blur-md"
@@ -129,9 +124,7 @@ export function HeroSection({
 
           <motion.div custom={1} variants={fadeUpVariants} initial="hidden" animate="visible">
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 md:mb-8 tracking-tight leading-tight">
-              <span className="text-[#30B8C4] inline-block relative">
-                {title1}
-              </span>
+              <span className="text-[#30B8C4] inline-block relative">{title1}</span>
               <br />
               <span className={cn("text-[#FFE5E5]", pacifico.className)}>{title2}</span>
             </h1>
@@ -139,18 +132,11 @@ export function HeroSection({
 
           <motion.div custom={2} variants={fadeUpVariants} initial="hidden" animate="visible">
             <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-8 leading-relaxed font-light tracking-wide max-w-xl mx-auto px-4">
-              From personal experience to professional guidance - we help you navigate pet-friendly travel across the
-              globe.
+              From personal experience to professional guidance - we help you navigate pet-friendly travel across the globe.
             </p>
           </motion.div>
 
-          <motion.div
-            custom={3}
-            variants={fadeUpVariants}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
+          <motion.div custom={3} variants={fadeUpVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <motion.a
               href="/signup"
               className="inline-flex items-center justify-center rounded-full bg-[#30B8C4] px-4 py-2 text-base sm:text-lg font-bold text-white transition-all hover:bg-[#FFE5E5] hover:text-[#30B8C4] hover:scale-105 transform"
@@ -165,20 +151,10 @@ export function HeroSection({
             </motion.a>
           </motion.div>
 
-          {/* Added subtle mailing list CTA */}
-          <motion.div
-            custom={4}
-            variants={fadeUpVariants}
-            initial="hidden"
-            animate="visible"
-            className="mt-4"
-          >
-            <Link
-              href="/join-mailing-list"
-              className="text-sm text-[#30B8C4] hover:text-[#FFE5E5] underline"
-            >
+          <motion.div custom={4} variants={fadeUpVariants} initial="hidden" animate="visible" className="mt-4">
+            <NoPrefetchLink href="/join-mailing-list" className="text-sm text-[#30B8C4] hover:text-[#FFE5E5] underline">
               Join Our Pack for Updates
-            </Link>
+            </NoPrefetchLink>
           </motion.div>
         </div>
       </div>

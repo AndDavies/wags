@@ -6,7 +6,7 @@ export async function GET() {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
-  const response = NextResponse.redirect(new URL(`/?refresh=${Date.now()}`, "https://wagsandwanders.com"));
+  const response = NextResponse.redirect(new URL("/signout-success", "https://wagsandwanders.com"));
   response.cookies.delete("sb-auqyngiwrzjwylzylxtb-auth-token");
   response.cookies.delete("auth-token");
   return response;
