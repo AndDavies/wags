@@ -4,8 +4,6 @@ import "./globals.css";
 import { Outfit } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/react";
 import { createClient } from "@/lib/supabase-server";
 
 const outfit = Outfit({
@@ -99,8 +97,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="bg-background text-foreground min-h-screen flex flex-col">
-        <SpeedInsights />
-        <Analytics />
+
         <Navbar user={user} />
         <main className="flex-grow">{children}</main>
         <Footer />
