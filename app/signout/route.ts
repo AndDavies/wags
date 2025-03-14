@@ -1,10 +1,12 @@
 // app/signout/route.ts
-import { createClient } from '@/lib/supabase-server';
-import { redirect } from 'next/navigation';
+import { createClient } from "@/lib/supabase-server";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
-  redirect('/'); // Redirect to homepage after logout
+  const response = NextResponse.redirect(new URL("/", "http://localhost:3000"));
+  response.cookies.delete("sb-auqyngiwrzjwylzylxtb-auth-token"); // Clear auth cookie
+  return response;
 }

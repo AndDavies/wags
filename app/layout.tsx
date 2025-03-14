@@ -2,13 +2,11 @@
 import type React from "react";
 import "./globals.css";
 import { Outfit } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { createClient } from "@/lib/supabase-server";
-import { User as SupabaseUser } from "@supabase/supabase-js";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -78,32 +76,14 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Fetch user session server-side
   const supabase = await createClient();
-  let user: SupabaseUser | null = null;
-
-  try {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData?.user) {
-      user = null;
-    } else {
-      user = userData.user;
-      console.log("User session in layout:", user); // Debug log
-    }
-  } catch (err) {
-    console.error("Unexpected error in RootLayout:", err);
-    user = null;
-  }
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <html lang="en" className={`${outfit.variable} font-sans`} suppressHydrationWarning>
+    <html lang="en" className={`${outfit.variable} font-sans`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* Google Analytics Script */}
-        <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-BF9YNEQ2CH"
-        />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-BF9YNEQ2CH" />
         <script
           id="google-analytics"
           dangerouslySetInnerHTML={{
@@ -119,11 +99,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="bg-background text-foreground min-h-screen flex flex-col">
         <SpeedInsights />
         <Analytics />
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Navbar user={user} />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-        </ThemeProvider>
+        <Navbar user={user} />
+        <main className="flex-grow">{children}</main>
+        <Footer />
       </body>
     </html>
   );

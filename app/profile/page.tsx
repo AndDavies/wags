@@ -1,6 +1,6 @@
 // app/profile/page.tsx
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase-server';
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase-server";
 import Image from 'next/image';
 import Link from 'next/link';
 import { PawPrint, User, Mail, MapPin, Plus, Settings, ChevronRight } from 'lucide-react';
@@ -9,22 +9,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  console.log("Profile page executing with supabase:", supabase); // Debug log
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  console.log("User data from getUser:", userData, "Error:", userError); // Debug log
-  if (userError || !userData?.user) {
-    console.log("Redirecting to /login due to missing session"); // Debug log
-    redirect('/login');
+  if (!user) {
+    redirect("/login");
   }
 
-  const userId = userData.user.id;
-  const { data, error } = await supabase.from('users').select('full_name').eq('id', userId).single();
+  const userId = user.id;
+  const { data, error } = await supabase.from("users").select("full_name").eq("id", userId).single();
   if (error) throw error;
 
-  // Safely access email with a fallback
-  const displayName = data?.full_name || userData.user.email?.split('@')[0] || 'User';
-  const email = userData.user.email || '';
+  const displayName = data?.full_name || user.email?.split("@")[0] || "User";
+  const email = user.email || "";
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 py-20">
