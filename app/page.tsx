@@ -12,7 +12,7 @@ export default function HomePage() {
       <Hero />
       <FeaturedDirectory />
       <FeaturedBlog />
-      {/* <ServicesSection /> */}
+      <ServicesSection /> 
       <AboutUs />
       <HowItWorks />
     </div>
