@@ -2,7 +2,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 export async function login(formData: FormData) {
@@ -24,11 +23,11 @@ export async function login(formData: FormData) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 60 * 60 * 24 * 7,
     });
     console.log(`[Login] Auth token set: ${sessionToken.substring(0, 50)}...`);
   }
 
   console.log(`[Login] Login successful for ${email}`);
-  redirect("/");
+  return { success: true }; // Return instead of redirect
 }
