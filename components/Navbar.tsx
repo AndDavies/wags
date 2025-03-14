@@ -16,32 +16,30 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
-  // Function to check auth token
   const checkAuth = () => {
     const authToken = document.cookie
       .split("; ")
       .find(row => row.startsWith("auth-token="))
       ?.split("=")[1];
     const loggedIn = !!authToken && authToken.length > 0;
-    console.log(`[Navbar] Checking auth-token: ${authToken ? `${authToken.substring(0, 50)}...` : 'undefined'}, isLoggedIn: ${loggedIn}`);
+    console.log(`[Navbar] auth-token: ${authToken ? `${authToken.substring(0, 50)}...` : 'undefined'}, isLoggedIn: ${loggedIn}`);
     setIsLoggedIn(loggedIn);
   };
 
   useEffect(() => {
-    // Initial check
-    checkAuth();
+    checkAuth(); // Initial check
 
-    // Poll for changes
-    const interval = setInterval(checkAuth, 500);
+    const interval = setInterval(checkAuth, 500); // Poll every 500ms
     return () => clearInterval(interval);
-  }, []); // Empty dependency array, runs on mount
+  }, []); // No dependencies, runs on mount
 
-  // Handle signout
   const handleSignout = async () => {
     await fetch("/signout", { method: "GET" });
+    // Explicitly clear cookie client-side
+    document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=.wagsandwanders.com";
     setIsLoggedIn(false); // Immediate state update
     router.push("/"); // Navigate to home
-    router.refresh(); // Force refresh to ensure state sync
+    router.refresh(); // Force refresh
   };
 
   return (
