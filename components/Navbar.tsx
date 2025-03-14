@@ -1,12 +1,13 @@
 // components/Navbar.tsx
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase-server";
+import { User } from "@supabase/supabase-js";
 
-export default async function Navbar() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+interface NavbarProps {
+  user: User | null;
+}
 
+export default function Navbar({ user }: NavbarProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

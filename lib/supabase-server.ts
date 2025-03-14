@@ -27,6 +27,7 @@ export async function createClient() {
               domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
               maxAge: 60 * 60 * 24 * 7, // 1 week
             });
+            console.log(`[Supabase Server] Cookie ${name} set successfully`);
           } catch (error) {
             console.error(`[Supabase Server] Error setting cookie ${name}:`, error);
           }
