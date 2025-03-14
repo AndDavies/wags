@@ -1,13 +1,13 @@
 // components/Navbar.tsx
 import Link from "next/link";
 import Image from "next/image";
-import { User } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 
-interface NavbarProps {
-  user: User | null;
-}
+export default async function Navbar() {
+  const cookieStore = await cookies(); // Await the promise
+  const authCookie = cookieStore.get("sb-auqyngiwrzjwylzylxtb-auth-token")?.value;
+  const isLoggedIn = !!authCookie && authCookie.length > 0;
 
-export default function Navbar({ user }: NavbarProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,9 +31,9 @@ export default function Navbar({ user }: NavbarProps) {
             <Link href="/about" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">About</Link>
             <Link href="/blog" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Blog</Link>
             <Link href="/contact" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Contact</Link>
-            {user ? (
+            {isLoggedIn ? (
               <>
-                <span className="text-sm text-offblack">Hello, {user.email?.split("@")[0]}</span>
+                <span className="text-sm text-offblack">Logged In</span>
                 <Link href="/profile" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Profile</Link>
                 <Link href="/signout" className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</Link>
               </>
@@ -52,9 +52,9 @@ export default function Navbar({ user }: NavbarProps) {
             <Link href="/about" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">About</Link>
             <Link href="/blog" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Blog</Link>
             <Link href="/contact" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Contact</Link>
-            {user ? (
+            {isLoggedIn ? (
               <>
-                <span className="text-lg text-offblack">Hello, {user.email?.split("@")[0]}</span>
+                <span className="text-lg text-offblack">Logged In</span>
                 <Link href="/profile" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Profile</Link>
                 <Link href="/signout" className="text-lg font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</Link>
               </>
