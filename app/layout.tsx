@@ -77,7 +77,9 @@ export const metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  console.log(`[RootLayout] User: ${user?.email || 'none'}, Error: ${error?.message || 'none'}`);
 
   return (
     <html lang="en" className={`${outfit.variable} font-sans`}>

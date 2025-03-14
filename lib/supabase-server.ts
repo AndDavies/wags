@@ -11,20 +11,24 @@ export async function createClient() {
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value;
+          const cookie = cookieStore.get(name)?.value;
+          console.log(`[Supabase Server] Getting cookie ${name}: ${cookie}`);
+          return cookie;
         },
         set(name: string, value: string, options: CookieOptions) {
+          console.log(`[Supabase Server] Setting cookie ${name}: ${value}`, options);
           try {
-            cookieStore.set({ name, value, ...options });
+            cookieStore.set({ name, value, ...options, secure: true, sameSite: 'lax' });
           } catch (error) {
-            // Ignore errors in Server Components
+            console.error(`[Supabase Server] Error setting cookie ${name}:`, error);
           }
         },
         remove(name: string, options: CookieOptions) {
+          console.log(`[Supabase Server] Removing cookie ${name}`);
           try {
-            cookieStore.set({ name, value: '', ...options });
+            cookieStore.set({ name, value: '', ...options, secure: true, sameSite: 'lax' });
           } catch (error) {
-            // Ignore errors in Server Components
+            console.error(`[Supabase Server] Error removing cookie ${name}:`, error);
           }
         },
       },
