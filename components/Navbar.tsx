@@ -1,15 +1,19 @@
 // components/Navbar.tsx
 import Link from "next/link";
 import Image from "next/image";
+import { cookies } from "next/headers";
 
-// Custom Link component to disable prefetching
 const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
   <Link href={href} prefetch={false} {...props}>
     {children}
   </Link>
 );
 
-export default function Navbar() {
+export default async function Navbar() {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth-token")?.value;
+  const isLoggedIn = !!authToken && authToken.length > 0;
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,10 +35,18 @@ export default function Navbar() {
             <NoPrefetchLink href="/about" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">About</NoPrefetchLink>
             <NoPrefetchLink href="/blog" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Blog</NoPrefetchLink>
             <NoPrefetchLink href="/contact" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Contact</NoPrefetchLink>
-            <NoPrefetchLink href="/profile" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Profile</NoPrefetchLink>
-            <NoPrefetchLink href="/login" className="text-sm font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Log In</NoPrefetchLink>
-            <NoPrefetchLink href="/signup" className="text-sm font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Sign Up</NoPrefetchLink>
-            <NoPrefetchLink href="/signout" className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</NoPrefetchLink>
+            {isLoggedIn ? (
+              <>
+                <span className="text-sm text-offblack">Logged In</span>
+                <NoPrefetchLink href="/profile" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Profile</NoPrefetchLink>
+                <NoPrefetchLink href="/signout" className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</NoPrefetchLink>
+              </>
+            ) : (
+              <>
+                <NoPrefetchLink href="/login" className="text-sm font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Log In</NoPrefetchLink>
+                <NoPrefetchLink href="/signup" className="text-sm font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Sign Up</NoPrefetchLink>
+              </>
+            )}
           </nav>
 
           <nav className="md:hidden flex flex-col items-center space-y-2 py-4">
@@ -43,10 +55,18 @@ export default function Navbar() {
             <NoPrefetchLink href="/about" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">About</NoPrefetchLink>
             <NoPrefetchLink href="/blog" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Blog</NoPrefetchLink>
             <NoPrefetchLink href="/contact" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Contact</NoPrefetchLink>
-            <NoPrefetchLink href="/profile" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Profile</NoPrefetchLink>
-            <NoPrefetchLink href="/login" className="text-lg font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Log In</NoPrefetchLink>
-            <NoPrefetchLink href="/signup" className="text-lg font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Sign Up</NoPrefetchLink>
-            <NoPrefetchLink href="/signout" className="text-lg font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</NoPrefetchLink>
+            {isLoggedIn ? (
+              <>
+                <span className="text-lg text-offblack">Logged In</span>
+                <NoPrefetchLink href="/profile" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Profile</NoPrefetchLink>
+                <NoPrefetchLink href="/signout" className="text-lg font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</NoPrefetchLink>
+              </>
+            ) : (
+              <>
+                <NoPrefetchLink href="/login" className="text-lg font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Log In</NoPrefetchLink>
+                <NoPrefetchLink href="/signup" className="text-lg font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors">Sign Up</NoPrefetchLink>
+              </>
+            )}
           </nav>
         </div>
       </div>

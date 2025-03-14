@@ -25,7 +25,7 @@ export async function createClient() {
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
-              maxAge: 60 * 60 * 24 * 7, // 1 week
+              maxAge: 60 * 60 * 24 * 7,
             });
             console.log(`[Supabase Server] Cookie ${name} set successfully`);
           } catch (error) {
