@@ -1,18 +1,46 @@
 // components/Navbar.tsx
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { cookies } from "next/headers";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
+// Custom NoPrefetchLink
 const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
   <Link href={href} prefetch={false} {...props}>
     {children}
   </Link>
 );
 
-export default async function Navbar() {
-  const cookieStore = await cookies();
-  const authToken = cookieStore.get("auth-token")?.value;
-  const isLoggedIn = !!authToken && authToken.length > 0;
+export default function Navbar() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
+
+  // Check auth-token on mount and listen for changes
+  useEffect(() => {
+    const checkAuth = () => {
+      const authToken = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("auth-token="))
+        ?.split("=")[1];
+      setIsLoggedIn(!!authToken && authToken.length > 0);
+    };
+
+    // Initial check
+    checkAuth();
+
+    // Listen for cookie changes (e.g., signout)
+    const interval = setInterval(checkAuth, 500); // Poll every 500ms
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle signout client-side
+  const handleSignout = async () => {
+    await fetch("/signout", { method: "GET" });
+    setIsLoggedIn(false); // Update state immediately
+    router.push("/"); // Navigate to home
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
@@ -39,7 +67,12 @@ export default async function Navbar() {
               <>
                 <span className="text-sm text-offblack">Logged In</span>
                 <NoPrefetchLink href="/profile" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Profile</NoPrefetchLink>
-                <NoPrefetchLink href="/signout" className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</NoPrefetchLink>
+                <button
+                  onClick={handleSignout}
+                  className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                >
+                  Sign Out
+                </button>
               </>
             ) : (
               <>
@@ -59,7 +92,12 @@ export default async function Navbar() {
               <>
                 <span className="text-lg text-offblack">Logged In</span>
                 <NoPrefetchLink href="/profile" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Profile</NoPrefetchLink>
-                <NoPrefetchLink href="/signout" className="text-lg font-medium text-red-600 hover:text-red-700 transition-colors">Sign Out</NoPrefetchLink>
+                <button
+                  onClick={handleSignout}
+                  className="text-lg font-medium text-red-600 hover:text-red-700 transition-colors"
+                >
+                  Sign Out
+                </button>
               </>
             ) : (
               <>
