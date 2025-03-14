@@ -12,11 +12,11 @@ export async function createClient() {
       cookies: {
         get(name: string) {
           const cookie = cookieStore.get(name)?.value;
-          console.log(`[Supabase Server] Getting cookie ${name}: ${cookie || 'undefined'}`);
+          console.log(`[Supabase Server] Get cookie ${name}: ${cookie || 'undefined'}`);
           return cookie;
         },
         set(name: string, value: string, options: CookieOptions) {
-          console.log(`[Supabase Server] Setting cookie ${name}: ${value}`);
+          console.log(`[Supabase Server] Set cookie ${name}: ${value.substring(0, 50)}... (length: ${value.length})`, options);
           try {
             cookieStore.set({
               name,
@@ -32,7 +32,7 @@ export async function createClient() {
           }
         },
         remove(name: string, options: CookieOptions) {
-          console.log(`[Supabase Server] Removing cookie ${name}`);
+          console.log(`[Supabase Server] Remove cookie ${name}`);
           try {
             cookieStore.set({
               name,
