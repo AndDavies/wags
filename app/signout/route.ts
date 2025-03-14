@@ -4,9 +4,15 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
 
-  const response = NextResponse.redirect(new URL("/", "http://localhost:3000"));
-  response.cookies.delete("sb-auqyngiwrzjwylzylxtb-auth-token"); // Clear auth cookie
+  if (error) {
+    console.error(`[Signout] Error: ${error.message}`);
+  } else {
+    console.log(`[Signout] Signout successful`);
+  }
+
+  const response = NextResponse.redirect(new URL("/", "https://wagsandwanders.com"));
+  response.cookies.delete("sb-auqyngiwrzjwylzylxtb-auth-token");
   return response;
 }

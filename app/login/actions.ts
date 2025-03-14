@@ -2,7 +2,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -16,5 +16,6 @@ export async function login(formData: FormData) {
   }
 
   console.log(`[Login] Login successful for ${email}`);
-  redirect("/");
+  revalidatePath("/"); // Force revalidation of the root page
+  return { redirect: "/" }; // Return redirect object for client-side handling
 }

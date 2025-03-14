@@ -1,4 +1,4 @@
-// app/login/page.tsx
+// app/login/page.tsx (partial update)
 "use client";
 
 import { useState } from "react";
@@ -21,7 +21,10 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await login(formData);
+      const result = await login(formData);
+      if (result?.redirect) {
+        window.location.href = result.redirect; // Force full page reload
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
