@@ -4,7 +4,8 @@ import "./globals.css";
 import { Outfit } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { createClient } from "@/lib/supabase-server";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -73,12 +74,7 @@ export const metadata = {
   },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  console.log(`[RootLayout] User: ${user?.email || 'none'}, Error: ${error?.message || 'none'}`);
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${outfit.variable} font-sans`}>
       <head>
@@ -97,8 +93,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="bg-background text-foreground min-h-screen flex flex-col">
-
-        <Navbar user={user} />
+        <SpeedInsights />
+        <Analytics />
+        <Navbar /> {/* No user prop */}
         <main className="flex-grow">{children}</main>
         <Footer />
       </body>

@@ -16,15 +16,16 @@ export async function createClient() {
           return cookie;
         },
         set(name: string, value: string, options: CookieOptions) {
-          console.log(`[Supabase Server] Setting cookie ${name}: ${value}`, { ...options, secure: true, sameSite: 'lax', domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined });
+          console.log(`[Supabase Server] Setting cookie ${name}: ${value}`);
           try {
             cookieStore.set({
               name,
               value,
-              ...options,
-              secure: true, // Always true for HTTPS on Vercel
-              sameSite: 'lax', // Default for most cases
-              domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined, // Share across subdomains on Vercel
+              path: '/',
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
+              maxAge: 60 * 60 * 24 * 7, // 1 week
             });
           } catch (error) {
             console.error(`[Supabase Server] Error setting cookie ${name}:`, error);
@@ -36,8 +37,8 @@ export async function createClient() {
             cookieStore.set({
               name,
               value: '',
-              ...options,
-              secure: true,
+              path: '/',
+              secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
             });

@@ -16,21 +16,19 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (formData: FormData) => {
-    setIsSubmitting(true);
-    setError("");
+// app/login/page.tsx (partial)
+const handleLogin = async (formData: FormData) => {
+  setIsSubmitting(true);
+  setError("");
 
-    try {
-      const result = await login(formData);
-      if (result?.redirect) {
-        window.location.href = result.redirect; // Force full page reload
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  try {
+    await login(formData); // Server action handles redirect
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
