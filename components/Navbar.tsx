@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Custom NoPrefetchLink
 const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
   <Link href={href} prefetch={false} {...props}>
     {children}
@@ -17,29 +16,32 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
-  // Check auth-token on mount and listen for changes
-  useEffect(() => {
-    const checkAuth = () => {
-      const authToken = document.cookie
-        .split("; ")
-        .find(row => row.startsWith("auth-token="))
-        ?.split("=")[1];
-      setIsLoggedIn(!!authToken && authToken.length > 0);
-    };
+  // Function to check auth token
+  const checkAuth = () => {
+    const authToken = document.cookie
+      .split("; ")
+      .find(row => row.startsWith("auth-token="))
+      ?.split("=")[1];
+    const loggedIn = !!authToken && authToken.length > 0;
+    console.log(`[Navbar] Checking auth-token: ${authToken ? `${authToken.substring(0, 50)}...` : 'undefined'}, isLoggedIn: ${loggedIn}`);
+    setIsLoggedIn(loggedIn);
+  };
 
+  useEffect(() => {
     // Initial check
     checkAuth();
 
-    // Listen for cookie changes (e.g., signout)
-    const interval = setInterval(checkAuth, 500); // Poll every 500ms
+    // Poll for changes
+    const interval = setInterval(checkAuth, 500);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Empty dependency array, runs on mount
 
-  // Handle signout client-side
+  // Handle signout
   const handleSignout = async () => {
     await fetch("/signout", { method: "GET" });
-    setIsLoggedIn(false); // Update state immediately
+    setIsLoggedIn(false); // Immediate state update
     router.push("/"); // Navigate to home
+    router.refresh(); // Force refresh to ensure state sync
   };
 
   return (
