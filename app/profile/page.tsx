@@ -6,10 +6,14 @@ import Link from 'next/link';
 import { PawPrint, User, Mail, MapPin, Plus, Settings, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { cookies } from "next/headers";
 
 export default async function ProfilePage() {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth-token")?.value;
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser(authToken);
 
   if (!user) {
     redirect("/login");

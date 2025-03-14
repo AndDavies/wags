@@ -16,18 +16,17 @@ export async function login(formData: FormData) {
     throw new Error(error.message);
   }
 
-  // Explicitly set the session token
   const sessionToken = data.session?.access_token;
   if (sessionToken) {
     const cookieStore = await cookies();
-    cookieStore.set("custom-auth-token", sessionToken, {
+    cookieStore.set("auth-token", sessionToken, {
       path: '/',
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
       maxAge: 60 * 60 * 24 * 7, // 1 week
     });
-    console.log(`[Login] Custom token set: ${sessionToken.substring(0, 50)}...`);
+    console.log(`[Login] Auth token set: ${sessionToken.substring(0, 50)}...`);
   }
 
   console.log(`[Login] Login successful for ${email}`);

@@ -8,6 +8,6 @@ export async function GET() {
 
   const response = NextResponse.redirect(new URL("/", "https://wagsandwanders.com"));
   response.cookies.delete("sb-auqyngiwrzjwylzylxtb-auth-token");
-  response.cookies.delete("custom-auth-token"); // Clear custom token too
+  response.cookies.delete("auth-token");
   return response;
 }
