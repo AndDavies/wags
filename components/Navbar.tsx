@@ -5,9 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-client"; // Client-side Supabase
+import { createClient } from "@/lib/supabase-client";
 import { User } from "@supabase/supabase-js";
-import md5 from "md5"; // For Gravatar hashing
+import md5 from "md5";
 
 const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
   <Link href={href} prefetch={false} {...props}>
@@ -44,9 +44,8 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    checkAuth(); // Initial check
-
-    const interval = setInterval(checkAuth, 500); // Poll every 500ms
+    checkAuth();
+    const interval = setInterval(checkAuth, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -54,14 +53,19 @@ export default function Navbar() {
     await fetch("/signout", { method: "GET" });
     document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=.wagsandwanders.com";
     setIsLoggedIn(false);
-    setUser(null); // Clear user data
+    setUser(null);
     router.push("/");
   };
 
-  // Gravatar URL based on email
-  const getAvatarUrl = (email: string) => {
+  // Gravatar URL with fallback
+  const getAvatarUrl = (email?: string) => {
+    if (!email) {
+      console.log("[Navbar] No email provided for Gravatar, using placeholder");
+      return "/placeholder-avatar.png"; // Add a local fallback image if needed
+    }
     const hash = md5(email.trim().toLowerCase());
-    return `https://www.gravatar.com/avatar/${hash}?s=40&d=identicon`; // 40px, fallback to identicon
+    console.log(`[Navbar] Gravatar hash for ${email}: ${hash}`);
+    return `https://www.gravatar.com/avatar/${hash}?s=40&d=identicon`; // Size 40px, identicon fallback
   };
 
   return (
@@ -89,11 +93,15 @@ export default function Navbar() {
               <>
                 <div className="flex items-center space-x-2">
                   <Image
-                    src={getAvatarUrl(user.email || "")}
+                    src={getAvatarUrl(user.email)}
                     alt="User Avatar"
                     width={24}
                     height={24}
                     className="rounded-full"
+                    onError={(e) => {
+                      console.log(`[Navbar] Avatar load failed for ${user.email}`);
+                      e.currentTarget.src = "/placeholder-avatar.png"; // Fallback on error
+                    }}
                   />
                   <span className="text-sm text-offblack">{user.email?.split("@")[0]}</span>
                 </div>
@@ -123,11 +131,15 @@ export default function Navbar() {
               <>
                 <div className="flex items-center space-x-2">
                   <Image
-                    src={getAvatarUrl(user.email || "")}
+                    src={getAvatarUrl(user.email)}
                     alt="User Avatar"
                     width={24}
                     height={24}
                     className="rounded-full"
+                    onError={(e) => {
+                      console.log(`[Navbar] Avatar load failed for ${user.email}`);
+                      e.currentTarget.src = "/placeholder-avatar.png";
+                    }}
                   />
                   <span className="text-lg text-offblack">{user.email?.split("@")[0]}</span>
                 </div>
