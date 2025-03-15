@@ -1,77 +1,57 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
+import CountriesList from "./CountriesList";
 import { createClient } from "@/lib/supabase-server";
-import CountrySearch from "@/components/CountrySearch";
-import { CountriesGrid } from "@/components/CountriesGrid";
 
-// Disable caching so data is always fresh.
-export const revalidate = 0;
-
-// Updated PetPolicy type to match the new schema
+// Define and export PetPolicy and CountryData types
 export type PetPolicy = {
   policy_id: number;
   country_name: string;
   slug: string;
   external_link: string | null;
   quarantine_info: string | null;
-  entry_requirements: Record<string, string | undefined> | null; // jsonb
-  additional_info: Record<string, string | undefined> | null; // jsonb
-  external_links: { title: string; url: string }[] | null; // jsonb
+  entry_requirements: Record<string, string | undefined> | null;
+  additional_info: Record<string, string | undefined> | null;
+  external_links: { title: string; url: string }[] | null;
   flag_path: string;
   created_at: string;
   updated_at: string;
 };
 
-// CountryData that our UI components expect
+// Exported for use in route.ts and CountriesList.tsx
 export type CountryData = {
   name: string;
   slug: string;
   flag: string;
-  quarantine?: string | null; // Optional: for display/filtering
+  quarantine?: string | null;
 };
 
-export default async function PoliciesDirectoryPage() {
+async function CountriesData() {
   const supabase = await createClient();
-
-  // Query all pet policies, ordering by country name
-  const { data: policies, error } = await supabase
+  const { data } = await supabase
     .from("pet_policies")
-    .select("*")
-    .order("country_name", { ascending: true });
+    .select("country_name, slug, flag_path, quarantine_info")
+    .order("country_name", { ascending: true })
+    .limit(12);
 
-  if (error) {
-    console.error("Error fetching pet policies:", error);
-    throw new Error("Failed to fetch pet policies");
-  }
-
-  const policiesData: PetPolicy[] = policies ?? [];
-
-  // Map each policy row to CountryData
-  const countries: CountryData[] = policiesData.map((policy) => ({
+  const initialCountries: CountryData[] = (data ?? []).map((policy: any) => ({
     name: policy.country_name,
     slug: policy.slug,
     flag: policy.flag_path,
     quarantine: policy.quarantine_info,
   }));
 
+  return <CountriesList initialCountries={initialCountries} />;
+}
+
+export default function PoliciesDirectoryPage() {
   return (
     <div className="container mx-auto p-4 space-y-8">
-      {/* Spacer for fixed navbar */}
       <div className="mt-20" />
-
-      {/* Inline Country Search Filter */}
-      <CountrySearch countries={countries} />
-
-      {/* Page Title Card */}
       <Card className="bg-brand-pink border-none shadow-md">
         <CardHeader className="flex flex-col space-y-4">
           <div className="flex flex-row items-center space-x-4">
@@ -87,18 +67,10 @@ export default async function PoliciesDirectoryPage() {
           </p>
         </CardHeader>
       </Card>
-
-      {/* Breadcrumb */}
       <DirectoryBreadcrumb currentCategory="policies" />
-
-      {/* Countries Grid */}
-      {countries.length > 0 ? (
-        <CountriesGrid countries={countries} />
-      ) : (
-        <p className="text-center text-xl text-offblack">No pet policy data available.</p>
-      )}
-
-      {/* Call to Action */}
+      <Suspense fallback={<div className="text-center text-xl">Loading countries...</div>}>
+        <CountriesData />
+      </Suspense>
       <div className="text-center mt-16 p-8 bg-brand-pink rounded-2xl">
         <h2 className="text-3xl font-display text-brand-teal mb-4">
           Need Help Planning Your Pet's Travel?
@@ -113,3 +85,5 @@ export default async function PoliciesDirectoryPage() {
     </div>
   );
 }
+
+export const revalidate = 300; // Cache for 5 minutes

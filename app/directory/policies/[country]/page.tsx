@@ -13,37 +13,32 @@ import { Badge } from "@/components/ui/badge";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
 import { createClient } from "@/lib/supabase-server";
 
-// Updated PetPolicy type to match the new schema
 export type PetPolicy = {
   policy_id: number;
   country_name: string;
   slug: string;
   external_link: string | null;
   quarantine_info: string | null;
-  entry_requirements: Record<string, string | undefined> | null; // jsonb
-  additional_info: Record<string, string | undefined> | null; // jsonb
-  external_links: { title: string; url: string }[] | null; // jsonb
+  entry_requirements: Record<string, string | undefined> | null;
+  additional_info: Record<string, string | undefined> | null;
+  external_links: { title: string; url: string }[] | null;
   flag_path: string;
   created_at: string;
   updated_at: string;
 };
 
-// Fix the params typing to use Promise and correct param name
 export default async function CountryPolicyPage({ params }: { params: Promise<{ country: string }> }) {
-  const { country } = await params; // Use 'country' instead of 'slug' from URL
+  const { country } = await params;
 
-  // Create a Supabase client
   const supabase = await createClient();
 
-  // Query the pet_policies table for the record matching the slug (URL param 'country' matches 'slug' column)
   const { data: policyData, error } = await supabase
     .from("pet_policies")
     .select("*")
-    .eq("slug", country) // 'country' from URL matches 'slug' in DB
+    .eq("slug", country)
     .single();
 
   if (error || !policyData) {
-    console.error("Error fetching pet policy:", error);
     return (
       <div className="min-h-screen bg-offwhite flex items-center justify-center">
         <p className="text-center text-xl">Policy not found for this country.</p>
@@ -64,21 +59,16 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen bg-offwhite">
-      {/* Spacer for fixed navbar */}
       <div className="mt-20" />
-
       <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Breadcrumb */}
         <DirectoryBreadcrumb currentCategory="policies" extraItems={[{ label: country_name }]} />
-
-        {/* Country Header */}
         <div className="flex flex-col md:flex-row items-center gap-6 bg-brand-pink rounded-xl p-6 shadow-md">
           <div className="relative w-32 h-32 md:w-48 md:h-48 overflow-hidden rounded-lg shadow-lg">
             <Image
               src={flag_path}
               alt={`${country_name} flag`}
               fill
-              sizes="(max-width: 768px) 128px, 192px" // Responsive sizes for flag
+              sizes="(max-width: 768px) 128px, 192px"
               className="object-cover"
             />
           </div>
@@ -95,8 +85,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
             </div>
           </div>
         </div>
-
-        {/* Policy Document Card */}
         <Card className="border-none shadow-md overflow-hidden">
           <CardHeader className="bg-brand-teal text-white">
             <div className="flex items-center gap-3">
@@ -105,7 +93,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            {/* Entry Requirements */}
             {entry_requirements && Object.keys(entry_requirements).length > 0 && (
               <div className="flex gap-4">
                 <div className="flex-shrink-0 mt-1">
@@ -123,8 +110,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 </div>
               </div>
             )}
-
-            {/* Official External Link */}
             {external_link && (
               <div className="flex gap-4">
                 <div className="flex-shrink-0 mt-1">
@@ -144,8 +129,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 </div>
               </div>
             )}
-
-            {/* Quarantine Information */}
             {quarantine_info && (
               <div className="flex gap-4">
                 <div className="flex-shrink-0 mt-1">
@@ -157,8 +140,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 </div>
               </div>
             )}
-
-            {/* Additional Information */}
             {additional_info && Object.keys(additional_info).length > 0 && (
               <div className="flex gap-4">
                 <div className="flex-shrink-0 mt-1">
@@ -176,8 +157,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 </div>
               </div>
             )}
-
-            {/* External Links */}
             {external_links && external_links.length > 0 && (
               <div className="flex gap-4">
                 <div className="flex-shrink-0 mt-1">
@@ -202,8 +181,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 </div>
               </div>
             )}
-
-            {/* Last Updated */}
             <div className="text-sm text-offblack/70 pt-4 border-t">
               Last updated:{" "}
               {new Date(updated_at).toLocaleDateString("en-US", {
@@ -214,15 +191,12 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
             </div>
           </CardContent>
         </Card>
-
-        {/* Simulated User Comments */}
         <div className="space-y-6">
           <h2 className="text-3xl font-display text-brand-teal flex items-center gap-2">
-            <FileText className="h-7 w-7" /> {/* Placeholder for comments */}
+            <FileText className="h-7 w-7" />
             Traveler Tips & Experiences
           </h2>
           <div className="space-y-4">
-            {/* Hardcoded comment 1 */}
             <Card className="border-none shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex gap-4">
@@ -231,7 +205,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                       src="/placeholders/user1.jpg"
                       alt="Emily Parker"
                       fill
-                      sizes="48px" // Fixed size for avatar
+                      sizes="48px"
                       className="object-cover"
                     />
                   </div>
@@ -267,8 +241,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 </div>
               </CardContent>
             </Card>
-
-            {/* Hardcoded comment 2 */}
             <Card className="border-none shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex gap-4">
@@ -277,7 +249,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                       src="/placeholders/user2.jpg"
                       alt="Michael Chen"
                       fill
-                      sizes="48px" // Fixed size for avatar
+                      sizes="48px"
                       className="object-cover"
                     />
                   </div>
@@ -320,8 +292,6 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
             </Button>
           </div>
         </div>
-
-        {/* Back Button */}
         <div className="pt-4">
           <Button variant="outline" asChild className="border-brand-teal text-brand-teal hover:bg-brand-pink hover:text-offblack">
             <Link href="/directory/policies" className="flex items-center">
