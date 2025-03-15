@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: PageProps) {
   }
 
   // Use meta_description if available, otherwise fall back to description or default
-  const description = post.meta_description || post.description || "Read the latest pet travel insights from Wags & Wanders.";
+  const description = post.meta_description || post.description || "Read the latest pet travel insights from Wags & Wanderssssss.";
 
   return {
     title: `${post.title} | Wags & Wanders`,
