@@ -70,7 +70,7 @@ export default function CountriesList({
               <Card className="h-full overflow-hidden border-none shadow-md hover:shadow-xl transition-shadow">
                 <div className="relative h-40 bg-gray-100">
                   <Image
-                    src={flagSrc || `/flags/${country.slug}.jpg`}
+                    src={flagSrc || `/flags/${country.slug}`}
                     alt={`${country.name} flag`}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
