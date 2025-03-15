@@ -22,12 +22,19 @@ export type PetPolicy = {
   updated_at: string;
 };
 
-// Exported for use in route.ts and CountriesList.tsx
 export type CountryData = {
   name: string;
   slug: string;
   flag: string;
   quarantine?: string | null;
+};
+
+// Type for raw Supabase data
+type SupabasePolicy = {
+  country_name: string;
+  slug: string;
+  flag_path: string;
+  quarantine_info: string | null;
 };
 
 async function CountriesData() {
@@ -38,7 +45,7 @@ async function CountriesData() {
     .order("country_name", { ascending: true })
     .limit(12);
 
-  const initialCountries: CountryData[] = (data ?? []).map((policy: any) => ({
+  const initialCountries: CountryData[] = (data ?? []).map((policy: SupabasePolicy) => ({
     name: policy.country_name,
     slug: policy.slug,
     flag: policy.flag_path,
