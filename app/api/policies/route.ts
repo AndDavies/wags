@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   const countries: CountryData[] = (data || []).map((policy: SupabasePolicy) => ({
     name: policy.country_name,
     slug: policy.slug,
-    flag: policy.flag_path,
+    flag_path: policy.flag_path,
     quarantine: policy.quarantine_info,
   }));
 

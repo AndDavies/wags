@@ -25,7 +25,7 @@ export type PetPolicy = {
 export type CountryData = {
   name: string;
   slug: string;
-  flag: string;
+  flag_path: string; // Changed from "flag" to "flag_path"
   quarantine?: string | null;
 };
 
@@ -48,7 +48,7 @@ async function CountriesData() {
   const initialCountries: CountryData[] = (data ?? []).map((policy: SupabasePolicy) => ({
     name: policy.country_name,
     slug: policy.slug,
-    flag: policy.flag_path,
+    flag_path: policy.flag_path, // Changed from "flag" to "flag_path"
     quarantine: policy.quarantine_info,
   }));
 
