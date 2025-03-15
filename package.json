@@ -7,7 +7,8 @@
     "build": "next build",
     "postbuild": "next-sitemap",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+     "copy-flags": "cp -r node_modules/svg-country-flags/svg/*.svg public/flags/"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -45,6 +46,7 @@
     "react-icons": "^5.4.0",
     "react-share": "^5.2.0",
     "remark-parse": "^11.0.0",
+    "svg-country-flags": "^1.2.10",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.0.5"

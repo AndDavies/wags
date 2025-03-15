@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ShareButtons from "@/components/ShareButtons";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { BlogSubscribeForm } from "@/components/BlogSubscribeForm";
 
 type BlogParams = Promise<{ slug: string }>;
 
@@ -205,7 +206,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             )}
           </aside>
         </div>
-
+        <BlogSubscribeForm />
         <div className="mt-12 flex justify-between">
           <Button
             variant="outline"
