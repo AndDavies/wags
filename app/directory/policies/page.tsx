@@ -17,33 +17,33 @@ import { CountriesGrid } from "@/components/CountriesGrid";
 // Disable caching so data is always fresh.
 export const revalidate = 0;
 
-// Our new PetPolicy type from the updated schema.
+// Updated PetPolicy type to match the new schema
 export type PetPolicy = {
   policy_id: number;
   country_name: string;
   slug: string;
   external_link: string | null;
-  pdf_application_link: string | null;
-  entry_requirements: string | null;
-  external_links: string[] | null;
   quarantine_info: string | null;
-  questions_answers: string | null;
+  entry_requirements: Record<string, string | undefined> | null; // jsonb
+  additional_info: Record<string, string | undefined> | null; // jsonb
+  external_links: { title: string; url: string }[] | null; // jsonb
   flag_path: string;
   created_at: string;
   updated_at: string;
 };
 
-// CountryData that our UI components expect.
+// CountryData that our UI components expect
 export type CountryData = {
   name: string;
   slug: string;
   flag: string;
+  quarantine?: string | null; // Optional: add quarantine info for display
 };
 
 export default async function PoliciesDirectoryPage() {
   const supabase = await createClient();
 
-  // Query all pet policies, ordering by country name.
+  // Query all pet policies, ordering by country name
   const { data: policies, error } = await supabase
     .from("pet_policies")
     .select("*")
@@ -56,11 +56,12 @@ export default async function PoliciesDirectoryPage() {
 
   const policiesData: PetPolicy[] = policies ?? [];
 
-  // Map each policy row to our CountryData.
+  // Map each policy row to CountryData, adding quarantine info
   const countries: CountryData[] = policiesData.map((policy) => ({
     name: policy.country_name,
     slug: policy.slug,
-    flag: policy.flag_path, // Directly stored in the DB.
+    flag: policy.flag_path,
+    quarantine: policy.quarantine_info, // Pass quarantine for filtering/display
   }));
 
   return (
@@ -120,7 +121,7 @@ export default async function PoliciesDirectoryPage() {
       {/* Call to Action */}
       <div className="text-center mt-16 p-8 bg-brand-pink rounded-2xl">
         <h2 className="text-3xl font-display text-brand-teal mb-4">
-          Need Help Planning Your Pet&apos;s Travel?
+          Need Help Planning Your Pet's Travel?
         </h2>
         <p className="text-xl text-offblack mb-6 max-w-2xl mx-auto">
           Our team can help you navigate the complex requirements for international pet travel.
