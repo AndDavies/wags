@@ -17,9 +17,9 @@ export function CountriesGrid({ countries }: CountriesGridProps) {
       {countries.map((country) => {
         // Ensure the flag URL starts with a leading slash
         const flagSrc =
-          country.flag && country.flag.startsWith("/")
-            ? country.flag
-            : `/${country.flag}`;
+          country.flag_path && country.flag_path.startsWith("/")
+            ? country.flag_path
+            : `/${country.flag_path}`;
         return (
           <Link
             key={country.slug}
