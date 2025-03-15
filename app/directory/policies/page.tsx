@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -8,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Airplay, Hotel, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
 import { createClient } from "@/lib/supabase-server";
 import CountrySearch from "@/components/CountrySearch";
@@ -37,7 +36,7 @@ export type CountryData = {
   name: string;
   slug: string;
   flag: string;
-  quarantine?: string | null; // Optional: add quarantine info for display
+  quarantine?: string | null; // Optional: for display/filtering
 };
 
 export default async function PoliciesDirectoryPage() {
@@ -56,37 +55,18 @@ export default async function PoliciesDirectoryPage() {
 
   const policiesData: PetPolicy[] = policies ?? [];
 
-  // Map each policy row to CountryData, adding quarantine info
+  // Map each policy row to CountryData
   const countries: CountryData[] = policiesData.map((policy) => ({
     name: policy.country_name,
     slug: policy.slug,
     flag: policy.flag_path,
-    quarantine: policy.quarantine_info, // Pass quarantine for filtering/display
+    quarantine: policy.quarantine_info,
   }));
 
   return (
     <div className="container mx-auto p-4 space-y-8">
       {/* Spacer for fixed navbar */}
       <div className="mt-20" />
-
-      {/* Directory Navigation Tabs */}
-      <nav className="flex justify-center gap-8 mb-8">
-        {Object.entries({
-          airlines: { title: "Airlines", icon: Airplay },
-          hotels: { title: "Hotels", icon: Hotel },
-          policies: { title: "Policies", icon: FileText },
-        }).map(([key, value]) => (
-          <Link
-            key={key}
-            href={`/directory/${key}`}
-            className={`text-xl font-bold ${
-              key === "policies" ? "text-brand-teal" : "text-offblack hover:text-brand-pink"
-            }`}
-          >
-            {value.title}
-          </Link>
-        ))}
-      </nav>
 
       {/* Inline Country Search Filter */}
       <CountrySearch countries={countries} />

@@ -12,11 +12,11 @@ export async function createClient() {
       cookies: {
         get(name: string) {
           const cookie = cookieStore.get(name)?.value;
-          console.log(`[Supabase Server] Get cookie ${name}: ${cookie ? `${cookie.substring(0, 50)}... (length: ${cookie.length})` : 'undefined'}`);
+         // console.log(`[Supabase Server] Get cookie ${name}: ${cookie ? `${cookie.substring(0, 50)}... (length: ${cookie.length})` : 'undefined'}`);
           return cookie;
         },
         set(name: string, value: string, options: CookieOptions) {
-          console.log(`[Supabase Server] Set cookie ${name}: ${value.substring(0, 50)}... (length: ${value.length})`, options);
+          //console.log(`[Supabase Server] Set cookie ${name}: ${value.substring(0, 50)}... (length: ${value.length})`, options);
           try {
             cookieStore.set({
               name,
@@ -27,13 +27,13 @@ export async function createClient() {
               domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
               maxAge: 60 * 60 * 24 * 7,
             });
-            console.log(`[Supabase Server] Cookie ${name} set successfully`);
+            //console.log(`[Supabase Server] Cookie ${name} set successfully`);
           } catch (error) {
             console.error(`[Supabase Server] Error setting cookie ${name}:`, error);
           }
         },
         remove(name: string, options: CookieOptions) {
-          console.log(`[Supabase Server] Remove cookie ${name}`);
+          //console.log(`[Supabase Server] Remove cookie ${name}`);
           try {
             cookieStore.set({
               name,
@@ -44,7 +44,7 @@ export async function createClient() {
               domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
             });
           } catch (error) {
-            console.error(`[Supabase Server] Error removing cookie ${name}:`, error);
+            //console.error(`[Supabase Server] Error removing cookie ${name}:`, error);
           }
         },
       },

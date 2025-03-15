@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { User } from "@supabase/supabase-js";
-import md5 from "md5";
 
 const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
   <Link href={href} prefetch={false} {...props}>
@@ -21,51 +20,36 @@ export default function Navbar() {
   const router = useRouter();
   const supabase = createClient();
 
-  const checkAuth = async () => {
-    const authToken = document.cookie
-      .split("; ")
-      .find(row => row.startsWith("auth-token="))
-      ?.split("=")[1];
-    const loggedIn = !!authToken && authToken.length > 0;
-    console.log(`[Navbar] auth-token: ${authToken ? `${authToken.substring(0, 50)}...` : 'undefined'}, isLoggedIn: ${loggedIn}`);
-
-    if (loggedIn && !user) {
-      const { data: { user: fetchedUser }, error } = await supabase.auth.getUser(authToken);
-      if (error) {
-        console.error(`[Navbar] Error fetching user: ${error.message}`);
-      } else {
-        console.log(`[Navbar] User fetched: ${fetchedUser?.email}`);
-        setUser(fetchedUser);
-      }
-    } else if (!loggedIn) {
-      setUser(null);
-    }
-    setIsLoggedIn(loggedIn);
-  };
-
   useEffect(() => {
+    // Initial auth check
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error(`[Navbar] Error fetching session: ${error.message}`);
+        setIsLoggedIn(false);
+        setUser(null);
+        return;
+      }
+      setIsLoggedIn(!!session);
+      setUser(session?.user ?? null);
+    };
     checkAuth();
-    const interval = setInterval(checkAuth, 500);
-    return () => clearInterval(interval);
+
+    // Listen for auth state changes with correct destructuring
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`[Navbar] Auth event: ${event}, Session: ${session ? 'active' : 'none'}, User: ${session?.user?.email || 'none'}`);
+      setIsLoggedIn(!!session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSignout = async () => {
-    await fetch("/signout", { method: "GET" });
-    document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=.wagsandwanders.com";
-    setIsLoggedIn(false);
-    setUser(null);
+    await supabase.auth.signOut();
     router.push("/");
-  };
-
-  // Gravatar URL with fallback
-  const getAvatarUrl = (email?: string) => {
-    if (!email) {
-      console.log("[Navbar] No email provided for Gravatar, using placeholder");
-      return "/placeholder-avatar.png"; // Add a local fallback image if needed
-    }
-    const hash = md5(email.trim().toLowerCase());
-    console.log(`[Navbar] Gravatar hash for ${email}: ${hash}`);
-    return `https://www.gravatar.com/avatar/${hash}?s=40&d=identicon`; // Size 40px, identicon fallback
   };
 
   return (
@@ -91,20 +75,7 @@ export default function Navbar() {
             <NoPrefetchLink href="/contact" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Contact</NoPrefetchLink>
             {isLoggedIn && user ? (
               <>
-                <div className="flex items-center space-x-2">
-                  <Image
-                    src={getAvatarUrl(user.email)}
-                    alt="User Avatar"
-                    width={24}
-                    height={24}
-                    className="rounded-full"
-                    onError={(e) => {
-                      console.log(`[Navbar] Avatar load failed for ${user.email}`);
-                      e.currentTarget.src = "/placeholder-avatar.png"; // Fallback on error
-                    }}
-                  />
-                  <span className="text-sm text-offblack">{user.email?.split("@")[0]}</span>
-                </div>
+                <span className="text-sm text-offblack">{user.email?.split("@")[0]}</span>
                 <NoPrefetchLink href="/profile" className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors">Profile</NoPrefetchLink>
                 <button
                   onClick={handleSignout}
@@ -129,20 +100,7 @@ export default function Navbar() {
             <NoPrefetchLink href="/contact" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Contact</NoPrefetchLink>
             {isLoggedIn && user ? (
               <>
-                <div className="flex items-center space-x-2">
-                  <Image
-                    src={getAvatarUrl(user.email)}
-                    alt="User Avatar"
-                    width={24}
-                    height={24}
-                    className="rounded-full"
-                    onError={(e) => {
-                      console.log(`[Navbar] Avatar load failed for ${user.email}`);
-                      e.currentTarget.src = "/placeholder-avatar.png";
-                    }}
-                  />
-                  <span className="text-lg text-offblack">{user.email?.split("@")[0]}</span>
-                </div>
+                <span className="text-lg text-offblack">{user.email?.split("@")[0]}</span>
                 <NoPrefetchLink href="/profile" className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors">Profile</NoPrefetchLink>
                 <button
                   onClick={handleSignout}
