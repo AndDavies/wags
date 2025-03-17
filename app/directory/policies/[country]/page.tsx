@@ -13,13 +13,19 @@ import { Badge } from "@/components/ui/badge";
 import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
 import { createClient } from "@/lib/supabase-server";
 
+export type EntryRequirement = {
+  step: number;
+  label: string;
+  text: string;
+};
+
 export type PetPolicy = {
   policy_id: number;
   country_name: string;
   slug: string;
   external_link: string | null;
   quarantine_info: string | null;
-  entry_requirements: Record<string, string | undefined> | null;
+  entry_requirements: EntryRequirement[] | null;
   additional_info: Record<string, string | undefined> | null;
   external_links: { title: string; url: string }[] | null;
   flag_path: string;
@@ -93,7 +99,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            {entry_requirements && Object.keys(entry_requirements).length > 0 && (
+            {entry_requirements && entry_requirements.length > 0 && (
               <div className="flex gap-4">
                 <div className="flex-shrink-0 mt-1">
                   <Info className="h-6 w-6 text-brand-teal" />
@@ -101,9 +107,12 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 <div>
                   <h3 className="text-lg font-semibold text-brand-teal mb-2">Entry Requirements</h3>
                   <ul className="list-disc pl-5 text-offblack space-y-2">
-                    {Object.entries(entry_requirements).map(([key, value]) => (
-                      <li key={key}>
-                        <strong>{key}:</strong> {value || "Not specified"}
+                    {entry_requirements.map((req, index) => (
+                      <li key={index}>
+                        <strong>
+                          Step {req.step}{req.label ? `: ${req.label}` : ""}:
+                        </strong>{" "}
+                        {req.text || "Not specified"}
                       </li>
                     ))}
                   </ul>
