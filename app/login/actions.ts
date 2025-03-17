@@ -1,3 +1,4 @@
+// app/login/actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
@@ -41,7 +42,7 @@ export async function loginWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo,
+      redirectTo, // Ensure this matches your live callback
     },
   });
 
@@ -51,7 +52,8 @@ export async function loginWithGoogle() {
   }
 
   if (data.url) {
-    redirect(data.url); // Redirect to Google’s OAuth page
+    console.log(`[Google Login] Redirecting to: ${data.url}`);
+    redirect(data.url); // Redirect to Google OAuth page
   } else {
     throw new Error("No redirect URL provided by Supabase");
   }
