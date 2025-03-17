@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-client";
+import { createClient } from "@/lib/supabase-client"; // Client-side client
 import { User } from "@supabase/supabase-js";
 import { Menu, X } from "lucide-react";
 
@@ -44,17 +44,17 @@ export default function Navbar() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []); // No dependencies needed, supabase is stable
+  }, [supabase]);
 
   const handleSignout = async () => {
     await supabase.auth.signOut();
-    setIsOpen(false); // Close menu on sign out
+    setIsOpen(false);
     router.push("/");
   };
 
   const navItems = [
     { name: "Home", href: "/" },
-    { name: "Directory", href: "https://wagsandwanders.com/directory" }, // Changed from "Services"
+    { name: "Directory", href: "https://wagsandwanders.com/directory" },
     { name: "About", href: "/about" },
     { name: "Blog", href: "/blog" },
     { name: "Contact", href: "/contact" },
@@ -64,7 +64,6 @@ export default function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
           <NoPrefetchLink href="/" className="flex items-center space-x-2">
             <Image
               src="/wags_and_wanders_logo_trans.png"
@@ -76,7 +75,6 @@ export default function Navbar() {
             <span className="text-xl font-semibold text-[#30B8C4]">Wags & Wanders</span>
           </NoPrefetchLink>
 
-          {/* Hamburger Button (Mobile) */}
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -86,7 +84,6 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Desktop Menu */}
           <nav className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
               <NoPrefetchLink
@@ -132,14 +129,13 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {/* Mobile Menu (Collapsible) */}
         {isOpen && (
           <nav className="md:hidden flex flex-col items-center space-y-2 py-4 bg-white border-t border-gray-200">
             {navItems.map((item) => (
               <NoPrefetchLink
                 key={item.name}
                 href={item.href}
-                onClick={() => setIsOpen(false)} // Close menu on click
+                onClick={() => setIsOpen(false)}
                 className="text-lg font-medium text-offblack hover:text-[#30B8C4] transition-colors"
               >
                 {item.name}
@@ -185,4 +181,4 @@ export default function Navbar() {
       </div>
     </header>
   );
-}
+};

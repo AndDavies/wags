@@ -1,4 +1,3 @@
-// app/login/actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase-server";
@@ -31,4 +30,29 @@ export async function login(formData: FormData) {
 
   console.log(`[Login] Login successful for ${email}`);
   redirect("/");
+}
+
+export async function loginWithGoogle() {
+  const supabase = await createClient();
+  const redirectTo = process.env.NODE_ENV === 'production'
+    ? "https://wagsandwanders.com/auth/callback"
+    : "http://localhost:3000/auth/callback";
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo,
+    },
+  });
+
+  if (error) {
+    console.error(`[Google Login] Error: ${error.message}`);
+    throw new Error(error.message);
+  }
+
+  if (data.url) {
+    redirect(data.url); // Redirect to Google’s OAuth page
+  } else {
+    throw new Error("No redirect URL provided by Supabase");
+  }
 }
