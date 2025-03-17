@@ -8,24 +8,27 @@ import { createClient } from "@/lib/supabase-server";
 
 export const revalidate = 0; // Disable caching for fresh data
 
-// Define types based on schema
+// Define types based on the updated schema
 export type AirlineData = {
-  id: number;
+  id?: number; // Assuming id exists as a primary key, though not explicitly listed
   airline: string;
   country: string | null;
-  logo: string;
   pets_in_cabin: boolean | null;
   pets_in_cargo: boolean | null;
+  pets_in_checked_baggage: boolean | null;
   crate_carrier_size_max: string | null;
-  weight_limit: number | null;
+  weight_limit: number | null; // integer in schema
   breed_restrictions: string | null;
   health_cert: string | null;
-  fees_usd: number | null;
+  fees_usd: number | null; // integer in schema
+  phone_number: string | null;
   additional_details: string | null;
   last_updated: string | null;
   source: string | null;
   url: string | null;
   slug: string;
+  logo: string | null;
+  user_rating: number | null; // numeric in schema
 };
 
 export type FAQ = {
@@ -40,11 +43,11 @@ export default async function AirlinePage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const supabase = await createClient();
 
-  // Fetch airline data (adjusted to schema)
+  // Fetch airline data
   const { data: airlineData, error: airlineError } = await supabase
     .from("airline_pet_policies")
     .select(
-      "id, airline, country, logo, pets_in_cabin, pets_in_cargo, crate_carrier_size_max, weight_limit, breed_restrictions, health_cert, fees_usd, additional_details, last_updated, source, url, slug"
+      "airline, country, pets_in_cabin, pets_in_cargo, pets_in_checked_baggage, crate_carrier_size_max, weight_limit, breed_restrictions, health_cert, fees_usd, phone_number, additional_details, last_updated, source, url, slug, logo, user_rating"
     )
     .eq("slug", slug)
     .single();
@@ -59,13 +62,13 @@ export default async function AirlinePage({ params }: { params: Promise<{ slug: 
   }
 
   const airline = airlineData as AirlineData;
-  const logoPath = airline.logo || "/default-logo.jpg"; // Fallback if empty string fails
+  const logoPath = airline.logo || "/default-logo.jpg"; // Fallback for null logo
 
-  // Fetch FAQs
+  // Fetch FAQs (assuming id exists; adjust if slug-based linking is preferred)
   const { data: faqData, error: faqError } = await supabase
     .from("airline_faqs")
     .select("*")
-    .eq("airline_id", airline.id)
+    .eq("airline", airlineData.airline || 0) // Fallback to 0 if id isn't returned; see note below
     .limit(10);
 
   const faqs = faqData as FAQ[] || [];
@@ -99,6 +102,11 @@ export default async function AirlinePage({ params }: { params: Promise<{ slug: 
               {airline.country && (
                 <p className="text-lg text-offblack">Country: {airline.country}</p>
               )}
+              {airline.user_rating !== null && (
+                <p className="text-lg text-offblack">
+                  User Rating: {airline.user_rating}/100
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -122,6 +130,19 @@ export default async function AirlinePage({ params }: { params: Promise<{ slug: 
                   {airline.pets_in_cabin === true
                     ? "Allowed"
                     : airline.pets_in_cabin === false
+                    ? "Not Allowed"
+                    : "Information not available"}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-2xl font-semibold text-brand-teal">
+                  Can Pets Travel as Checked Baggage with {airline.airline}?
+                </h2>
+                <p className="text-offblack">
+                  {airline.pets_in_checked_baggage === true
+                    ? "Allowed"
+                    : airline.pets_in_checked_baggage === false
                     ? "Not Allowed"
                     : "Information not available"}
                 </p>
@@ -183,7 +204,7 @@ export default async function AirlinePage({ params }: { params: Promise<{ slug: 
                 </ul>
               </div>
 
-              {(airline.additional_details || airline.url || airline.source) && (
+              {(airline.additional_details || airline.phone_number || airline.source || airline.url) && (
                 <div className="space-y-4">
                   <h2 className="text-2xl font-semibold text-brand-teal">
                     What Additional Information Is Available for {airline.airline}?
@@ -191,6 +212,11 @@ export default async function AirlinePage({ params }: { params: Promise<{ slug: 
                   <ul className="list-disc list-inside text-offblack space-y-1">
                     {airline.additional_details && (
                       <li>{airline.additional_details}</li>
+                    )}
+                    {airline.phone_number && (
+                      <li>
+                        <strong>Phone:</strong> {airline.phone_number}
+                      </li>
                     )}
                     {airline.source && (
                       <li>
@@ -348,7 +374,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return {
     title: `${airline.airline} Pet Travel Policy | Wags and Wanders`,
-    description: `Explore ${airline.airline}'s pet travel policy, including cabin and cargo options, fees, and traveler tips.`,
+    description: `Explore ${airline.airline}'s pet travel policy, including cabin, baggage, cargo options, fees, and traveler tips.`,
     keywords: `${airline.airline} pet policy, pet-friendly ${airline.airline}, travel with pets ${airline.airline}`,
   };
 }
