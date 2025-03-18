@@ -35,6 +35,14 @@ html {
   margin-bottom: 0.75rem;
 }
 
+/* Add this to globals.css after the h2 styles */
+.prose h3 {
+  font-size: 1.5rem; /* Between h2 (1.75rem) and default text, matches prose-lg */
+  font-weight: 600;  /* Slightly less bold than h1/h2 (bold) */
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
 /* Key Takeaways Component */
 .key-takeaways {
   @apply bg-white border-l-4 border-brand-teal;
