@@ -21,6 +21,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<User | null>(null)
+  const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -51,8 +52,20 @@ export default function Navbar() {
       setUser(session?.user ?? null)
     })
 
+    // Add scroll event listener
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true)
+      } else {
+        setScrolled(false)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+
     return () => {
       subscription.unsubscribe()
+      window.removeEventListener("scroll", handleScroll)
     }
   }, [supabase])
 
@@ -72,7 +85,9 @@ export default function Navbar() {
   ]
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white shadow-md" : "bg-transparent"}`}
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <NoPrefetchLink href="/" className="flex items-center space-x-2">
@@ -83,13 +98,15 @@ export default function Navbar() {
               height={40}
               className="w-10 h-10"
             />
-            <span className="text-xl font-semibold text-[#30B8C4]">Wags & Wanders</span>
+            <span className={`text-xl font-semibold ${scrolled ? "text-[#30B8C4]" : "text-white"}`}>
+              Wags & Wanders
+            </span>
           </NoPrefetchLink>
 
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-offblack hover:text-[#30B8C4] focus:outline-none"
+              className={`focus:outline-none ${scrolled ? "text-offblack hover:text-[#30B8C4]" : "text-white hover:text-[#FFE5E5]"}`}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -101,7 +118,7 @@ export default function Navbar() {
               <NoPrefetchLink
                 key={item.name}
                 href={item.href}
-                className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors"
+                className={`text-sm font-medium transition-colors ${scrolled ? "text-offblack hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
               >
                 {item.name}
               </NoPrefetchLink>
@@ -128,10 +145,12 @@ export default function Navbar() {
             </NoPrefetchLink>
             {isLoggedIn && user ? (
               <>
-                <span className="text-sm text-offblack">{user.email?.split("@")[0]}</span>
+                <span className={`text-sm ${scrolled ? "text-offblack" : "text-white"}`}>
+                  {user.email?.split("@")[0]}
+                </span>
                 <NoPrefetchLink
                   href="/profile"
-                  className="text-sm font-medium text-offblack hover:text-[#FFE5E5] transition-colors"
+                  className={`text-sm font-medium transition-colors ${scrolled ? "text-offblack hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
                 >
                   Profile
                 </NoPrefetchLink>
@@ -146,13 +165,13 @@ export default function Navbar() {
               <>
                 <NoPrefetchLink
                   href="/login"
-                  className="text-sm font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors"
+                  className={`text-sm font-medium transition-colors ${scrolled ? "text-[#30B8C4] hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
                 >
                   Log In
                 </NoPrefetchLink>
                 <NoPrefetchLink
                   href="/signup"
-                  className="text-sm font-medium text-[#30B8C4] hover:text-[#FFE5E5] transition-colors"
+                  className={`text-sm font-medium transition-colors ${scrolled ? "text-[#30B8C4] hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
                 >
                   Sign Up
                 </NoPrefetchLink>
