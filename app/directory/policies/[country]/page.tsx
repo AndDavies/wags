@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { Components } from "react-markdown";
 import {
   FileText,
   ExternalLink,
@@ -43,9 +43,8 @@ export type PetPolicy = {
 };
 
 // Custom markdown components for spacing
-const markdownComponents = {
-  // Render links with a right margin for spacing
-  a: ({ node, ...props }: any) => (
+const markdownComponents: Components = {
+  a: ({ node, ...props }) => (
     <a {...props} className="mr-2 text-brand-teal hover:text-brand-pink" />
   ),
 };
@@ -111,7 +110,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
           </div>
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-4xl md:text-5xl font-display text-brand-teal mb-2">{country_name}</h1>
-            <p className="text-xl text-offblack mb-4">pppppppppPet Travel Policy Information</p>
+            <p className="text-xl text-offblack mb-4">Pet Travel Policy Information</p>
             <div className="flex flex-wrap gap-2 justify-center md:justify-start">
               <Badge className="bg-brand-teal text-white">Pet Friendly</Badge>
               {quarantine_info && quarantine_info.includes("no quarantine") ? (
