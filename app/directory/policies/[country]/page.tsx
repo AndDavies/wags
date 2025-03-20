@@ -458,15 +458,20 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
 
 // Metadata Generation
 export async function generateMetadata({ params }: { params: Promise<{ country: string }> }) {
-  const { country } = await params
-  const supabase = await createClient()
-  const { data } = await supabase.from("pet_policies").select("country_name").eq("slug", country).single()
+  const { country } = await params;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("pet_policies")
+    .select("country_name")
+    .eq("slug", country)
+    .single();
 
-  const countryName = data?.country_name || country.replace(/-/g, " ")
+  const countryName = data?.country_name || country.replace(/-/g, " ");
+  
   return {
-    title: `Pet Travel Policy for ${countryName} | Wags and Wanders`,
-    description: `Discover the pet travel requirements for ${countryName}, including entry rules, quarantine info, and tips from real travelers.`,
-    keywords: `pet travel ${countryName}, dog friendly travel ${countryName}, pet policy ${countryName}`,
-  }
+    title: `How to Import Pets to ${countryName}? Expert Pet Travel Requirements & Tips | Wags and Wanders`,
+    description: `Wondering how to import pets to ${countryName}? Discover comprehensive pet travel requirements, quarantine guidelines, and expert tips to ensure a smooth import process for your pet.`,
+    keywords: `how to import pets to ${countryName}, import pets ${countryName}, pet travel requirements ${countryName}, pet import process ${countryName}, pet import tips ${countryName}, pet travel policy ${countryName}`,
+  };
 }
 
