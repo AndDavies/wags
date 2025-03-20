@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase-client";
 import { Eye, FileText, Archive, Lock, Unlock, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image"; // Added import
+import Image from "next/image";
 
 interface Trip {
   id: string;
@@ -84,14 +84,11 @@ export default function TripCard({ trip, onArchiveToggle }: TripCardProps) {
     <li className="relative border-none shadow-md rounded-lg overflow-hidden">
       <div className="relative h-40">
         <Image
-          src="/default-trip-image.jpg"
+          src="/default-trip-image.jpg" // Use default image directly
           alt={`Background for ${trip.destination}`}
           fill
           style={{ objectFit: "cover" }}
           className="opacity-50"
-          onError={(e) => {
-            e.currentTarget.src = "/default-trip-image.jpg"; // Fallback to local image
-          }}
         />
       </div>
       <div className="absolute top-4 right-4">

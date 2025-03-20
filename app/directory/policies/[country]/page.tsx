@@ -42,10 +42,30 @@ export type PetPolicy = {
   updated_at: string;
 };
 
-// Custom markdown components for spacing
+/**
+ * fixMarkdownSpacing ensures that markdown links in the text are surrounded by spaces.
+ * For example, it converts:
+ *   "Related:[Search the CITES database](...)" 
+ * to:
+ *   "Related: [Search the CITES database](...)"
+ * and if a link is immediately followed by text, it inserts a space.
+ */
+function fixMarkdownSpacing(text: string): string {
+  if (!text) return text;
+  // Insert a space if a markdown link is immediately preceded by a non-whitespace character.
+  text = text.replace(/(\S)(\[[^\]]+\]\([^)]*\))/g, '$1 $2');
+  // Insert a space if a markdown link is immediately followed by a non-whitespace character.
+  text = text.replace(/(\[[^\]]+\]\([^)]*\))(\S)/g, '$1 $2');
+  return text;
+}
+
+// Custom markdown components for improved spacing
 const markdownComponents: Components = {
+  // Render paragraphs with bottom margin for better spacing.
+  p: ({ node, ...props }) => <p {...props} className="mb-4" />,
+  // Render links as inline elements with right margin.
   a: ({ node, ...props }) => (
-    <a {...props} className="mr-2 text-brand-teal hover:text-brand-pink" />
+    <a {...props} className="inline-block mr-2 text-brand-teal hover:text-brand-pink" />
   ),
 };
 
@@ -143,7 +163,9 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                         Step {req.step}
                         {req.label ? `: ${req.label}` : ""}:
                       </strong>{" "}
-                      <ReactMarkdown components={markdownComponents}>{req.text}</ReactMarkdown>
+                      <ReactMarkdown components={markdownComponents}>
+                        {fixMarkdownSpacing(req.text)}
+                      </ReactMarkdown>
                     </li>
                   ))}
                 </ul>
@@ -155,7 +177,9 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                   Is Quarantine Required for Pets in {country_name}?
                 </h2>
                 <div className="text-offblack">
-                  <ReactMarkdown components={markdownComponents}>{quarantine_info}</ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>
+                    {fixMarkdownSpacing(quarantine_info)}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}
@@ -168,7 +192,9 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                   {Object.entries(additional_info).map(([key, value]) => (
                     <li key={key}>
                       <strong>{key}:</strong>{" "}
-                      <ReactMarkdown components={markdownComponents}>{value || "Not specified"}</ReactMarkdown>
+                      <ReactMarkdown components={markdownComponents}>
+                        {fixMarkdownSpacing(value || "Not specified")}
+                      </ReactMarkdown>
                     </li>
                   ))}
                 </ul>
@@ -247,7 +273,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 <div className="flex gap-4">
                   <div className="relative h-12 w-12">
                     <Image
-                      src="/placeholders/user1.jpg"
+                      src="/placeholders/user1.png"
                       alt="Emily Parker"
                       fill
                       sizes="48px"
@@ -290,7 +316,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 <div className="flex gap-4">
                   <div className="relative h-12 w-12">
                     <Image
-                      src="/placeholders/user2.jpg"
+                      src="/placeholders/user2.png"
                       alt="Michael Chen"
                       fill
                       sizes="48px"
