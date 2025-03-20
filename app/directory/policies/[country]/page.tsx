@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 import {
   FileText,
   ExternalLink,
@@ -41,7 +42,14 @@ export type PetPolicy = {
   updated_at: string;
 };
 
-// Server-side props fetching
+// Custom markdown components for spacing
+const markdownComponents = {
+  // Render links with a right margin for spacing
+  a: ({ node, ...props }: any) => (
+    <a {...props} className="mr-2 text-brand-teal hover:text-brand-pink" />
+  ),
+};
+
 export default async function CountryPolicyPage({ params }: { params: Promise<{ country: string }> }) {
   const { country } = await params;
   const supabase = await createClient();
@@ -70,7 +78,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
     .eq("policy_id", policy.policy_id)
     .limit(10);
 
-  const faqs = faqData as FAQ[] || [];
+  const faqs = (faqData as FAQ[]) || [];
 
   const {
     country_name,
@@ -103,7 +111,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
           </div>
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-4xl md:text-5xl font-display text-brand-teal mb-2">{country_name}</h1>
-            <p className="text-xl text-offblack mb-4">Pet Travel Policy Information</p>
+            <p className="text-xl text-offblack mb-4">pppppppppPet Travel Policy Information</p>
             <div className="flex flex-wrap gap-2 justify-center md:justify-start">
               <Badge className="bg-brand-teal text-white">Pet Friendly</Badge>
               {quarantine_info && quarantine_info.includes("no quarantine") ? (
@@ -132,7 +140,11 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 <ul className="list-disc pl-5 text-offblack space-y-2">
                   {entry_requirements.map((req) => (
                     <li key={req.step}>
-                      <strong>Step {req.step}{req.label ? `: ${req.label}` : ""}:</strong> {req.text}
+                      <strong>
+                        Step {req.step}
+                        {req.label ? `: ${req.label}` : ""}:
+                      </strong>{" "}
+                      <ReactMarkdown components={markdownComponents}>{req.text}</ReactMarkdown>
                     </li>
                   ))}
                 </ul>
@@ -143,7 +155,9 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 <h2 className="text-2xl font-semibold text-brand-teal">
                   Is Quarantine Required for Pets in {country_name}?
                 </h2>
-                <p className="text-offblack">{quarantine_info}</p>
+                <div className="text-offblack">
+                  <ReactMarkdown components={markdownComponents}>{quarantine_info}</ReactMarkdown>
+                </div>
               </div>
             )}
             {additional_info && Object.keys(additional_info).length > 0 && (
@@ -154,7 +168,8 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                 <ul className="list-disc pl-5 text-offblack space-y-2">
                   {Object.entries(additional_info).map(([key, value]) => (
                     <li key={key}>
-                      <strong>{key}:</strong> {value || "Not specified"}
+                      <strong>{key}:</strong>{" "}
+                      <ReactMarkdown components={markdownComponents}>{value || "Not specified"}</ReactMarkdown>
                     </li>
                   ))}
                 </ul>

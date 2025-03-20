@@ -1,3 +1,4 @@
+// components/Navbar.tsx
 "use client";
 
 import Link from "next/link";
@@ -54,10 +55,11 @@ export default function Navbar() {
 
   const navItems = [
     { name: "Home", href: "/" },
-    { name: "Directory", href: "https://wagsandwanders.com/directory" },
+    { name: "Directory", href: "/directory" },
     { name: "About", href: "/about" },
     { name: "Blog", href: "/blog" },
     { name: "Contact", href: "/contact" },
+    { name: "Create a Trip", href: "/create-trip" }, // Added
   ];
 
   return (
@@ -181,4 +183,4 @@ export default function Navbar() {
       </div>
     </header>
   );
-};
+}

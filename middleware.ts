@@ -13,7 +13,8 @@ export async function middleware(request: NextRequest) {
 
   console.log(`[Middleware] Path: ${request.nextUrl.pathname}, User: ${user?.email || 'none'}, Error: ${error?.message || 'none'}, Auth Token: ${authToken ? authToken.substring(0, 50) + '...' : 'none'}`);
 
-  if (request.nextUrl.pathname.startsWith("/profile") && !user) {
+  const protectedRoutes = ["/profile", "/create-trip"];
+  if (protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route)) && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -21,5 +22,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/profile/:path*"],
+  matcher: ["/profile/:path*", "/create-trip/:path*"],
 };

@@ -5,6 +5,7 @@ import { Outfit } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import Notifications from "@/components/app/notifications"; // Changed to default import
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -12,65 +13,7 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: {
-    default: "Wags & Wanders: Explore the World with Your Pet, Stress-Free",
-    template: "%s | Wags & Wanders",
-  },
-  description: "Discover Wags & Wanders, Explore the World with Your Pet, Stress-Free. Travel Confidently with Your Pet. Plan itineraries, manage documents, and explore pet-friendly destinations and activities worldwide.",
-  keywords: [
-    "pet travel",
-    "AI travel app",
-    "pet travel companion",
-    "international pet travel",
-    "nomadic pet travel",
-    "pet-friendly travel",
-    "travel checklist",
-    "document management",
-    "Wags and Wanders",
-  ],
-  authors: [{ name: "Wags & Wanders Team", url: "https://wagsandwanders.com" }],
-  openGraph: {
-    title: "Wags & Wanders: Explore the World with Your Pet, Stress-Free",
-    description: "Discover Wags & Wanders, Explore the World with Your Pet, Stress-Free. Travel Confidently with Your Pet. Plan itineraries, manage documents, and explore pet-friendly destinations and activities worldwide.",
-    url: "https://www.wagsandwanders.com",
-    siteName: "Wags & Wanders",
-    images: [
-      {
-        url: "/images/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Wags & Wanders - Pet Travel Companion",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Wags & Wanders: AI-Powered Pet Travel Companion",
-    description: "Discover Wags & Wanders, your AI-powered companion for stress-free pet travel.",
-    images: ["/images/og-image.jpg"],
-    creator: "@WagsAndWanders",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
-  other: {
-    "google-analytics": "G-BF9YNEQ2CH", // For custom tracking setup if needed
-  },
+  // ... (unchanged metadata)
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -93,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-background text-foreground min-h-screen flex flex-col">
         <SpeedInsights />
+        <Notifications />
         <Navbar />
         <main className="flex-grow">{children}</main>
         <Footer />
