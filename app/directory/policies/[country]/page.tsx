@@ -1,62 +1,70 @@
-import Image from "next/image";
-import Link from "next/link";
-import ReactMarkdown, { Components } from "react-markdown";
+import Image from "next/image"
+import Link from "next/link"
+import ReactMarkdown, { type Components } from "react-markdown"
 import {
   FileText,
   ExternalLink,
-  Info,
   Clock,
   ChevronLeft,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb";
-import { createClient } from "@/lib/supabase-server";
+  CheckCircle,
+  Cpu,
+  Syringe,
+  WormIcon as Virus,
+  Bug,
+  Stethoscope,
+  FileCheck,
+  FileInput,
+  Globe,
+} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import DirectoryBreadcrumb from "@/components/DirectoryBreadcrumb"
+import { createClient } from "@/lib/supabase-server"
 
 // Define types for pet policy and FAQ data
 export type EntryRequirement = {
-  step: number;
-  label: string;
-  text: string;
-};
+  step: number
+  label: string
+  text: string
+}
 
 export type FAQ = {
-  faq_id: number;
-  policy_id: number;
-  question: string;
-  answer: string;
-};
+  faq_id: number
+  policy_id: number
+  question: string
+  answer: string
+}
 
 export type PetPolicy = {
-  policy_id: number;
-  country_name: string;
-  slug: string;
-  external_link: string | null;
-  quarantine_info: string | null;
-  entry_requirements: EntryRequirement[] | null;
-  additional_info: Record<string, string | undefined> | null;
-  external_links: { title: string; url: string }[] | null;
-  flag_path: string;
-  created_at: string;
-  updated_at: string;
-};
+  policy_id: number
+  country_name: string
+  slug: string
+  external_link: string | null
+  quarantine_info: string | null
+  entry_requirements: EntryRequirement[] | null
+  additional_info: Record<string, string | undefined> | null
+  external_links: { title: string; url: string }[] | null
+  flag_path: string
+  created_at: string
+  updated_at: string
+}
 
 /**
  * fixMarkdownSpacing ensures that markdown links in the text are surrounded by spaces.
  * For example, it converts:
- *   "Related:[Search the CITES database](...)" 
+ *   "Related:[Search the CITES database](...)"
  * to:
  *   "Related: [Search the CITES database](...)"
  * and if a link is immediately followed by text, it inserts a space.
  */
 function fixMarkdownSpacing(text: string): string {
-  if (!text) return text;
+  if (!text) return text
   // Insert a space if a markdown link is immediately preceded by a non-whitespace character.
-  text = text.replace(/(\S)(\[[^\]]+\]\([^)]*\))/g, '$1 $2');
+  text = text.replace(/(\S)(\[[^\]]+\]$$[^)]*$$)/g, "$1 $2")
   // Insert a space if a markdown link is immediately followed by a non-whitespace character.
-  text = text.replace(/(\[[^\]]+\]\([^)]*\))(\S)/g, '$1 $2');
-  return text;
+  text = text.replace(/(\[[^\]]+\]$$[^)]*$$)(\S)/g, "$1 $2")
+  return text
 }
 
 // Custom markdown components for improved spacing
@@ -64,40 +72,38 @@ const markdownComponents: Components = {
   // Render paragraphs with bottom margin for better spacing.
   p: ({ node, ...props }) => <p {...props} className="mb-4" />,
   // Render links as inline elements with right margin.
-  a: ({ node, ...props }) => (
-    <a {...props} className="inline-block mr-2 text-brand-teal hover:text-brand-pink" />
-  ),
-};
+  a: ({ node, ...props }) => <a {...props} className="inline-block mr-2 text-brand-teal hover:text-brand-pink" />,
+}
 
 export default async function CountryPolicyPage({ params }: { params: Promise<{ country: string }> }) {
-  const { country } = await params;
-  const supabase = await createClient();
+  const { country } = await params
+  const supabase = await createClient()
 
   // Fetch policy data
   const { data: policyData, error: policyError } = await supabase
     .from("pet_policies")
     .select("*")
     .eq("slug", country)
-    .single();
+    .single()
 
   if (policyError || !policyData) {
     return (
       <div className="min-h-screen bg-offwhite flex items-center justify-center">
         <p className="text-center text-xl">Policy not found for this country.</p>
       </div>
-    );
+    )
   }
 
-  const policy = policyData as PetPolicy;
+  const policy = policyData as PetPolicy
 
   // Fetch FAQs for this country
   const { data: faqData, error: faqError } = await supabase
     .from("country_faqs")
     .select("*")
     .eq("policy_id", policy.policy_id)
-    .limit(10);
+    .limit(10)
 
-  const faqs = (faqData as FAQ[]) || [];
+  const faqs = (faqData as FAQ[]) || []
 
   const {
     country_name,
@@ -108,7 +114,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
     additional_info,
     external_links,
     updated_at,
-  } = policy;
+  } = policy
 
   return (
     <div className="min-h-screen bg-offwhite">
@@ -121,7 +127,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
         <div className="flex flex-col md:flex-row items-center gap-6 bg-brand-pink rounded-xl p-6 shadow-md">
           <div className="relative w-32 h-32 md:w-48 md:h-48 overflow-hidden rounded-lg shadow-lg">
             <Image
-              src={flag_path}
+              src={flag_path || "/placeholder.svg"}
               alt={`${country_name} flag`}
               fill
               sizes="(max-width: 768px) 128px, 192px"
@@ -152,23 +158,72 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             {entry_requirements && entry_requirements.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold text-brand-teal">
-                  What Are the Pet Entry Requirements for {country_name}?
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold text-brand-teal flex items-center gap-2">
+                  <FileText className="h-6 w-6" />
+                  Pet Entry Requirements for {country_name}
                 </h2>
-                <ul className="list-disc pl-5 text-offblack space-y-2">
-                  {entry_requirements.map((req) => (
-                    <li key={req.step}>
-                      <strong>
-                        Step {req.step}
-                        {req.label ? `: ${req.label}` : ""}:
-                      </strong>{" "}
-                      <ReactMarkdown components={markdownComponents}>
-                        {fixMarkdownSpacing(req.text)}
-                      </ReactMarkdown>
-                    </li>
-                  ))}
-                </ul>
+
+                {/* Visual roadmap for entry requirements */}
+                <div className="relative">
+                  {/* Vertical timeline line */}
+                  <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-brand-teal/20 z-0"></div>
+
+                  <div className="space-y-8">
+                    {entry_requirements.map((req) => {
+                      // Select appropriate icon based on label keywords
+                      let StepIcon = FileText
+                      if (req.label.toLowerCase().includes("microchip")) StepIcon = Cpu
+                      if (req.label.toLowerCase().includes("vaccin")) StepIcon = Syringe
+                      if (req.label.toLowerCase().includes("rabies")) StepIcon = Virus
+                      if (req.label.toLowerCase().includes("parasite")) StepIcon = Bug
+                      if (req.label.toLowerCase().includes("health")) StepIcon = Stethoscope
+                      if (req.label.toLowerCase().includes("permit")) StepIcon = FileCheck
+                      if (req.label.toLowerCase().includes("quarantine")) StepIcon = Clock
+                      if (req.label.toLowerCase().includes("import")) StepIcon = FileInput
+                      if (req.label.toLowerCase().includes("country")) StepIcon = Globe
+
+                      return (
+                        <div key={req.step} className="relative z-10 flex gap-4">
+                          {/* Step number circle with icon */}
+                          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-brand-teal text-white flex items-center justify-center shadow-md relative z-10">
+                            <StepIcon className="h-6 w-6" />
+                          </div>
+
+                          {/* Step content */}
+                          <div className="flex-grow bg-white rounded-lg shadow-sm p-5 border-l-4 border-brand-teal">
+                            <div className="flex flex-col md:flex-row md:items-center gap-2 mb-3">
+                              <span className="bg-brand-teal/10 text-brand-teal px-3 py-1 rounded-full text-sm font-semibold">
+                                Step {req.step}
+                              </span>
+                              <h3 className="text-xl font-semibold text-brand-teal">{req.label}</h3>
+                            </div>
+                            <div className="prose prose-sm max-w-none text-offblack">
+                              <ReactMarkdown components={markdownComponents}>
+                                {fixMarkdownSpacing(req.text)}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Progress indicator */}
+                <div className="bg-brand-pink/10 rounded-lg p-4 mt-8 flex items-center gap-4">
+                  <div className="bg-white p-2 rounded-full">
+                    <CheckCircle className="h-6 w-6 text-brand-teal" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-brand-teal">
+                      Complete all {entry_requirements.length} steps to enter {country_name} with your pet
+                    </p>
+                    <p className="text-sm text-offblack/80">
+                      Requirements may change. Always verify with official sources before travel.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
             {quarantine_info && (
@@ -177,9 +232,7 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                   Is Quarantine Required for Pets in {country_name}?
                 </h2>
                 <div className="text-offblack">
-                  <ReactMarkdown components={markdownComponents}>
-                    {fixMarkdownSpacing(quarantine_info)}
-                  </ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>{fixMarkdownSpacing(quarantine_info)}</ReactMarkdown>
                 </div>
               </div>
             )}
@@ -305,7 +358,8 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                       </Badge>
                     </div>
                     <p className="mt-2 text-offblack">
-                      I visited {country_name} last year with my French Bulldog and found the process straightforward and well-documented.
+                      I visited {country_name} last year with my French Bulldog and found the process straightforward
+                      and well-documented.
                     </p>
                   </div>
                 </div>
@@ -348,7 +402,8 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
                       </Badge>
                     </div>
                     <p className="mt-2 text-offblack">
-                      Air travel to {country_name} was a breeze and my cat had no issues. Highly recommend booking early!
+                      Air travel to {country_name} was a breeze and my cat had no issues. Highly recommend booking
+                      early!
                     </p>
                   </div>
                 </div>
@@ -385,12 +440,12 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "FAQPage",
-              "mainEntity": faqs.map((faq) => ({
+              mainEntity: faqs.map((faq) => ({
                 "@type": "Question",
-                "name": faq.question,
-                "acceptedAnswer": {
+                name: faq.question,
+                acceptedAnswer: {
                   "@type": "Answer",
-                  "text": faq.answer,
+                  text: faq.answer,
                 },
               })),
             }),
@@ -398,23 +453,20 @@ export default async function CountryPolicyPage({ params }: { params: Promise<{ 
         />
       )}
     </div>
-  );
+  )
 }
 
 // Metadata Generation
 export async function generateMetadata({ params }: { params: Promise<{ country: string }> }) {
-  const { country } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("pet_policies")
-    .select("country_name")
-    .eq("slug", country)
-    .single();
+  const { country } = await params
+  const supabase = await createClient()
+  const { data } = await supabase.from("pet_policies").select("country_name").eq("slug", country).single()
 
-  const countryName = data?.country_name || country.replace(/-/g, " ");
+  const countryName = data?.country_name || country.replace(/-/g, " ")
   return {
     title: `Pet Travel Policy for ${countryName} | Wags and Wanders`,
     description: `Discover the pet travel requirements for ${countryName}, including entry rules, quarantine info, and tips from real travelers.`,
     keywords: `pet travel ${countryName}, dog friendly travel ${countryName}, pet policy ${countryName}`,
-  };
+  }
 }
+
