@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, MapPin, Calendar as CalendarIcon, PawPrint } from "lucide-react";
+import { Users, MapPin, Calendar as CalendarIcon, PawPrint, Plus, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -15,6 +15,8 @@ interface TripData {
   travelers: { adults: number; children: number; pets: number };
   departure: string;
   destination: string;
+  origin_vet: { name: string; address: string; phone: string }[];
+  destination_vet: { name: string; address: string; phone: string }[];
   dates: { start: Date | null; end: Date | null };
   method: string;
 }
@@ -30,6 +32,8 @@ export default function CreateTrip() {
     travelers: { adults: 0, children: 0, pets: 0 },
     departure: "",
     destination: "",
+    origin_vet: [], // Initialize as empty array
+    destination_vet: [], // Initialize as empty array
     dates: { start: null, end: null },
     method: "",
   });
@@ -51,7 +55,7 @@ export default function CreateTrip() {
       setError("Please enter both departure and destination.");
       return false;
     }
-    if (step === 3 && (!tripData.dates.start || !tripData.method)) {
+    if (step === 4 && (!tripData.dates.start || !tripData.method)) {
       setError("Please select a start date and travel method.");
       return false;
     }
@@ -74,6 +78,8 @@ export default function CreateTrip() {
       travelers: tripData.travelers,
       departure: tripData.departure,
       destination: tripData.destination,
+      origin_vet: tripData.origin_vet,
+      destination_vet: tripData.destination_vet,
       dates: {
         start: tripData.dates.start?.toISOString().split("T")[0],
         end: tripData.dates.end?.toISOString().split("T")[0] || null,
@@ -87,7 +93,7 @@ export default function CreateTrip() {
       console.error("Error saving trip:", insertError);
       setError("Failed to save trip. Please try again.");
     } else {
-      setStep(4);
+      setStep(5);
     }
   };
 
@@ -111,6 +117,47 @@ export default function CreateTrip() {
     return baseChecklist;
   };
 
+  const addVet = (type: "origin" | "destination") => {
+    const newVet = { name: "", address: "", phone: "" };
+    if (type === "origin") {
+      setTripData({
+        ...tripData,
+        origin_vet: [...tripData.origin_vet, newVet],
+      });
+    } else {
+      setTripData({
+        ...tripData,
+        destination_vet: [...tripData.destination_vet, newVet],
+      });
+    }
+  };
+
+  const removeVet = (type: "origin" | "destination", index: number) => {
+    if (type === "origin") {
+      setTripData({
+        ...tripData,
+        origin_vet: tripData.origin_vet.filter((_, i) => i !== index),
+      });
+    } else {
+      setTripData({
+        ...tripData,
+        destination_vet: tripData.destination_vet.filter((_, i) => i !== index),
+      });
+    }
+  };
+
+  const updateVet = (type: "origin" | "destination", index: number, field: string, value: string) => {
+    if (type === "origin") {
+      const updatedVets = [...tripData.origin_vet];
+      updatedVets[index] = { ...updatedVets[index], [field]: value };
+      setTripData({ ...tripData, origin_vet: updatedVets });
+    } else {
+      const updatedVets = [...tripData.destination_vet];
+      updatedVets[index] = { ...updatedVets[index], [field]: value };
+      setTripData({ ...tripData, destination_vet: updatedVets });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 py-20">
       <div className="container mx-auto px-4 pt-10">
@@ -123,13 +170,14 @@ export default function CreateTrip() {
           <Card className="border-none shadow-md">
             <CardHeader>
               <CardTitle className="text-xl text-brand-teal">
-                Step {step} of 4
+                Step {step} of 5
               </CardTitle>
               <CardDescription>
                 {step === 1 && "Who’s traveling with you?"}
                 {step === 2 && "Where are you going?"}
-                {step === 3 && "When and how are you traveling?"}
-                {step === 4 && "Your Travel Checklist"}
+                {step === 3 && "Add vet(s) for your trip"}
+                {step === 4 && "When and how are you traveling?"}
+                {step === 5 && "Your Travel Checklist"}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
@@ -233,6 +281,123 @@ export default function CreateTrip() {
               )}
               {step === 3 && (
                 <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-offblack">Origin Vet(s)</h3>
+                    {tripData.origin_vet.map((vet, index) => (
+                      <div key={index} className="space-y-2 border border-brand-teal/50 rounded-md p-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-offblack w-24">Name</label>
+                          <input
+                            value={vet.name}
+                            onChange={(e) => updateVet("origin", index, "name", e.target.value)}
+                            className="border border-brand-teal/50 rounded-md p-3 w-full text-offblack"
+                            placeholder="e.g., Downtown Vet Clinic"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-offblack w-24">Address</label>
+                          <input
+                            value={vet.address}
+                            onChange={(e) => updateVet("origin", index, "address", e.target.value)}
+                            className="border border-brand-teal/50 rounded-md p-3 w-full text-offblack"
+                            placeholder="e.g., 123 Main St, New York, NY"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-offblack w-24">Phone</label>
+                          <input
+                            value={vet.phone}
+                            onChange={(e) => updateVet("origin", index, "phone", e.target.value)}
+                            className="border border-brand-teal/50 rounded-md p-3 w-full text-offblack"
+                            placeholder="e.g., 555-123-4567"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => removeVet("origin", index)}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      onClick={() => addVet("origin")}
+                      className="bg-brand-teal hover:bg-brand-pink text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Origin Vet
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-offblack">Destination Vet(s)</h3>
+                    {tripData.destination_vet.map((vet, index) => (
+                      <div key={index} className="space-y-2 border border-brand-teal/50 rounded-md p-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-offblack w-24">Name</label>
+                          <input
+                            value={vet.name}
+                            onChange={(e) => updateVet("destination", index, "name", e.target.value)}
+                            className="border border-brand-teal/50 rounded-md p-3 w-full text-offblack"
+                            placeholder="e.g., Uptown Vet Clinic"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-offblack w-24">Address</label>
+                          <input
+                            value={vet.address}
+                            onChange={(e) => updateVet("destination", index, "address", e.target.value)}
+                            className="border border-brand-teal/50 rounded-md p-3 w-full text-offblack"
+                            placeholder="e.g., 456 Oak St, Paris, FR"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-offblack w-24">Phone</label>
+                          <input
+                            value={vet.phone}
+                            onChange={(e) => updateVet("destination", index, "phone", e.target.value)}
+                            className="border border-brand-teal/50 rounded-md p-3 w-full text-offblack"
+                            placeholder="e.g., 555-987-6543"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => removeVet("destination", index)}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      onClick={() => addVet("destination")}
+                      className="bg-brand-teal hover:bg-brand-pink text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Destination Vet
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleBack}
+                      variant="outline"
+                      className="border-brand-teal text-brand-teal hover:bg-brand-teal/10 w-full py-3 rounded-md"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleNext}
+                      className="bg-brand-teal hover:bg-brand-pink text-white w-full py-3 rounded-md"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {step === 4 && (
+                <div className="space-y-6">
                   <div className="flex flex-col gap-2">
                     <label className="text-offblack flex items-center gap-2">
                       <CalendarIcon className="h-6 w-6 text-brand-teal" />
@@ -300,7 +465,7 @@ export default function CreateTrip() {
                   </div>
                 </div>
               )}
-              {step === 4 && (
+              {step === 5 && (
                 <div className="space-y-6 text-center">
                   <PawPrint className="h-12 w-12 text-brand-teal mx-auto mb-4" />
                   <h2 className="text-2xl font-display text-brand-teal">

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase-client";
 import { PawPrint, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
-import TripCard from "@/components/ui/TripCard";
+import TripCard from "@/components/app/TripCard";
 
 interface Pet {
   id: string;
