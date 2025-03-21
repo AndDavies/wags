@@ -143,7 +143,7 @@ export default async function BlogIndexPage() {
                 <h2 className="text-xl font-semibold text-brand-teal">Latest Articles</h2>
               </div>
               <Link
-                href="/blog/archive"
+                href="/blog/"
                 className="text-brand-teal hover:text-brand-pink text-sm font-medium flex items-center gap-1"
               >
                 View All
