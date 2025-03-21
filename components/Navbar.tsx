@@ -98,7 +98,7 @@ export default function Navbar() {
               height={40}
               className="w-10 h-10"
             />
-            <span className={`text-xl font-semibold ${scrolled ? "text-[#30B8C4]" : "text-white"}`}>
+            <span className={`text-xl font-semibold ${scrolled ? "text-[#249ab4]" : "text-[#249ab4]"}`}>
               Wags & Wanders
             </span>
           </NoPrefetchLink>
@@ -106,7 +106,7 @@ export default function Navbar() {
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`focus:outline-none ${scrolled ? "text-offblack hover:text-[#30B8C4]" : "text-white hover:text-[#FFE5E5]"}`}
+              className={`focus:outline-none ${scrolled ? "text-[#249ab4] hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"}`}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -118,14 +118,16 @@ export default function Navbar() {
               <NoPrefetchLink
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors ${scrolled ? "text-offblack hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
+                className={`text-sm font-medium transition-colors ${
+                  scrolled ? "text-offblack hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"
+                }`}
               >
                 {item.name}
               </NoPrefetchLink>
             ))}
             <NoPrefetchLink
               href="/create-trip"
-              className="text-sm font-medium bg-brand-teal text-white hover:bg-brand-pink transition-colors px-4 py-2 rounded-full flex items-center gap-1 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              className="text-sm font-medium bg-[#249ab4] text-white hover:bg-[#FFA9DE] transition-colors px-4 py-2 rounded-full flex items-center gap-1 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -165,13 +167,17 @@ export default function Navbar() {
               <>
                 <NoPrefetchLink
                   href="/login"
-                  className={`text-sm font-medium transition-colors ${scrolled ? "text-[#30B8C4] hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
+                  className={`text-sm font-medium transition-colors ${
+                    scrolled ? "text-[#249ab4] hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"
+                  }`}
                 >
                   Log In
                 </NoPrefetchLink>
                 <NoPrefetchLink
                   href="/signup"
-                  className={`text-sm font-medium transition-colors ${scrolled ? "text-[#30B8C4] hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
+                  className={`text-sm font-medium transition-colors ${
+                    scrolled ? "text-[#249ab4] hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"
+                  }`}
                 >
                   Sign Up
                 </NoPrefetchLink>
