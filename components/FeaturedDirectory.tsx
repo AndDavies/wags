@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { motion } from "framer-motion"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plane, Hotel, FileText, ArrowRight, Search, MapPin, CheckCircle, Globe } from "lucide-react"
@@ -61,39 +60,17 @@ const FeaturedDirectory = () => {
 
   const activeDirectory = directories.find((dir) => dir.id === activeTab) || directories[0]
 
-  const fadeIn = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-  }
-
   return (
     <section className="py-16 bg-brand-pink">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <motion.h2
-            className="text-4xl md:text-5xl font-display text-brand-teal mb-4"
-            initial={{ opacity: 0, y: -20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            Your Pet Travel Resource Hub
-          </motion.h2>
-          <motion.p
-            className="text-center text-offblack mb-6 max-w-2xl mx-auto"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+          <h2 className="text-4xl font-bold text-[#249ab4] mb-6">Your Pet Travel Resource Hub</h2>
+          <p className="text-center text-offblack mb-10 max-w-2xl mx-auto text-lg">
             Plan your journey with confidence using our comprehensive directories covering every aspect of pet travel.
-          </motion.p>
+          </p>
 
           {/* Directory Tabs */}
-          <motion.div
-            className="flex flex-wrap justify-center gap-4 mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
             {directories.map((dir) => (
               <button
                 key={dir.id}
@@ -111,27 +88,21 @@ const FeaturedDirectory = () => {
                 {dir.title}
               </button>
             ))}
-          </motion.div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Featured Directory Content */}
-          <motion.div
-            key={activeDirectory.id}
-            initial="hidden"
-            whileInView="visible"
-            variants={fadeIn}
-            className="space-y-6"
-          >
+          <div className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-brand-teal rounded-full text-white">{activeDirectory.icon}</div>
-              <h3 className="text-2xl md:text-3xl font-bold text-brand-teal">{activeDirectory.title}</h3>
+              <h3 className="text-xl font-bold text-[#249ab4]">{activeDirectory.title}</h3>
             </div>
 
             <p className="text-lg text-offblack">{activeDirectory.description}</p>
 
             <div className="bg-white p-5 rounded-xl shadow-md">
-              <h4 className="font-semibold text-brand-teal mb-3 flex items-center gap-2">
+              <h4 className="font-semibold text-[#249ab4] mb-3 flex items-center gap-2">
                 <Search className="h-5 w-5" />
                 What You'll Find
               </h4>
@@ -146,7 +117,7 @@ const FeaturedDirectory = () => {
             </div>
 
             <div className="bg-white p-5 rounded-xl shadow-md">
-              <h4 className="font-semibold text-brand-teal mb-3 flex items-center gap-2">
+              <h4 className="font-semibold text-[#249ab4] mb-3 flex items-center gap-2">
                 <CheckCircle className="h-5 w-5" />
                 How This Helps Your Journey
               </h4>
@@ -174,16 +145,10 @@ const FeaturedDirectory = () => {
                 </Link>
               </Button>
             </div>
-          </motion.div>
+          </div>
 
           {/* Featured Image */}
-          <motion.div
-            key={`image-${activeDirectory.id}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="relative"
-          >
+          <div className="relative">
             <div className="relative h-[400px] rounded-xl overflow-hidden shadow-xl">
               <Image
                 src={activeDirectory.image || "/placeholder.svg"}
@@ -214,7 +179,7 @@ const FeaturedDirectory = () => {
                 <p className="text-lg font-bold text-brand-teal">{activeDirectory.stats}</p>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* All Directories Cards - Mobile View */}
@@ -236,7 +201,7 @@ const FeaturedDirectory = () => {
                 </div>
               </div>
               <CardHeader>
-                <CardTitle className="text-xl font-bold text-brand-teal">{directory.title}</CardTitle>
+                <CardTitle className="text-xl font-bold text-[#249ab4]">{directory.title}</CardTitle>
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-offblack mb-4">{directory.description}</p>
@@ -251,13 +216,8 @@ const FeaturedDirectory = () => {
         </div>
 
         {/* Call to Action */}
-        <motion.div
-          className="mt-16 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <h3 className="text-2xl md:text-3xl font-display text-brand-teal mb-4">Ready to Plan Your Pet's Journey?</h3>
+        <div className="mt-16 text-center">
+          <h3 className="text-xl font-bold text-[#249ab4] mb-4">Ready to Plan Your Pet's Journey?</h3>
           <p className="text-offblack mb-6 max-w-2xl mx-auto">
             Our comprehensive directories provide everything you need to plan a stress-free travel experience with your
             pet.
@@ -269,7 +229,7 @@ const FeaturedDirectory = () => {
           >
             <Link href="/directory">Explore All Directories</Link>
           </Button>
-        </motion.div>
+        </div>
       </div>
     </section>
   )

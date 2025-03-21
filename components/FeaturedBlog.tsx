@@ -1,42 +1,40 @@
-import Link from "next/link";
-import Image from "next/image";
-import { createClient } from "@/lib/supabase-server";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import Link from "next/link"
+import Image from "next/image"
+import { createClient } from "@/lib/supabase-server"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 interface BlogPost {
-  id: number;
-  title: string;
-  slug: string;
-  excerpt: string;
-  published_at: string;
-  featured_image?: string;
+  id: number
+  title: string
+  slug: string
+  excerpt: string
+  published_at: string
+  featured_image?: string
 }
 
 export default async function FeaturedBlog() {
-  const supabase = await createClient();
+  const supabase = await createClient()
   const { data: posts, error } = await supabase
     .from("blog_posts")
     .select("id, title, slug, excerpt, published_at, featured_image")
     .eq("is_featured", true)
     .order("published_at", { ascending: false })
-    .limit(3);
+    .limit(3)
 
   if (error) {
-    console.error("Error loading featured blog posts:", error);
-    return <div>Error loading blog posts.</div>;
+    console.error("Error loading featured blog posts:", error)
+    return <div>Error loading blog posts.</div>
   }
 
   if (!posts || posts.length === 0) {
-    return <div>No featured posts available.</div>;
+    return <div>No featured posts available.</div>
   }
 
   return (
     <section className="py-16 bg-white">
       <div className="container mx-auto px-4">
-        <h2 className="text-4xl md:text-5xl font-display text-brand-teal text-center mb-12">
-          From Our Blog
-        </h2>
+        <h2 className="text-4xl font-bold text-[#249ab4] mb-6 text-center">From Our Blog</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {posts.map((post: BlogPost) => (
             <Card key={post.id} className="overflow-hidden bg-brand-pink">
@@ -51,7 +49,7 @@ export default async function FeaturedBlog() {
                 </div>
               )}
               <CardHeader>
-                <CardTitle className="text-xl text-brand-teal">{post.title}</CardTitle>
+                <CardTitle className="text-xl font-bold text-[#249ab4]">{post.title}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-offblack">{post.excerpt}</p>
@@ -66,5 +64,6 @@ export default async function FeaturedBlog() {
         </div>
       </div>
     </section>
-  );
+  )
 }
+
