@@ -26,7 +26,7 @@ interface Trip {
   travelers: { adults: number; children: number; pets: number };
   archived: boolean;
   status: string;
-  user_id: string; // Added to match Supabase relationship
+  user_id: string;
 }
 
 interface ProfileClientProps {
@@ -37,9 +37,18 @@ interface ProfileClientProps {
 
 export default function ProfileClient({ userId, initialPets, initialTrips }: ProfileClientProps) {
   const [showArchived, setShowArchived] = useState(false);
+  const [trips, setTrips] = useState<Trip[]>(initialTrips); // Add local trips state
 
-  const currentTrips = initialTrips.filter((trip) => !trip.archived);
-  const archivedTrips = initialTrips.filter((trip) => trip.archived);
+  const handleArchiveToggle = (tripId: string) => {
+    setTrips((prevTrips) =>
+      prevTrips.map((trip) =>
+        trip.id === tripId ? { ...trip, archived: !trip.archived } : trip
+      )
+    );
+  };
+
+  const currentTrips = trips.filter((trip) => !trip.archived);
+  const archivedTrips = trips.filter((trip) => trip.archived);
 
   return (
     <div className="md:col-span-2 space-y-6">
@@ -99,7 +108,11 @@ export default function ProfileClient({ userId, initialPets, initialTrips }: Pro
               {currentTrips.length ? (
                 <ul className="space-y-4">
                   {currentTrips.map((trip) => (
-                    <TripCard key={trip.id} trip={{ ...trip, userId }} />
+                    <TripCard
+                      key={trip.id}
+                      trip={{ ...trip, userId }}
+                      onArchiveToggle={() => handleArchiveToggle(trip.id)}
+                    />
                   ))}
                 </ul>
               ) : (
@@ -123,7 +136,11 @@ export default function ProfileClient({ userId, initialPets, initialTrips }: Pro
                   <h3 className="text-lg font-medium text-offblack mt-6 mb-4">Archived Trips</h3>
                   <ul className="space-y-4">
                     {archivedTrips.map((trip) => (
-                      <TripCard key={trip.id} trip={{ ...trip, userId }} />
+                      <TripCard
+                        key={trip.id}
+                        trip={{ ...trip, userId }}
+                        onArchiveToggle={() => handleArchiveToggle(trip.id)}
+                      />
                     ))}
                   </ul>
                 </>
@@ -149,6 +166,7 @@ export default function ProfileClient({ userId, initialPets, initialTrips }: Pro
   );
 }
 
+// AddPetForm remains unchanged
 function AddPetForm({ userId }: { userId: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [petData, setPetData] = useState({
@@ -180,7 +198,7 @@ function AddPetForm({ userId }: { userId: string }) {
       setIsOpen(false);
       setPetData({ name: "", breed: "", age: "", weight: "", medical_history: "" });
       setError(null);
-      window.location.reload();
+      window.location.reload(); // TODO: Replace with state update if pets are managed locally
     } else {
       console.error("Error adding pet:", error);
       setError("Failed to add pet. Please try again.");
