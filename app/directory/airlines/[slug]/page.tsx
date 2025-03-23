@@ -218,11 +218,6 @@ export default async function AirlinePage({ params }: { params: Promise<{ slug: 
                         <strong>Phone:</strong> {airline.phone_number}
                       </li>
                     )}
-                    {airline.source && (
-                      <li>
-                        <strong>Source:</strong> {airline.source}
-                      </li>
-                    )}
                     {airline.url && (
                       <li>
                         <strong>Website:</strong>{" "}
