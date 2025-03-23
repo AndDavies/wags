@@ -73,16 +73,17 @@ export default function TripCard({ trip, onArchiveToggle }: TripCardProps) {
 
         if (error) throw error;
         setDocuments(data || []);
-      } catch (err: any) {
-        console.error("Error fetching documents:", err.message);
-        setErrorDocuments("Failed to load documents: " + (err.message || "Unknown error"));
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        console.error("Error fetching documents:", errorMessage);
+        setErrorDocuments("Failed to load documents: " + errorMessage);
       } finally {
         setLoadingDocuments(false);
       }
     };
 
     fetchDocuments();
-  }, [trip.id]);
+  }, [trip.id, supabase]);
 
   const handleUpload = async () => {
     if (!file) {
@@ -126,9 +127,10 @@ export default function TripCard({ trip, onArchiveToggle }: TripCardProps) {
         variant: "default",
         action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       console.error("Error during upload:", err);
-      setError("Failed to upload: " + (err.message || "Unknown error"));
+      setError("Failed to upload: " + errorMessage);
     }
   };
 
@@ -144,9 +146,10 @@ export default function TripCard({ trip, onArchiveToggle }: TripCardProps) {
 
       setSignedUrls((prev) => ({ ...prev, [doc.id]: data.signedUrl }));
       window.open(data.signedUrl, "_blank");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       console.error("Error generating signed URL:", err);
-      setErrorUrl("Failed to generate download link: " + (err.message || "Unknown error"));
+      setErrorUrl("Failed to generate download link: " + errorMessage);
     } finally {
       setLoadingUrl(null);
     }
@@ -174,9 +177,10 @@ export default function TripCard({ trip, onArchiveToggle }: TripCardProps) {
         description: `${doc.file_name} has been removed.`,
         variant: "destructive",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       console.error("Error during deletion:", err);
-      setDeleteError("Failed to delete: " + (err.message || "Unknown error"));
+      setDeleteError("Failed to delete: " + errorMessage);
     } finally {
       setDeletingDocId(null);
       setShowDeleteConfirm(false);
@@ -202,11 +206,12 @@ export default function TripCard({ trip, onArchiveToggle }: TripCardProps) {
         description: `${trip.destination} has been ${newArchivedStatus ? "archived" : "unarchived"}.`,
         variant: "default",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       console.error("Error archiving trip:", err);
       toast({
         title: "Error",
-        description: "Failed to update archive status: " + (err.message || "Unknown error"),
+        description: "Failed to update archive status: " + errorMessage,
         variant: "destructive",
       });
     }

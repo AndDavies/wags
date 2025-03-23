@@ -8,6 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import Notifications from "@/components/app/notifications";
 import { ToastProvider } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
+import Script from "next/script";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -37,7 +38,7 @@ export const metadata = {
     canonical: "https://wagsandwanders.com",
     languages: {
       "en-US": "https://wagsandwanders.com/en-US",
-      "es-ES": "https://wagsandwanders.com/es-ES", // Future-proof for Spanish expansion
+      "es-ES": "https://wagsandwanders.com/es-ES",
     },
   },
   openGraph: {
@@ -48,7 +49,7 @@ export const metadata = {
     siteName: "Wags & Wanders",
     images: [
       {
-        url: "https://wagsandwanders.com/og-image.jpg", // Replace with actual image
+        url: "https://wagsandwanders.com/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Wags & Wanders - Pet Travel App",
@@ -62,8 +63,8 @@ export const metadata = {
     title: "Wags & Wanders | Travel Confidently with Your Pet",
     description:
       "Plan pet-friendly travel with ease. From itineraries to vet networks, Wags & Wanders has you covered. Perfect for digital nomads and families.",
-    images: ["https://wagsandwanders.com/twitter-image.jpg"], // Replace with actual image
-    creator: "@wagsandwanders", // Replace with actual Twitter handle
+    images: ["https://wagsandwanders.com/twitter-image.jpg"],
+    creator: "@wagsandwanders",
   },
 };
 
@@ -72,9 +73,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${outfit.variable} font-sans`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-BF9YNEQ2CH" />
-        <script
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-BF9YNEQ2CH"
+          strategy="afterInteractive"
+        />
+        <Script
           id="google-analytics"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -84,7 +89,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
-        {/* Structured Data for SEO */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -97,13 +101,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 "Wags & Wanders is the ultimate pet travel app for digital nomads and families. Plan trips, manage pet documents, and connect with a global vet network.",
               potentialAction: {
                 "@type": "SearchAction",
-                target: "https://wagsandwanders.com/#search_term_string", //update for when you implement search
+                target: "https://wagsandwanders.com/search?q={search_term_string}",
                 "query-input": "required name=search_term_string",
               },
               sameAs: [
-                "https://twitter.com/#", // Replace with actual social links
-                "https://facebook.com/#",
-                "https://instagram.com/#",
+                "https://twitter.com/wagsandwanders",
+                "https://facebook.com/wagsandwanders",
+                "https://instagram.com/wagsandwanders",
               ],
             }),
           }}
