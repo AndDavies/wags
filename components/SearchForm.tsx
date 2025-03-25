@@ -1,34 +1,73 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { Plane, Calendar, Users, Search, ChevronDown } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Plane, Users, Search, ChevronDown, Minus, Plus, PawPrint } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 interface SearchFormProps {
   className?: string
 }
 
-export default function ResponsiveSearchForm({ className }: SearchFormProps) {
+interface TravelerType {
+  type: string
+  label: string
+  description: string
+  count: number
+}
+
+export function SearchForm({ className }: SearchFormProps) {
   const [fromLocation, setFromLocation] = useState("Your Location")
   const [toLocation, setToLocation] = useState("Dream Destination")
-  const [travelDate, setTravelDate] = useState("")
-  const [travelers, setTravelers] = useState(1)
-  const [petType, setPetType] = useState("Dog")
   const [activeField, setActiveField] = useState<string | null>(null)
+  const [showTravelerSelector, setShowTravelerSelector] = useState(false)
+
+  const [travelers, setTravelers] = useState<TravelerType[]>([
+    { type: "adults", label: "Adults", description: "Ages 13 or above", count: 0 },
+    { type: "children", label: "Children", description: "Ages 2-12", count: 0 },
+    { type: "infants", label: "Infants", description: "Under 2", count: 0 },
+    { type: "pets", label: "Pets", description: "Bringing a service animal?", count: 0 },
+  ])
+
+  const travelerSelectorRef = useRef<HTMLDivElement>(null)
+
+  // Close traveler selector when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (travelerSelectorRef.current && !travelerSelectorRef.current.contains(event.target as Node)) {
+        setShowTravelerSelector(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
+  // Get total traveler count
+  const totalTravelers = travelers.reduce((sum, traveler) => sum + traveler.count, 0)
+
+  // Update traveler count
+  const updateTravelerCount = (type: string, increment: boolean) => {
+    setTravelers((prev) =>
+      prev.map((traveler) =>
+        traveler.type === type
+          ? { ...traveler, count: increment ? traveler.count + 1 : Math.max(0, traveler.count - 1) }
+          : traveler,
+      ),
+    )
+  }
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would handle the actual search logic
-    console.log("Search submitted:", { fromLocation, toLocation, travelDate, travelers, petType })
-    // Navigate to search results page
-    // window.location.href = "/search-results"
+    console.log("Search submitted:", { fromLocation, toLocation, travelers })
   }
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative", className)} style={{ zIndex: 9999 }}>
       <form onSubmit={handleSubmit} className="w-full">
         {/* Desktop Version - All fields in one row */}
         <div className="hidden md:flex bg-white/20 backdrop-blur-md rounded-full border border-white/30 p-2">
@@ -68,56 +107,82 @@ export default function ResponsiveSearchForm({ className }: SearchFormProps) {
             </div>
           </div>
 
-          {/* Date Selection */}
-          <div className="flex-1 flex items-center p-2 border-r border-white/30">
-            <Calendar className="h-5 w-5 text-white mr-2" />
-            <div className="text-left flex-1">
-              <label htmlFor="desktop-date" className="block text-white/80 text-xs">
-                Travel Date
-              </label>
-              <input
-                id="desktop-date"
-                type="date"
-                value={travelDate}
-                onChange={(e) => setTravelDate(e.target.value)}
-                className="bg-transparent border-none text-white text-sm font-medium focus:outline-none w-full"
-                placeholder="Select Date"
-              />
-            </div>
-          </div>
-
-          {/* Travelers */}
-          <div className="flex items-center p-2 pr-3">
+          {/* Travelers Selector */}
+          <div className="relative flex items-center p-2 pr-3">
             <Users className="h-5 w-5 text-white mr-2" />
             <div className="text-left">
               <label htmlFor="desktop-travelers" className="block text-white/80 text-xs">
                 Travelers
               </label>
-              <select
-                id="desktop-travelers"
-                value={travelers}
-                onChange={(e) => setTravelers(Number(e.target.value))}
-                className="bg-transparent border-none text-white text-sm font-medium focus:outline-none appearance-none pr-5"
-                style={{ backgroundImage: "none" }}
+              <button
+                type="button"
+                onClick={() => setShowTravelerSelector(!showTravelerSelector)}
+                className="bg-transparent border-none text-white text-sm font-medium focus:outline-none flex items-center"
               >
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <option key={num} value={num} className="text-gray-800">
-                    {num} Traveler{num > 1 ? "s" : ""}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="h-3 w-3 text-white absolute right-16 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                {totalTravelers === 0 ? "Add guests" : `${totalTravelers} guest${totalTravelers !== 1 ? "s" : ""}`}
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </button>
+
+              {/* Traveler Selector Dropdown */}
+              {showTravelerSelector && (
+                <div
+                  ref={travelerSelectorRef}
+                  className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-lg p-4 w-72"
+                  style={{ zIndex: 9999 }}
+                >
+                  {travelers.map((traveler) => (
+                    <div key={traveler.type} className="py-4 border-b border-gray-100 last:border-0">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-medium text-gray-800">{traveler.label}</h3>
+                          <p className="text-sm text-gray-500">{traveler.description}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => updateTravelerCount(traveler.type, false)}
+                            className={`w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center ${
+                              traveler.count === 0
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "text-gray-700 hover:border-gray-500"
+                            }`}
+                            disabled={traveler.count === 0}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="w-5 text-center">{traveler.count}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateTravelerCount(traveler.type, true)}
+                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 hover:border-gray-500"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Special note for pets */}
+                      {traveler.type === "pets" && traveler.count > 0 && (
+                        <div className="mt-2 text-xs text-gray-500 flex items-center">
+                          <PawPrint className="h-3 w-3 mr-1" />
+                          We'll help you find pet-friendly accommodations
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Search Button */}
-          <button
+          <Button
             type="submit"
             className="bg-[#FF6B98] hover:bg-[#FF5A8B] text-white rounded-full p-3 transition-all hover:scale-105"
             aria-label="Search"
           >
             <Search className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Mobile Version - Accordion style with sticky search button */}
@@ -188,38 +253,6 @@ export default function ResponsiveSearchForm({ className }: SearchFormProps) {
             )}
           </div>
 
-          {/* Date Selection */}
-          <div className={cn("border-b border-white/30 transition-all", activeField === "date" ? "bg-white/30" : "")}>
-            <div
-              className="flex items-center justify-between p-3"
-              onClick={() => setActiveField(activeField === "date" ? null : "date")}
-            >
-              <div className="flex items-center">
-                <Calendar className="h-5 w-5 text-white mr-3" />
-                <div>
-                  <span className="text-white/80 text-xs">Travel Date</span>
-                  <p className="text-white font-medium">{travelDate || "Select Date"}</p>
-                </div>
-              </div>
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 text-white transition-transform",
-                  activeField === "date" ? "transform rotate-180" : "",
-                )}
-              />
-            </div>
-            {activeField === "date" && (
-              <div className="p-3 pt-0">
-                <input
-                  type="date"
-                  value={travelDate}
-                  onChange={(e) => setTravelDate(e.target.value)}
-                  className="w-full bg-white/20 border border-white/30 rounded-lg p-2 text-white focus:outline-none"
-                />
-              </div>
-            )}
-          </div>
-
           {/* Travelers */}
           <div className={cn("transition-all", activeField === "travelers" ? "bg-white/30" : "")}>
             <div
@@ -231,7 +264,7 @@ export default function ResponsiveSearchForm({ className }: SearchFormProps) {
                 <div>
                   <span className="text-white/80 text-xs">Travelers</span>
                   <p className="text-white font-medium">
-                    {travelers} Traveler{travelers > 1 ? "s" : ""}
+                    {totalTravelers === 0 ? "Add guests" : `${totalTravelers} guest${totalTravelers !== 1 ? "s" : ""}`}
                   </p>
                 </div>
               </div>
@@ -243,41 +276,56 @@ export default function ResponsiveSearchForm({ className }: SearchFormProps) {
               />
             </div>
             {activeField === "travelers" && (
-              <div className="p-3 pt-0">
-                <div className="flex justify-between items-center bg-white/20 border border-white/30 rounded-lg p-2">
-                  <button
-                    type="button"
-                    onClick={() => setTravelers(Math.max(1, travelers - 1))}
-                    className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-white"
-                  >
-                    -
-                  </button>
-                  <span className="text-white font-medium">{travelers}</span>
-                  <button
-                    type="button"
-                    onClick={() => setTravelers(travelers + 1)}
-                    className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-white"
-                  >
-                    +
-                  </button>
-                </div>
+              <div className="p-3 pt-0 space-y-4">
+                {travelers.map((traveler) => (
+                  <div key={traveler.type} className="bg-white/20 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium text-white">{traveler.label}</h3>
+                        <p className="text-xs text-white/80">{traveler.description}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => updateTravelerCount(traveler.type, false)}
+                          className={`w-8 h-8 rounded-full bg-white/20 flex items-center justify-center ${
+                            traveler.count === 0 ? "text-white/40 cursor-not-allowed" : "text-white hover:bg-white/30"
+                          }`}
+                          disabled={traveler.count === 0}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-5 text-center text-white">{traveler.count}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateTravelerCount(traveler.type, true)}
+                          className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
           {/* Search Button - Always visible */}
           <div className="p-3">
-            <button
+            <Button
               type="submit"
               className="w-full bg-[#FF6B98] hover:bg-[#FF5A8B] text-white rounded-full py-3 flex items-center justify-center transition-all"
             >
               <Search className="h-5 w-5 mr-2" />
               <span className="font-medium">Search Adventures</span>
-            </button>
+            </Button>
           </div>
         </div>
       </form>
     </div>
   )
 }
+
+export default SearchForm
 

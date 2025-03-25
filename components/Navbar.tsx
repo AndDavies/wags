@@ -86,8 +86,11 @@ export default function Navbar() {
     { name: "Contact", href: "/contact" },
   ]
 
-  // Always use white background on homepage, otherwise use transparent when not scrolled
-  const navbarBgClass = isHomePage || scrolled ? "bg-white shadow-md" : "bg-transparent"
+  // Use frosted glass effect when not scrolled, white background when scrolled
+  const navbarBgClass = scrolled ? "bg-white shadow-md" : "bg-white/30 backdrop-blur-md backdrop-saturate-150"
+
+  // Text color is now dark in both states for better readability
+  const textColorClass = "text-[#249ab4]"
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navbarBgClass}`}>
@@ -101,13 +104,13 @@ export default function Navbar() {
               height={40}
               className="w-10 h-10"
             />
-            <span className="text-xl font-semibold text-[#249ab4]">Wags & Wanders</span>
+            <span className={`text-xl font-semibold ${textColorClass}`}>Wags & Wanders</span>
           </NoPrefetchLink>
 
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="focus:outline-none text-[#249ab4] hover:text-[#FFA9DE]"
+              className={`focus:outline-none ${textColorClass} hover:text-[#FFA9DE]`}
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
