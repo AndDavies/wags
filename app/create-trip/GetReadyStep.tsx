@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PetFriendlyLocations from "@/components/app/PetFriendlyLocations";
 import { CheckCircle, Plane, Car, Hotel, PawPrint, Activity, Upload } from "lucide-react";
-import { TripData, PetPolicy } from "./types";
+import { TripData, PetPolicy, Vet } from "./types"; // Import Vet type
 import { createClient } from "@/lib/supabase-client";
 import { useEffect, useState } from "react";
 
@@ -29,8 +29,8 @@ export default function GetReadyStep({
   onBack,
 }: GetReadyStepProps) {
   const supabase = createClient();
-  const [originVets, setOriginVets] = useState<any[]>([]);
-  const [destinationVets, setDestinationVets] = useState<any[]>([]);
+  const [originVets, setOriginVets] = useState<Vet[]>([]); // Use Vet type
+  const [destinationVets, setDestinationVets] = useState<Vet[]>([]); // Use Vet type
 
   useEffect(() => {
     const fetchVets = async () => {

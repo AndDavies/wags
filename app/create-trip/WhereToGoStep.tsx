@@ -26,6 +26,23 @@ interface PlaceResult {
   }>;
 }
 
+interface GooglePlacesResponse {
+  status: string;
+  results: Array<{
+    place_id: string;
+    name: string;
+    formatted_address: string;
+    phone?: string;
+  }>;
+}
+
+interface MapboxResponse {
+  features: Array<{
+    id: string;
+    place_name: string;
+  }>;
+}
+
 interface WhereToGoStepProps {
   tripData: TripData;
   setTripData: React.Dispatch<React.SetStateAction<TripData>>;
@@ -36,7 +53,7 @@ interface WhereToGoStepProps {
   autocompleteLoaded: boolean;
   petPolicy: PetPolicy | null;
   setPetPolicy: React.Dispatch<React.SetStateAction<PetPolicy | null>>;
-  userVets: Vet[]; // User's profile vets
+  userVets: Vet[];
 }
 
 export default function WhereToGoStep({
@@ -54,12 +71,13 @@ export default function WhereToGoStep({
   const supabase = createClient();
   const departureInputRef = useRef<HTMLInputElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
+  const departureAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const destinationAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const now = today(getLocalTimeZone());
   const [showCalendar, setShowCalendar] = useState(false);
   const [originVetSuggestions, setOriginVetSuggestions] = useState<Vet[]>([]);
   const [destinationVetSuggestions, setDestinationVetSuggestions] = useState<Vet[]>([]);
 
-  // Initialize date range state
   const [dateRange, setDateRange] = useState<DateRange | null>(
     tripData.dates.start && tripData.dates.end
       ? {
@@ -69,7 +87,6 @@ export default function WhereToGoStep({
       : null,
   );
 
-  // Function to parse ISO string to DateValue
   function parseDate(dateString: string | null): DateValue {
     if (!dateString) return now;
     const date = new Date(dateString);
@@ -80,7 +97,6 @@ export default function WhereToGoStep({
     });
   }
 
-  // Function to format date for display
   function formatDate(dateString: string | null): string {
     if (!dateString) return "Select date";
     const date = new Date(dateString);
@@ -91,7 +107,6 @@ export default function WhereToGoStep({
     });
   }
 
-  // Function to handle date range changes
   const handleDateRangeChange = (range: DateRange | null) => {
     setDateRange(range);
     if (range) {
@@ -109,7 +124,6 @@ export default function WhereToGoStep({
     }
   };
 
-  // Clear date range
   const clearDateRange = () => {
     setDateRange(null);
     setTripData((prev) => ({
@@ -118,11 +132,9 @@ export default function WhereToGoStep({
     }));
   };
 
-  // Fetch vet suggestions using Google Places and Mapbox
   const fetchVetSuggestions = async (location: string, type: "origin" | "destination") => {
     if (!location) return;
 
-    // Check cache in locations table
     const { data: cachedData, error: cacheError } = await supabase
       .from("locations")
       .select("results")
@@ -142,24 +154,23 @@ export default function WhereToGoStep({
 
     let vetResults: Vet[] = [];
     if (cachedData) {
-      vetResults = cachedData.results.map((result: any) => ({
-        id: result.place_id,
+      vetResults = cachedData.results.map((result: Vet) => ({
+        id: result.id,
         name: result.name,
-        address: result.formatted_address,
+        address: result.address,
         phone: result.phone || "",
         location_type: type,
       }));
     } else {
-      // Fetch from Google Places
       const googleResponse = await fetch(
         `https://maps.googleapis.com/maps/api/place/textsearch/json?query=pet+friendly+vets+near+${encodeURIComponent(
           location,
         )}&key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}`,
       );
-      const googleData = await googleResponse.json();
+      const googleData: GooglePlacesResponse = await googleResponse.json();
 
       if (googleData.status === "OK") {
-        vetResults = googleData.results.map((result: any) => ({
+        vetResults = googleData.results.map((result) => ({
           id: result.place_id,
           name: result.name,
           address: result.formatted_address,
@@ -167,7 +178,6 @@ export default function WhereToGoStep({
           location_type: type,
         }));
 
-        // Cache the results
         await supabase.from("locations").insert({
           query: `pet friendly vets near ${location}`,
           source: "Google Places",
@@ -175,25 +185,23 @@ export default function WhereToGoStep({
         });
       }
 
-      // Fetch from Mapbox (if needed)
       const mapboxResponse = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/pet%20friendly%20vets%20near%20${encodeURIComponent(
           location,
         )}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}`,
       );
-      const mapboxData = await mapboxResponse.json();
+      const mapboxData: MapboxResponse = await mapboxResponse.json();
 
       if (mapboxData.features) {
-        const mapboxVets = mapboxData.features.map((feature: any) => ({
+        const mapboxVets = mapboxData.features.map((feature) => ({
           id: feature.id,
           name: feature.place_name,
           address: feature.place_name,
-          phone: "", // Mapbox doesn't provide phone numbers
+          phone: "",
           location_type: type,
         }));
         vetResults = [...vetResults, ...mapboxVets];
 
-        // Cache Mapbox results
         await supabase.from("locations").insert({
           query: `pet friendly vets near ${location}`,
           source: "Mapbox",
@@ -209,20 +217,17 @@ export default function WhereToGoStep({
     }
   };
 
-  let departureAutocomplete: google.maps.places.Autocomplete | null = null;
-  let destinationAutocomplete: google.maps.places.Autocomplete | null = null;
-
   useEffect(() => {
     if (autocompleteLoaded && departureInputRef.current && destinationInputRef.current) {
-      departureAutocomplete = new google.maps.places.Autocomplete(departureInputRef.current, {
+      departureAutocompleteRef.current = new google.maps.places.Autocomplete(departureInputRef.current, {
         types: ["(cities)"],
       });
-      destinationAutocomplete = new google.maps.places.Autocomplete(destinationInputRef.current, {
+      destinationAutocompleteRef.current = new google.maps.places.Autocomplete(destinationInputRef.current, {
         types: ["(cities)"],
       });
 
-      departureAutocomplete.addListener("place_changed", () => {
-        const place = departureAutocomplete!.getPlace() as PlaceResult;
+      departureAutocompleteRef.current.addListener("place_changed", () => {
+        const place = departureAutocompleteRef.current!.getPlace() as PlaceResult;
         if (place.formatted_address && place.place_id) {
           setTripData((prev: TripData) => ({
             ...prev,
@@ -233,8 +238,8 @@ export default function WhereToGoStep({
         }
       });
 
-      destinationAutocomplete.addListener("place_changed", async () => {
-        const place = destinationAutocomplete!.getPlace() as PlaceResult;
+      destinationAutocompleteRef.current.addListener("place_changed", async () => {
+        const place = destinationAutocompleteRef.current!.getPlace() as PlaceResult;
         if (place.formatted_address && place.place_id) {
           setTripData((prev: TripData) => ({
             ...prev,
@@ -276,17 +281,16 @@ export default function WhereToGoStep({
     }
 
     return () => {
-      if (departureAutocomplete) {
-        google.maps.event.clearInstanceListeners(departureAutocomplete);
+      if (departureAutocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(departureAutocompleteRef.current);
       }
-      if (destinationAutocomplete) {
-        google.maps.event.clearInstanceListeners(destinationAutocomplete);
+      if (destinationAutocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(destinationAutocompleteRef.current);
       }
     };
   }, [autocompleteLoaded, setTripData, supabase, setPetPolicy]);
 
   const addVet = async (type: "origin" | "destination", vet: Vet) => {
-    // Save vet to the vets table
     const { data, error } = await supabase
       .from("vets")
       .insert({
@@ -351,13 +355,11 @@ export default function WhereToGoStep({
 
   return (
     <div className="space-y-8">
-      {/* Journey Map Section */}
       <div className="relative mb-8">
         <div className="bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 rounded-xl p-6 shadow-sm">
           <h3 className="text-lg font-medium text-brand-teal mb-4">Plan Your Journey</h3>
 
           <div className="relative">
-            {/* Background Map Pattern */}
             <div className="absolute inset-0 opacity-5 pointer-events-none overflow-hidden rounded-lg">
               <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                 <pattern id="map-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
@@ -368,9 +370,7 @@ export default function WhereToGoStep({
               </svg>
             </div>
 
-            {/* Departure & Destination Inputs */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative z-10">
-              {/* Departure Field */}
               <div className="md:col-span-2">
                 <div className="relative">
                   <Label className="text-brand-teal font-medium mb-2 block">From</Label>
@@ -395,14 +395,12 @@ export default function WhereToGoStep({
                 </div>
               </div>
 
-              {/* Arrow */}
               <div className="hidden md:flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full bg-brand-teal/10 flex items-center justify-center">
                   <ArrowRight className="h-6 w-6 text-brand-teal" />
                 </div>
               </div>
 
-              {/* Destination Field */}
               <div className="md:col-span-2">
                 <div className="relative">
                   <Label className="text-brand-teal font-medium mb-2 block">To</Label>
@@ -428,16 +426,13 @@ export default function WhereToGoStep({
               </div>
             </div>
 
-            {/* Date Range Picker */}
             <div className="mt-8 relative">
               <Label className="text-brand-teal font-medium mb-2 block flex items-center">
                 <CalendarIcon className="h-5 w-5 mr-2" />
                 When are you traveling?
               </Label>
 
-              {/* Date Input Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Departure Date */}
                 <div
                   className={cn(
                     "flex items-center border-2 border-brand-teal/30 rounded-md p-3 bg-white/80 backdrop-blur-sm cursor-pointer transition-all",
@@ -454,7 +449,6 @@ export default function WhereToGoStep({
                   </div>
                 </div>
 
-                {/* Return Date */}
                 <div
                   className={cn(
                     "flex items-center border-2 border-brand-teal/30 rounded-md p-3 bg-white/80 backdrop-blur-sm cursor-pointer transition-all",
@@ -472,7 +466,6 @@ export default function WhereToGoStep({
                 </div>
               </div>
 
-              {/* Calendar Popup */}
               <AnimatePresence>
                 {showCalendar && (
                   <motion.div
@@ -568,7 +561,6 @@ export default function WhereToGoStep({
         </div>
       </div>
 
-      {/* Vet Information Sections */}
       <div className="space-y-6">
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-brand-teal flex items-center">
@@ -578,7 +570,6 @@ export default function WhereToGoStep({
           <p className="text-offblack/70 text-sm">
             We recommend having a vet visit for a health certificate before your trip.
           </p>
-          {/* Display selected vets */}
           {tripData.origin_vet_ids.length > 0 && (
             <div className="space-y-2">
               {tripData.origin_vet_ids.map((vetId) => {
@@ -612,7 +603,6 @@ export default function WhereToGoStep({
               })}
             </div>
           )}
-          {/* Display vet suggestions */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-offblack">Suggested Vets Near {tripData.departure}</h4>
             {originVetSuggestions.map((vet) => (
@@ -642,7 +632,6 @@ export default function WhereToGoStep({
               </div>
             ))}
           </div>
-          {/* Display user's profile vets */}
           {userVets.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-offblack">Your Saved Vets</h4>
@@ -684,7 +673,6 @@ export default function WhereToGoStep({
           <p className="text-offblack/70 text-sm">
             We recommend having a vet contact at your destination for emergencies.
           </p>
-          {/* Display selected vets */}
           {tripData.destination_vet_ids.length > 0 && (
             <div className="space-y-2">
               {tripData.destination_vet_ids.map((vetId) => {
@@ -718,7 +706,6 @@ export default function WhereToGoStep({
               })}
             </div>
           )}
-          {/* Display vet suggestions */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-offblack">Suggested Vets Near {tripData.destination}</h4>
             {destinationVetSuggestions.map((vet) => (
@@ -748,7 +735,6 @@ export default function WhereToGoStep({
               </div>
             ))}
           </div>
-          {/* Display user's profile vets */}
           {userVets.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-offblack">Your Saved Vets</h4>
@@ -783,7 +769,6 @@ export default function WhereToGoStep({
         </div>
       </div>
 
-      {/* Navigation Buttons */}
       <div className="flex gap-2 pt-4">
         <Button
           onClick={onBack}
