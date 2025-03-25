@@ -5,6 +5,13 @@ import { useState, useEffect } from "react";
 import { Loader2, MapPin, Phone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface Place {
+  displayName?: { text: string };
+  formattedAddress?: string;
+  allowsDogs?: boolean;
+  wheelchairAccessibleEntrance?: boolean;
+}
+
 interface Location {
   name: string;
   address: string;
@@ -17,7 +24,7 @@ interface Location {
 
 interface PetFriendlyLocationsProps {
   destination: string;
-  destinationPlaceId: string; // Add place_id to props
+  destinationPlaceId: string;
 }
 
 export default function PetFriendlyLocations({ destination, destinationPlaceId }: PetFriendlyLocationsProps) {
@@ -78,10 +85,10 @@ export default function PetFriendlyLocations({ destination, destinationPlaceId }
           throw new Error("Failed to fetch nearby vets: " + (nearbyVetsData.error?.message || "Unknown error"));
         }
 
-        const vetLocations: Location[] = (nearbyVetsData.places || []).map((place: any) => ({
+        const vetLocations: Location[] = (nearbyVetsData.places || []).map((place: Place) => ({
           name: place.displayName?.text || "Unknown Vet",
           address: place.formattedAddress || "Address not available",
-          phone: undefined, // Not fetching phone to stay within cost limits
+          phone: undefined,
           type: "vet",
           source: "Google",
           allowsDogs: place.allowsDogs || false,
@@ -117,7 +124,7 @@ export default function PetFriendlyLocations({ destination, destinationPlaceId }
           throw new Error("Failed to fetch nearby hotels: " + (nearbyHotelsData.error?.message || "Unknown error"));
         }
 
-        const hotelLocations: Location[] = (nearbyHotelsData.places || []).map((place: any) => ({
+        const hotelLocations: Location[] = (nearbyHotelsData.places || []).map((place: Place) => ({
           name: place.displayName?.text || "Unknown Hotel",
           address: place.formattedAddress || "Address not available",
           phone: undefined,
@@ -127,7 +134,7 @@ export default function PetFriendlyLocations({ destination, destinationPlaceId }
           wheelchairAccessibleEntrance: place.wheelchairAccessibleEntrance || false,
         }));
 
-        const combinedLocations = [...vetLocations, ...hotelLocations].slice(0, 3); // Limit to 3 results for preview
+        const combinedLocations = [...vetLocations, ...hotelLocations].slice(0, 3);
         setLocations(combinedLocations);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error";

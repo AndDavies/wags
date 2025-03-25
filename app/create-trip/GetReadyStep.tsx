@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PetFriendlyLocations from "@/components/app/PetFriendlyLocations";
 import { CheckCircle, Plane, Car, Hotel, PawPrint, Activity, Upload } from "lucide-react";
+import { TripData, PetPolicy } from "./types"; // Import shared types
 
 interface ChecklistItem {
   icon: React.ReactNode;
@@ -10,33 +11,8 @@ interface ChecklistItem {
 }
 
 interface GetReadyStepProps {
-  tripData: {
-    departure: string;
-    destination: string;
-    destinationPlaceId: string; // Added destinationPlaceId
-    dates: { start: string | null; end: string | null };
-    method: string;
-    interests: string[];
-    origin_vet: { name: string; address: string; phone: string }[];
-    destination_vet: { name: string; address: string; phone: string }[];
-    travelers: { adults: number; children: number; pets: number };
-  };
-  petPolicy: {
-    country_name: string;
-    entry_requirements: Array<{
-      step: number;
-      text: string;
-      label: string;
-    }>;
-    additional_info: {
-      pet_passport?: string;
-    };
-    external_links: Array<{
-      url: string;
-      title: string;
-    }>;
-    quarantine_info: string;
-  } | null;
+  tripData: TripData;
+  petPolicy: PetPolicy | null;
   isLoggedIn: boolean;
   onSave: () => void;
   onDownload: () => void;
@@ -254,7 +230,7 @@ export default function GetReadyStep({
         <h3 className="text-lg font-medium text-offblack mb-2">Pet-Friendly Locations (Preview)</h3>
         <PetFriendlyLocations
           destination={tripData.destination}
-          destinationPlaceId={tripData.destinationPlaceId} // Pass destinationPlaceId
+          destinationPlaceId={tripData.destinationPlaceId}
         />
         {!isLoggedIn && (
           <p className="text-offblack/70 text-sm mt-2">

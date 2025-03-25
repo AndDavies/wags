@@ -2,12 +2,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TripData } from "./types"; // Import shared type
 
 interface TravelersStepProps {
-  tripData: {
-    travelers: { adults: number; children: number; pets: number };
-  };
-  setTripData: React.Dispatch<React.SetStateAction<any>>;
+  tripData: TripData;
+  setTripData: React.Dispatch<React.SetStateAction<TripData>>;
   errors: { [key: string]: string };
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
   onNext: () => void;

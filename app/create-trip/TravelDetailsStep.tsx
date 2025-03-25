@@ -1,18 +1,15 @@
 // app/create-trip/TravelDetailsStep.tsx
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Calendar } from "lucide-react";
+import { TripData } from "./types"; // Import shared TripData type
 
 interface TravelDetailsStepProps {
-  tripData: {
-    dates: { start: string | null; end: string | null };
-    interests: string[];
-  };
-  setTripData: React.Dispatch<React.SetStateAction<any>>;
+  tripData: TripData;
+  setTripData: React.Dispatch<React.SetStateAction<TripData>>;
   errors: { [key: string]: string };
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
   onNext: () => void;
@@ -43,7 +40,7 @@ export default function TravelDetailsStep({
   };
 
   const handleInterestToggle = (interest: string) => {
-    setTripData((prev: any) => ({
+    setTripData((prev: TripData) => ({
       ...prev,
       interests: prev.interests.includes(interest)
         ? prev.interests.filter((i: string) => i !== interest)

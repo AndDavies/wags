@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase-client";
+import { TripData, PetPolicy } from "./types"; // Import shared types
 
 interface PlaceResult {
   formatted_address?: string;
@@ -19,24 +20,15 @@ interface PlaceResult {
 }
 
 interface WhereToGoStepProps {
-  tripData: {
-    departure: string;
-    destination: string;
-    departurePlaceId: string;
-    destinationPlaceId: string;
-    destinationCountry: string;
-    origin_vet: { name: string; address: string; phone: string }[];
-    destination_vet: { name: string; address: string; phone: string }[];
-    method: string;
-  };
-  setTripData: React.Dispatch<React.SetStateAction<any>>;
+  tripData: TripData;
+  setTripData: React.Dispatch<React.SetStateAction<TripData>>;
   errors: { [key: string]: string };
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
   onNext: () => void;
   onBack: () => void;
   autocompleteLoaded: boolean;
-  petPolicy: any;
-  setPetPolicy: React.Dispatch<React.SetStateAction<any>>;
+  petPolicy: PetPolicy | null;
+  setPetPolicy: React.Dispatch<React.SetStateAction<PetPolicy | null>>;
 }
 
 export default function WhereToGoStep({
@@ -67,7 +59,7 @@ export default function WhereToGoStep({
     departureAutocomplete.addListener("place_changed", () => {
       const place = departureAutocomplete!.getPlace() as PlaceResult;
       if (place.formatted_address && place.place_id) {
-        setTripData((prev: any) => ({
+        setTripData((prev: TripData) => ({
           ...prev,
           departure: place.formatted_address!,
           departurePlaceId: place.place_id!,
@@ -78,7 +70,7 @@ export default function WhereToGoStep({
     destinationAutocomplete.addListener("place_changed", async () => {
       const place = destinationAutocomplete!.getPlace() as PlaceResult;
       if (place.formatted_address && place.place_id) {
-        setTripData((prev: any) => ({
+        setTripData((prev: TripData) => ({
           ...prev,
           destination: place.formatted_address!,
           destinationPlaceId: place.place_id!,
@@ -90,7 +82,7 @@ export default function WhereToGoStep({
         const country = countryComponent?.long_name || "";
 
         if (country) {
-          setTripData((prev: any) => ({
+          setTripData((prev: TripData) => ({
             ...prev,
             destinationCountry: country,
           }));
@@ -119,29 +111,29 @@ export default function WhereToGoStep({
   const addVet = (type: "origin" | "destination") => {
     const newVet = { name: "", address: "", phone: "" };
     if (type === "origin") {
-      setTripData({
-        ...tripData,
-        origin_vet: [...tripData.origin_vet, newVet],
-      });
+      setTripData((prev: TripData) => ({
+        ...prev,
+        origin_vet: [...prev.origin_vet, newVet],
+      }));
     } else {
-      setTripData({
-        ...tripData,
-        destination_vet: [...tripData.destination_vet, newVet],
-      });
+      setTripData((prev: TripData) => ({
+        ...prev,
+        destination_vet: [...prev.destination_vet, newVet],
+      }));
     }
   };
 
   const removeVet = (type: "origin" | "destination", index: number) => {
     if (type === "origin") {
-      setTripData({
-        ...tripData,
-        origin_vet: tripData.origin_vet.filter((_, i) => i !== index),
-      });
+      setTripData((prev: TripData) => ({
+        ...prev,
+        origin_vet: prev.origin_vet.filter((_, i) => i !== index),
+      }));
     } else {
-      setTripData({
-        ...tripData,
-        destination_vet: tripData.destination_vet.filter((_, i) => i !== index),
-      });
+      setTripData((prev: TripData) => ({
+        ...prev,
+        destination_vet: prev.destination_vet.filter((_, i) => i !== index),
+      }));
     }
   };
 
@@ -149,11 +141,11 @@ export default function WhereToGoStep({
     if (type === "origin") {
       const updatedVets = [...tripData.origin_vet];
       updatedVets[index] = { ...updatedVets[index], [field]: value };
-      setTripData({ ...tripData, origin_vet: updatedVets });
+      setTripData((prev: TripData) => ({ ...prev, origin_vet: updatedVets }));
     } else {
       const updatedVets = [...tripData.destination_vet];
       updatedVets[index] = { ...updatedVets[index], [field]: value };
-      setTripData({ ...tripData, destination_vet: updatedVets });
+      setTripData((prev: TripData) => ({ ...prev, destination_vet: updatedVets }));
     }
   };
 
@@ -188,7 +180,9 @@ export default function WhereToGoStep({
         <Input
           ref={departureInputRef}
           value={tripData.departure}
-          onChange={(e) => setTripData({ ...tripData, departure: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setTripData((prev: TripData) => ({ ...prev, departure: e.target.value }))
+          }
           placeholder="e.g., New York"
           className="border-brand-teal/50"
         />
@@ -199,7 +193,9 @@ export default function WhereToGoStep({
         <Input
           ref={destinationInputRef}
           value={tripData.destination}
-          onChange={(e) => setTripData({ ...tripData, destination: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setTripData((prev: TripData) => ({ ...prev, destination: e.target.value }))
+          }
           placeholder="e.g., Paris"
           className="border-brand-teal/50"
         />
@@ -216,7 +212,9 @@ export default function WhereToGoStep({
               <Label className="w-24">Name</Label>
               <Input
                 value={vet.name}
-                onChange={(e) => updateVet("origin", index, "name", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateVet("origin", index, "name", e.target.value)
+                }
                 placeholder="e.g., Downtown Vet Clinic"
                 className="border-brand-teal/50"
               />
@@ -225,7 +223,9 @@ export default function WhereToGoStep({
               <Label className="w-24">Address</Label>
               <Input
                 value={vet.address}
-                onChange={(e) => updateVet("origin", index, "address", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateVet("origin", index, "address", e.target.value)
+                }
                 placeholder="e.g., 123 Main St, New York, NY"
                 className="border-brand-teal/50"
               />
@@ -234,7 +234,9 @@ export default function WhereToGoStep({
               <Label className="w-24">Phone</Label>
               <Input
                 value={vet.phone}
-                onChange={(e) => updateVet("origin", index, "phone", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateVet("origin", index, "phone", e.target.value)
+                }
                 placeholder="e.g., 555-123-4567"
                 className="border-brand-teal/50"
               />
@@ -269,7 +271,9 @@ export default function WhereToGoStep({
               <Label className="w-24">Name</Label>
               <Input
                 value={vet.name}
-                onChange={(e) => updateVet("destination", index, "name", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateVet("destination", index, "name", e.target.value)
+                }
                 placeholder="e.g., Uptown Vet Clinic"
                 className="border-brand-teal/50"
               />
@@ -278,7 +282,9 @@ export default function WhereToGoStep({
               <Label className="w-24">Address</Label>
               <Input
                 value={vet.address}
-                onChange={(e) => updateVet("destination", index, "address", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateVet("destination", index, "address", e.target.value)
+                }
                 placeholder="e.g., 456 Oak St, Paris, FR"
                 className="border-brand-teal/50"
               />
@@ -287,7 +293,9 @@ export default function WhereToGoStep({
               <Label className="w-24">Phone</Label>
               <Input
                 value={vet.phone}
-                onChange={(e) => updateVet("destination", index, "phone", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateVet("destination", index, "phone", e.target.value)
+                }
                 placeholder="e.g., 555-987-6543"
                 className="border-brand-teal/50"
               />
@@ -315,7 +323,7 @@ export default function WhereToGoStep({
         <Label>Travel Method (Optional)</Label>
         <Select
           value={tripData.method}
-          onValueChange={(value) => setTripData({ ...tripData, method: value })}
+          onValueChange={(value) => setTripData((prev: TripData) => ({ ...prev, method: value }))}
         >
           <SelectTrigger className="border-brand-teal/50">
             <SelectValue placeholder="Select travel method" />

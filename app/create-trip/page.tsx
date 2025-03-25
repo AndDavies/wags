@@ -16,38 +16,7 @@ import TravelDetailsStep from "./TravelDetailsStep";
 import GetReadyStep from "./GetReadyStep";
 import StepIndicator from "./StepIndicator";
 import Chatbot from "./Chatbot";
-
-interface TripData {
-  tripType: string[];
-  travelers: { adults: number; children: number; pets: number };
-  departure: string;
-  destination: string;
-  departurePlaceId: string;
-  destinationPlaceId: string;
-  destinationCountry: string;
-  origin_vet: { name: string; address: string; phone: string }[];
-  destination_vet: { name: string; address: string; phone: string }[];
-  dates: { start: string | null; end: string | null };
-  method: string;
-  interests: string[];
-}
-
-interface PetPolicy {
-  country_name: string;
-  entry_requirements: Array<{
-    step: number;
-    text: string;
-    label: string;
-  }>;
-  additional_info: {
-    pet_passport?: string;
-  };
-  external_links: Array<{
-    url: string;
-    title: string;
-  }>;
-  quarantine_info: string;
-}
+import { TripData, PetPolicy } from "./types"; // Import shared types
 
 export default function CreateTripPage() {
   const router = useRouter();
@@ -69,7 +38,7 @@ export default function CreateTripPage() {
     method: "",
     interests: [],
   });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({}); // Define errors state
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [savedTripId, setSavedTripId] = useState<string | null>(null);
