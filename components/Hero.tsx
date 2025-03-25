@@ -7,8 +7,9 @@ import Link from "next/link"
 import { Outfit, Pacifico } from "next/font/google"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { PawPrint, MapPin, Compass } from "lucide-react"
+import { PawPrint, Compass, Sparkles, ChevronRight } from "lucide-react"
 import { useEffect, useState } from "react"
+import ResponsiveSearchForm from "./SearchForm"
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
 const pacifico = Pacifico({ subsets: ["latin"], weight: ["400"], variable: "--font-pacifico" })
@@ -96,12 +97,12 @@ export function HeroSection({
           alt="Cat in a carrier"
           width={200}
           height={200}
-          className="right-[10%] bottom-[15%]"
+          className="right-[10%] top-[30%]"
         />
       </div>
 
       <div className="relative z-20 container mx-auto px-4 md:px-6 py-16 pt-28 md:py-20 md:pt-32">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           <div className="mb-4 md:mb-6 fade-in">
             <div className="relative inline-block">
               <Image
@@ -136,8 +137,8 @@ export function HeroSection({
             </p>
           </div>
 
-          {/* Enhanced CTA Section */}
-          <div className="relative fade-in delay-3">
+          {/* New Responsive Search Form Component */}
+          <div className="relative fade-in delay-3 max-w-5xl mx-auto">
             {/* Decorative elements - only visible on desktop */}
             <div className="absolute -top-6 -left-4 text-white/20 rotate-icon hidden md:block">
               <PawPrint size={40} />
@@ -146,26 +147,7 @@ export function HeroSection({
               <Compass size={40} />
             </div>
 
-            {/* Main CTA Button */}
-            <div className="mb-4 group">
-              <Link href="/create-trip" className="group relative inline-flex">
-                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-white to-[#FFE5E5] opacity-75 blur-sm group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                <button className="relative flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-lg font-bold text-[#30B8C4] transition-all duration-200 hover:shadow-lg hover:shadow-black/20 w-full hover:scale-[1.03] group-hover:scale-[1.03]">
-                  <span className="mr-2">Create Your Pet Adventure</span>
-                  <div className="bounce-x">
-                    <MapPin size={18} />
-                  </div>
-                </button>
-              </Link>
-            </div>
-
-            {/* Secondary CTA */}
-            <a
-              href="/how-it-works"
-              className="inline-flex items-center justify-center rounded-full border-2 border-white px-5 py-2 text-base font-bold text-white transition-all hover:bg-white hover:text-[#30B8C4] hover:scale-105 transform"
-            >
-              See How We Help
-            </a>
+            <ResponsiveSearchForm />
           </div>
 
           {/* Social proof indicators */}
@@ -177,11 +159,34 @@ export function HeroSection({
             </div>
           </div>
 
-          {/* Newsletter signup link */}
-          <div className="mt-2 fade-in delay-5">
-            <NoPrefetchLink href="/join-our-pack" className="text-sm text-white hover:text-[#FFE5E5] underline">
-              Join Our Pack for Travel Tips & Updates
-            </NoPrefetchLink>
+          {/* New Enhanced Early Access CTA - Slimmer version */}
+          <div className="mt-4 fade-in delay-5">
+            <div className="relative max-w-3xl mx-auto">
+              {/* Glass background with blur effect */}
+              <div className="absolute inset-0 bg-white/20 backdrop-blur-md rounded-full"></div>
+
+              {/* Content container */}
+              <Link
+                href="/join-our-pack"
+                className="relative block py-2 px-4 rounded-full border border-white/30 hover:border-white/50 transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="bg-[#FFE5E5] p-1.5 rounded-full mr-3">
+                      <Sparkles className="h-3.5 w-3.5 text-[#30B8C4]" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-white font-semibold text-xs md:text-sm">Ready for Epic Pet Adventures?</p>
+                      <p className="text-white/90 text-xs hidden md:block">Get Early Access to Our App</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center bg-[#FF6B98] hover:bg-[#FF5A8B] rounded-full px-3 py-1.5 transition-all group-hover:scale-105">
+                    <span className="text-white text-xs font-bold mr-1">Join Our Pack</span>
+                    <ChevronRight className="h-3 w-3 text-white" />
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -229,10 +234,6 @@ export function HeroSection({
           animation: rotateSlowReverse 7s ease-in-out infinite;
         }
         
-        .bounce-x {
-          animation: bounceX 1.5s infinite;
-        }
-        
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -277,15 +278,6 @@ export function HeroSection({
           }
           100% {
             transform: rotate(0deg);
-          }
-        }
-        
-        @keyframes bounceX {
-          0%, 100% {
-            transform: translateX(0);
-          }
-          50% {
-            transform: translateX(5px);
           }
         }
       `}</style>

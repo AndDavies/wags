@@ -1,7 +1,7 @@
 // app/create-trip/page.tsx
 "use client";
 
-import { useState, useEffect, Suspense } from "react"; // Add Suspense import
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import { TripData, PetPolicy } from "./types";
 // Create a component to handle useSearchParams
 function CreateTripContent() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // This is the line causing the issue
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [step, setStep] = useState(1);
@@ -47,7 +47,6 @@ function CreateTripContent() {
   const [itineraryFile, setItineraryFile] = useState<File | null>(null);
   const [autocompleteLoaded, setAutocompleteLoaded] = useState(false);
   const [petPolicy, setPetPolicy] = useState<PetPolicy | null>(null);
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -203,7 +202,7 @@ function CreateTripContent() {
       <div className="container mx-auto px-4 flex flex-col lg:flex-row gap-6">
         {/* Chatbot Sidebar */}
         <div className="lg:w-1/4 w-full">
-          <Chatbot isOpen={isChatbotOpen} setIsOpen={setIsChatbotOpen} />
+          <Chatbot /> {/* Remove toggle props */}
         </div>
 
         {/* Main Content */}
