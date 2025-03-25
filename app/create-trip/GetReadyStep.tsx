@@ -1,9 +1,10 @@
-// app/create-trip/GetReadyStep.tsx
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PetFriendlyLocations from "@/components/app/PetFriendlyLocations";
 import { CheckCircle, Plane, Car, Hotel, PawPrint, Activity, Upload } from "lucide-react";
-import { TripData, PetPolicy } from "./types"; // Import shared types
+import { TripData, PetPolicy } from "./types";
+import { createClient } from "@/lib/supabase-client";
+import { useEffect, useState } from "react";
 
 interface ChecklistItem {
   icon: React.ReactNode;
@@ -27,6 +28,41 @@ export default function GetReadyStep({
   onDownload,
   onBack,
 }: GetReadyStepProps) {
+  const supabase = createClient();
+  const [originVets, setOriginVets] = useState<any[]>([]);
+  const [destinationVets, setDestinationVets] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchVets = async () => {
+      // Fetch origin vets
+      if (tripData.origin_vet_ids.length > 0) {
+        const { data, error } = await supabase
+          .from("vets")
+          .select("*")
+          .in("id", tripData.origin_vet_ids);
+        if (error) {
+          console.error("Error fetching origin vets:", error);
+        } else {
+          setOriginVets(data || []);
+        }
+      }
+
+      // Fetch destination vets
+      if (tripData.destination_vet_ids.length > 0) {
+        const { data, error } = await supabase
+          .from("vets")
+          .select("*")
+          .in("id", tripData.destination_vet_ids);
+        if (error) {
+          console.error("Error fetching destination vets:", error);
+        } else {
+          setDestinationVets(data || []);
+        }
+      }
+    };
+    fetchVets();
+  }, [tripData.origin_vet_ids, tripData.destination_vet_ids, supabase]);
+
   const getChecklist = (): ChecklistItem[] => {
     const baseChecklist: ChecklistItem[] = [
       { icon: <CheckCircle className="h-5 w-5 text-brand-teal" />, text: "Pet health certificate" },
@@ -140,8 +176,8 @@ export default function GetReadyStep({
                 <PawPrint className="h-5 w-5 text-brand-teal" />
                 <h4 className="text-sm font-medium text-offblack">Origin Vet</h4>
               </div>
-              {tripData.origin_vet.length > 0 ? (
-                tripData.origin_vet.map((vet, index) => (
+              {originVets.length > 0 ? (
+                originVets.map((vet, index) => (
                   <p key={index} className="text-offblack/70 mt-1">
                     {vet.name} ({vet.address})
                     {vet.phone && (
@@ -166,8 +202,8 @@ export default function GetReadyStep({
                 <PawPrint className="h-5 w-5 text-brand-teal" />
                 <h4 className="text-sm font-medium text-offblack">Destination Vet</h4>
               </div>
-              {tripData.destination_vet.length > 0 ? (
-                tripData.destination_vet.map((vet, index) => (
+              {destinationVets.length > 0 ? (
+                destinationVets.map((vet, index) => (
                   <p key={index} className="text-offblack/70 mt-1">
                     {vet.name} ({vet.address})
                     {vet.phone && (

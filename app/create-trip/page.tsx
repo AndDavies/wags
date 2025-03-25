@@ -1,6 +1,6 @@
-// app/create-trip/page.tsx
 "use client";
 
+import type React from "react";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
@@ -12,11 +12,10 @@ import { Loader2 } from "lucide-react";
 import Script from "next/script";
 import WhereToGoStep from "./WhereToGoStep";
 import TravelersStep from "./TravelersStep";
-import TravelDetailsStep from "./TravelDetailsStep";
 import GetReadyStep from "./GetReadyStep";
 import StepIndicator from "./StepIndicator";
 import Chatbot from "./Chatbot";
-import { TripData, PetPolicy } from "./types";
+import type { TripData, PetPolicy, Vet } from "./types";
 
 // Create a component to handle useSearchParams
 function CreateTripContent() {
@@ -28,13 +27,14 @@ function CreateTripContent() {
   const [tripData, setTripData] = useState<TripData>({
     tripType: [],
     travelers: { adults: 0, children: 0, pets: 0 },
+    pets: [], // Initialize pets array
     departure: "",
     destination: searchParams.get("destination") || "",
     departurePlaceId: "",
     destinationPlaceId: "",
     destinationCountry: "",
-    origin_vet: [],
-    destination_vet: [],
+    origin_vet_ids: [], // Use vet IDs
+    destination_vet_ids: [], // Use vet IDs
     dates: { start: null, end: null },
     method: "",
     interests: [],
@@ -47,15 +47,59 @@ function CreateTripContent() {
   const [itineraryFile, setItineraryFile] = useState<File | null>(null);
   const [autocompleteLoaded, setAutocompleteLoaded] = useState(false);
   const [petPolicy, setPetPolicy] = useState<PetPolicy | null>(null);
+  const [userPets, setUserPets] = useState<{ id: string; name: string }[]>([]); // Store user's pets
+  const [userVets, setUserVets] = useState<Vet[]>([]); // Store user's profile vets
 
+  // Fetch user authentication status and profile data
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
+
+      if (session) {
+        // Fetch user's pets
+        const { data: petsData, error: petsError } = await supabase
+          .from("pets")
+          .select("id, name")
+          .eq("user_id", session.user.id);
+
+        if (petsError) {
+          console.error("Error fetching pets:", petsError);
+          toast({
+            title: "Error",
+            description: "Failed to fetch your pets.",
+            variant: "destructive",
+          });
+        } else {
+          setUserPets(petsData || []);
+        }
+
+        // Fetch user's profile vets
+        const { data: vetsData, error: vetsError } = await supabase
+          .from("vets")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .eq("location_type", "profile");
+
+        if (vetsError) {
+          console.error("Error fetching vets:", vetsError);
+          toast({
+            title: "Error",
+            description: "Failed to fetch your vets.",
+            variant: "destructive",
+          });
+        } else {
+          setUserVets(vetsData || []);
+        }
+      }
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
       if (session && localStorage.getItem("pendingTrip")) {
         const pendingTrip = JSON.parse(localStorage.getItem("pendingTrip")!);
@@ -68,7 +112,7 @@ function CreateTripContent() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 
   const handleNext = () => {
     setStep((prev) => prev + 1);
@@ -90,10 +134,9 @@ function CreateTripContent() {
         .insert({
           user_id: (await supabase.auth.getUser()).data.user?.id,
           travelers: tripData.travelers,
+          pets: tripData.pets, // Save selected pet IDs
           departure: tripData.departure,
           destination: tripData.destination,
-          origin_vet: tripData.origin_vet,
-          destination_vet: tripData.destination_vet,
           dates: tripData.dates,
           method: tripData.method,
           archived: false,
@@ -103,6 +146,15 @@ function CreateTripContent() {
         .single();
 
       if (error) throw error;
+
+      // Update trip with vet IDs
+      await supabase
+        .from("trips")
+        .update({
+          origin_vet_ids: tripData.origin_vet_ids,
+          destination_vet_ids: tripData.destination_vet_ids,
+        })
+        .eq("id", insertedData.id);
 
       setSavedTripId(insertedData.id);
       setShowItineraryUpload(true);
@@ -163,9 +215,7 @@ function CreateTripContent() {
       if (error) throw error;
 
       const filePath = `${savedTripId}/itinerary-${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filePath, itineraryFile);
+      const { error: uploadError } = await supabase.storage.from("documents").upload(filePath, itineraryFile);
 
       if (uploadError) throw uploadError;
 
@@ -198,26 +248,25 @@ function CreateTripContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 py-12">
-      <div className="container mx-auto px-4 flex flex-col lg:flex-row gap-6">
+    <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 pt-24 pb-12">
+      <div className="container max-w-[1400px] mx-auto px-4 flex flex-col lg:flex-row gap-6">
         {/* Chatbot Sidebar */}
-        <div className="lg:w-1/4 w-full">
-          <Chatbot /> {/* Remove toggle props */}
+        <div className="lg:w-1/5 w-full">
+          <Chatbot />
         </div>
 
         {/* Main Content */}
-        <div className="lg:w-3/4 w-full max-w-5xl mx-auto">
+        <div className="lg:w-4/5 w-full mx-auto">
           <Card className="border-none shadow-md">
             <CardHeader>
               <CardTitle className="text-2xl text-brand-teal">
                 {step === 1 && "Where to Go"}
-                {step === 2 && "Who’s Traveling"}
-                {step === 3 && "Travel Details"}
-                {step === 4 && "Get Ready"}
+                {step === 2 && "Who's Traveling"}
+                {step === 3 && "Get Ready"}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <StepIndicator currentStep={step} totalSteps={4} />
+              <StepIndicator currentStep={step} totalSteps={3} />
               {step === 1 && (
                 <WhereToGoStep
                   tripData={tripData}
@@ -229,6 +278,7 @@ function CreateTripContent() {
                   autocompleteLoaded={autocompleteLoaded}
                   petPolicy={petPolicy}
                   setPetPolicy={setPetPolicy}
+                  userVets={userVets} // Pass user's profile vets
                 />
               )}
               {step === 2 && (
@@ -239,19 +289,10 @@ function CreateTripContent() {
                   setErrors={setErrors}
                   onNext={handleNext}
                   onBack={handleBack}
+                  userPets={userPets} // Pass user's pets
                 />
               )}
               {step === 3 && (
-                <TravelDetailsStep
-                  tripData={tripData}
-                  setTripData={setTripData}
-                  errors={errors}
-                  setErrors={setErrors}
-                  onNext={handleNext}
-                  onBack={handleBack}
-                />
-              )}
-              {step === 4 && (
                 <GetReadyStep
                   tripData={tripData}
                   petPolicy={petPolicy}
@@ -327,7 +368,13 @@ export default function CreateTripPage() {
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&libraries=places`}
         onLoad={() => {}}
       />
-      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-brand-teal" /></div>}>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="h-8 w-8 animate-spin text-brand-teal" />
+          </div>
+        }
+      >
         <CreateTripContent />
       </Suspense>
     </>

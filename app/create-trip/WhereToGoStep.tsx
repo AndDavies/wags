@@ -1,13 +1,20 @@
-// app/create-trip/WhereToGoStep.tsx
-import { useRef } from "react";
+"use client";
+
+import type React from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin } from "lucide-react";
+import { MapPin, Plane, ArrowRight, CalendarIcon, PawPrint, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase-client";
-import { TripData, PetPolicy } from "./types"; // Import shared types
+import type { TripData, PetPolicy, Vet } from "./types";
+import { cn } from "@/lib/utils";
+import { RangeCalendar } from "@/components/ui/calendar-rac";
+import { getLocalTimeZone, today, type DateValue } from "@internationalized/date";
+import type { DateRange } from "react-aria-components";
+import { AnimatePresence, motion } from "framer-motion";
+import "./calendar-styles.css";
 
 interface PlaceResult {
   formatted_address?: string;
@@ -29,6 +36,7 @@ interface WhereToGoStepProps {
   autocompleteLoaded: boolean;
   petPolicy: PetPolicy | null;
   setPetPolicy: React.Dispatch<React.SetStateAction<PetPolicy | null>>;
+  userVets: Vet[]; // User's profile vets
 }
 
 export default function WhereToGoStep({
@@ -41,111 +49,289 @@ export default function WhereToGoStep({
   autocompleteLoaded,
   petPolicy,
   setPetPolicy,
+  userVets,
 }: WhereToGoStepProps) {
   const supabase = createClient();
   const departureInputRef = useRef<HTMLInputElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
-  let departureAutocomplete: google.maps.places.Autocomplete | null = null;
-  let destinationAutocomplete: google.maps.places.Autocomplete | null = null;
+  const now = today(getLocalTimeZone());
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [originVetSuggestions, setOriginVetSuggestions] = useState<Vet[]>([]);
+  const [destinationVetSuggestions, setDestinationVetSuggestions] = useState<Vet[]>([]);
 
-  if (autocompleteLoaded && departureInputRef.current && destinationInputRef.current) {
-    departureAutocomplete = new google.maps.places.Autocomplete(departureInputRef.current, {
-      types: ["(cities)"],
-    });
-    destinationAutocomplete = new google.maps.places.Autocomplete(destinationInputRef.current, {
-      types: ["(cities)"],
-    });
-
-    departureAutocomplete.addListener("place_changed", () => {
-      const place = departureAutocomplete!.getPlace() as PlaceResult;
-      if (place.formatted_address && place.place_id) {
-        setTripData((prev: TripData) => ({
-          ...prev,
-          departure: place.formatted_address!,
-          departurePlaceId: place.place_id!,
-        }));
-      }
-    });
-
-    destinationAutocomplete.addListener("place_changed", async () => {
-      const place = destinationAutocomplete!.getPlace() as PlaceResult;
-      if (place.formatted_address && place.place_id) {
-        setTripData((prev: TripData) => ({
-          ...prev,
-          destination: place.formatted_address!,
-          destinationPlaceId: place.place_id!,
-        }));
-
-        const countryComponent = place.address_components?.find((component) =>
-          component.types.includes("country")
-        );
-        const country = countryComponent?.long_name || "";
-
-        if (country) {
-          setTripData((prev: TripData) => ({
-            ...prev,
-            destinationCountry: country,
-          }));
-
-          const { data, error } = await supabase
-            .from("pet_policies")
-            .select("*")
-            .eq("country_name", country)
-            .single();
-
-          if (error) {
-            console.error("Error fetching pet policy:", error);
-            toast({
-              title: "Error",
-              description: "Failed to fetch pet travel policies for " + country,
-              variant: "destructive",
-            });
-          } else if (data) {
-            setPetPolicy(data);
-          }
+  // Initialize date range state
+  const [dateRange, setDateRange] = useState<DateRange | null>(
+    tripData.dates.start && tripData.dates.end
+      ? {
+          start: parseDate(tripData.dates.start),
+          end: parseDate(tripData.dates.end),
         }
-      }
+      : null,
+  );
+
+  // Function to parse ISO string to DateValue
+  function parseDate(dateString: string | null): DateValue {
+    if (!dateString) return now;
+    const date = new Date(dateString);
+    return today(getLocalTimeZone()).set({
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
     });
   }
 
-  const addVet = (type: "origin" | "destination") => {
-    const newVet = { name: "", address: "", phone: "" };
-    if (type === "origin") {
-      setTripData((prev: TripData) => ({
+  // Function to format date for display
+  function formatDate(dateString: string | null): string {
+    if (!dateString) return "Select date";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  // Function to handle date range changes
+  const handleDateRangeChange = (range: DateRange | null) => {
+    setDateRange(range);
+    if (range) {
+      const startISO = range.start.toDate(getLocalTimeZone()).toISOString();
+      const endISO = range.end.toDate(getLocalTimeZone()).toISOString();
+      setTripData((prev) => ({
         ...prev,
-        origin_vet: [...prev.origin_vet, newVet],
+        dates: { start: startISO, end: endISO },
       }));
     } else {
-      setTripData((prev: TripData) => ({
+      setTripData((prev) => ({
         ...prev,
-        destination_vet: [...prev.destination_vet, newVet],
+        dates: { start: null, end: null },
       }));
     }
   };
 
-  const removeVet = (type: "origin" | "destination", index: number) => {
+  // Clear date range
+  const clearDateRange = () => {
+    setDateRange(null);
+    setTripData((prev) => ({
+      ...prev,
+      dates: { start: null, end: null },
+    }));
+  };
+
+  // Fetch vet suggestions using Google Places and Mapbox
+  const fetchVetSuggestions = async (location: string, type: "origin" | "destination") => {
+    if (!location) return;
+
+    // Check cache in locations table
+    const { data: cachedData, error: cacheError } = await supabase
+      .from("locations")
+      .select("results")
+      .eq("query", `pet friendly vets near ${location}`)
+      .eq("source", "Google Places")
+      .single();
+
+    if (cacheError && cacheError.code !== "PGRST116") {
+      console.error("Error checking cache:", cacheError);
+      toast({
+        title: "Error",
+        description: "Failed to check cached vet locations.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let vetResults: Vet[] = [];
+    if (cachedData) {
+      vetResults = cachedData.results.map((result: any) => ({
+        id: result.place_id,
+        name: result.name,
+        address: result.formatted_address,
+        phone: result.phone || "",
+        location_type: type,
+      }));
+    } else {
+      // Fetch from Google Places
+      const googleResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=pet+friendly+vets+near+${encodeURIComponent(
+          location,
+        )}&key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}`,
+      );
+      const googleData = await googleResponse.json();
+
+      if (googleData.status === "OK") {
+        vetResults = googleData.results.map((result: any) => ({
+          id: result.place_id,
+          name: result.name,
+          address: result.formatted_address,
+          phone: result.phone || "",
+          location_type: type,
+        }));
+
+        // Cache the results
+        await supabase.from("locations").insert({
+          query: `pet friendly vets near ${location}`,
+          source: "Google Places",
+          results: vetResults,
+        });
+      }
+
+      // Fetch from Mapbox (if needed)
+      const mapboxResponse = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/pet%20friendly%20vets%20near%20${encodeURIComponent(
+          location,
+        )}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}`,
+      );
+      const mapboxData = await mapboxResponse.json();
+
+      if (mapboxData.features) {
+        const mapboxVets = mapboxData.features.map((feature: any) => ({
+          id: feature.id,
+          name: feature.place_name,
+          address: feature.place_name,
+          phone: "", // Mapbox doesn't provide phone numbers
+          location_type: type,
+        }));
+        vetResults = [...vetResults, ...mapboxVets];
+
+        // Cache Mapbox results
+        await supabase.from("locations").insert({
+          query: `pet friendly vets near ${location}`,
+          source: "Mapbox",
+          results: mapboxVets,
+        });
+      }
+    }
+
+    if (type === "origin") {
+      setOriginVetSuggestions(vetResults);
+    } else {
+      setDestinationVetSuggestions(vetResults);
+    }
+  };
+
+  let departureAutocomplete: google.maps.places.Autocomplete | null = null;
+  let destinationAutocomplete: google.maps.places.Autocomplete | null = null;
+
+  useEffect(() => {
+    if (autocompleteLoaded && departureInputRef.current && destinationInputRef.current) {
+      departureAutocomplete = new google.maps.places.Autocomplete(departureInputRef.current, {
+        types: ["(cities)"],
+      });
+      destinationAutocomplete = new google.maps.places.Autocomplete(destinationInputRef.current, {
+        types: ["(cities)"],
+      });
+
+      departureAutocomplete.addListener("place_changed", () => {
+        const place = departureAutocomplete!.getPlace() as PlaceResult;
+        if (place.formatted_address && place.place_id) {
+          setTripData((prev: TripData) => ({
+            ...prev,
+            departure: place.formatted_address!,
+            departurePlaceId: place.place_id!,
+          }));
+          fetchVetSuggestions(place.formatted_address!, "origin");
+        }
+      });
+
+      destinationAutocomplete.addListener("place_changed", async () => {
+        const place = destinationAutocomplete!.getPlace() as PlaceResult;
+        if (place.formatted_address && place.place_id) {
+          setTripData((prev: TripData) => ({
+            ...prev,
+            destination: place.formatted_address!,
+            destinationPlaceId: place.place_id!,
+          }));
+          fetchVetSuggestions(place.formatted_address!, "destination");
+
+          const countryComponent = place.address_components?.find((component) =>
+            component.types.includes("country"),
+          );
+          const country = countryComponent?.long_name || "";
+
+          if (country) {
+            setTripData((prev: TripData) => ({
+              ...prev,
+              destinationCountry: country,
+            }));
+
+            const { data, error } = await supabase
+              .from("pet_policies")
+              .select("*")
+              .eq("country_name", country)
+              .single();
+
+            if (error) {
+              console.error("Error fetching pet policy:", error);
+              toast({
+                title: "Error",
+                description: "Failed to fetch pet travel policies for " + country,
+                variant: "destructive",
+              });
+            } else if (data) {
+              setPetPolicy(data);
+            }
+          }
+        }
+      });
+    }
+
+    return () => {
+      if (departureAutocomplete) {
+        google.maps.event.clearInstanceListeners(departureAutocomplete);
+      }
+      if (destinationAutocomplete) {
+        google.maps.event.clearInstanceListeners(destinationAutocomplete);
+      }
+    };
+  }, [autocompleteLoaded, setTripData, supabase, setPetPolicy]);
+
+  const addVet = async (type: "origin" | "destination", vet: Vet) => {
+    // Save vet to the vets table
+    const { data, error } = await supabase
+      .from("vets")
+      .insert({
+        name: vet.name,
+        address: vet.address,
+        phone: vet.phone,
+        location_type: type,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving vet:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save vet information.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (type === "origin") {
       setTripData((prev: TripData) => ({
         ...prev,
-        origin_vet: prev.origin_vet.filter((_, i) => i !== index),
+        origin_vet_ids: [...prev.origin_vet_ids, data.id],
       }));
     } else {
       setTripData((prev: TripData) => ({
         ...prev,
-        destination_vet: prev.destination_vet.filter((_, i) => i !== index),
+        destination_vet_ids: [...prev.destination_vet_ids, data.id],
       }));
     }
   };
 
-  const updateVet = (type: "origin" | "destination", index: number, field: string, value: string) => {
+  const removeVet = (type: "origin" | "destination", vetId: string) => {
     if (type === "origin") {
-      const updatedVets = [...tripData.origin_vet];
-      updatedVets[index] = { ...updatedVets[index], [field]: value };
-      setTripData((prev: TripData) => ({ ...prev, origin_vet: updatedVets }));
+      setTripData((prev: TripData) => ({
+        ...prev,
+        origin_vet_ids: prev.origin_vet_ids.filter((id) => id !== vetId),
+      }));
     } else {
-      const updatedVets = [...tripData.destination_vet];
-      updatedVets[index] = { ...updatedVets[index], [field]: value };
-      setTripData((prev: TripData) => ({ ...prev, destination_vet: updatedVets }));
+      setTripData((prev: TripData) => ({
+        ...prev,
+        destination_vet_ids: prev.destination_vet_ids.filter((id) => id !== vetId),
+      }));
     }
   };
 
@@ -153,16 +339,6 @@ export default function WhereToGoStep({
     const newErrors: { [key: string]: string } = {};
     if (!tripData.departure) newErrors.departure = "Departure location is required.";
     if (!tripData.destination) newErrors.destination = "Destination is required.";
-    tripData.origin_vet.forEach((vet, index) => {
-      if (vet.phone && !/^\d{3}-\d{3}-\d{4}$/.test(vet.phone)) {
-        newErrors[`origin_vet_${index}_phone`] = "Phone must be in format 123-456-7890.";
-      }
-    });
-    tripData.destination_vet.forEach((vet, index) => {
-      if (vet.phone && !/^\d{3}-\d{3}-\d{4}$/.test(vet.phone)) {
-        newErrors[`destination_vet_${index}_phone`] = "Phone must be in format 123-456-7890.";
-      }
-    });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -174,169 +350,441 @@ export default function WhereToGoStep({
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Label>Departure</Label>
-        <Input
-          ref={departureInputRef}
-          value={tripData.departure}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setTripData((prev: TripData) => ({ ...prev, departure: e.target.value }))
-          }
-          placeholder="e.g., New York"
-          className="border-brand-teal/50"
-        />
-        {errors.departure && <p className="text-red-500 text-sm">{errors.departure}</p>}
-      </div>
-      <div>
-        <Label>Destination</Label>
-        <Input
-          ref={destinationInputRef}
-          value={tripData.destination}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setTripData((prev: TripData) => ({ ...prev, destination: e.target.value }))
-          }
-          placeholder="e.g., Paris"
-          className="border-brand-teal/50"
-        />
-        {errors.destination && <p className="text-red-500 text-sm">{errors.destination}</p>}
-      </div>
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-offblack">Origin Vet(s) (Optional)</h3>
-        <p className="text-offblack/70 text-sm">
-          We recommend having a vet visit for a health certificate before your trip.
-        </p>
-        {tripData.origin_vet.map((vet, index) => (
-          <div key={index} className="space-y-2 border border-brand-teal/50 rounded-md p-4">
-            <div className="flex items-center gap-2">
-              <Label className="w-24">Name</Label>
-              <Input
-                value={vet.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateVet("origin", index, "name", e.target.value)
-                }
-                placeholder="e.g., Downtown Vet Clinic"
-                className="border-brand-teal/50"
-              />
+    <div className="space-y-8">
+      {/* Journey Map Section */}
+      <div className="relative mb-8">
+        <div className="bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 rounded-xl p-6 shadow-sm">
+          <h3 className="text-lg font-medium text-brand-teal mb-4">Plan Your Journey</h3>
+
+          <div className="relative">
+            {/* Background Map Pattern */}
+            <div className="absolute inset-0 opacity-5 pointer-events-none overflow-hidden rounded-lg">
+              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <pattern id="map-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                  <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="none" stroke="#249ab4" strokeWidth="0.5" />
+                  <circle cx="50" cy="50" r="1" fill="#249ab4" />
+                </pattern>
+                <rect x="0" y="0" width="100%" height="100%" fill="url(#map-pattern)" />
+              </svg>
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="w-24">Address</Label>
-              <Input
-                value={vet.address}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateVet("origin", index, "address", e.target.value)
-                }
-                placeholder="e.g., 123 Main St, New York, NY"
-                className="border-brand-teal/50"
-              />
+
+            {/* Departure & Destination Inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative z-10">
+              {/* Departure Field */}
+              <div className="md:col-span-2">
+                <div className="relative">
+                  <Label className="text-brand-teal font-medium mb-2 block">From</Label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-teal">
+                      <Plane className="h-5 w-5 -rotate-45" />
+                    </div>
+                    <Input
+                      ref={departureInputRef}
+                      value={tripData.departure}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setTripData((prev: TripData) => ({ ...prev, departure: e.target.value }))
+                      }
+                      placeholder="City of departure"
+                      className={cn(
+                        "pl-10 py-6 border-2 bg-white/80 backdrop-blur-sm focus:border-brand-teal transition-all",
+                        errors.departure ? "border-red-500" : "border-brand-teal/30",
+                      )}
+                    />
+                  </div>
+                  {errors.departure && <p className="text-red-500 text-sm mt-1">{errors.departure}</p>}
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div className="hidden md:flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-brand-teal/10 flex items-center justify-center">
+                  <ArrowRight className="h-6 w-6 text-brand-teal" />
+                </div>
+              </div>
+
+              {/* Destination Field */}
+              <div className="md:col-span-2">
+                <div className="relative">
+                  <Label className="text-brand-teal font-medium mb-2 block">To</Label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-teal">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <Input
+                      ref={destinationInputRef}
+                      value={tripData.destination}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setTripData((prev: TripData) => ({ ...prev, destination: e.target.value }))
+                      }
+                      placeholder="City of destination"
+                      className={cn(
+                        "pl-10 py-6 border-2 bg-white/80 backdrop-blur-sm focus:border-brand-teal transition-all",
+                        errors.destination ? "border-red-500" : "border-brand-teal/30",
+                      )}
+                    />
+                  </div>
+                  {errors.destination && <p className="text-red-500 text-sm mt-1">{errors.destination}</p>}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="w-24">Phone</Label>
-              <Input
-                value={vet.phone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateVet("origin", index, "phone", e.target.value)
-                }
-                placeholder="e.g., 555-123-4567"
-                className="border-brand-teal/50"
-              />
-              {errors[`origin_vet_${index}_phone`] && (
-                <p className="text-red-500 text-sm">{errors[`origin_vet_${index}_phone`]}</p>
-              )}
+
+            {/* Date Range Picker */}
+            <div className="mt-8 relative">
+              <Label className="text-brand-teal font-medium mb-2 block flex items-center">
+                <CalendarIcon className="h-5 w-5 mr-2" />
+                When are you traveling?
+              </Label>
+
+              {/* Date Input Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Departure Date */}
+                <div
+                  className={cn(
+                    "flex items-center border-2 border-brand-teal/30 rounded-md p-3 bg-white/80 backdrop-blur-sm cursor-pointer transition-all",
+                    showCalendar && "border-brand-teal",
+                  )}
+                  onClick={() => setShowCalendar(true)}
+                >
+                  <CalendarIcon className="h-6 w-6 text-brand-teal mr-3" />
+                  <div className="flex-1">
+                    <p className="text-sm text-brand-teal/70">Departure Date</p>
+                    <p className="text-lg font-medium">
+                      {tripData.dates.start ? formatDate(tripData.dates.start) : "Select date"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Return Date */}
+                <div
+                  className={cn(
+                    "flex items-center border-2 border-brand-teal/30 rounded-md p-3 bg-white/80 backdrop-blur-sm cursor-pointer transition-all",
+                    showCalendar && "border-brand-teal",
+                  )}
+                  onClick={() => setShowCalendar(true)}
+                >
+                  <CalendarIcon className="h-6 w-6 text-brand-teal mr-3" />
+                  <div className="flex-1">
+                    <p className="text-sm text-brand-teal/70">Return Date</p>
+                    <p className="text-lg font-medium">
+                      {tripData.dates.end ? formatDate(tripData.dates.end) : "Select date"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Calendar Popup */}
+              <AnimatePresence>
+                {showCalendar && (
+                  <motion.div
+                    className="absolute z-50 mt-2 bg-white rounded-lg shadow-lg border border-brand-teal/20 p-4 w-full"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="text-brand-teal font-medium">Select Travel Dates</h4>
+                      <div className="flex items-center gap-2">
+                        {dateRange && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearDateRange}
+                            className="text-brand-teal hover:text-brand-pink hover:bg-transparent"
+                          >
+                            Clear
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setShowCalendar(false)}
+                          className="h-8 w-8 rounded-full"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-6 items-start">
+                      <div className="w-full md:w-auto mx-auto range-calendar-wrapper">
+                        <RangeCalendar
+                          className="rounded-md border border-brand-teal/20 p-2 shadow-sm"
+                          value={dateRange}
+                          onChange={handleDateRangeChange}
+                        />
+                      </div>
+
+                      <div className="w-full md:w-1/3 bg-brand-teal/5 p-4 rounded-lg border border-brand-teal/20">
+                        <h4 className="text-brand-teal font-medium mb-2">Don't know your dates yet?</h4>
+                        <p className="text-offblack/70 text-sm">
+                          No problem! You can still plan your trip without specific dates. Our system will provide
+                          valuable information about pet travel requirements, recommended accommodations, and
+                          activities.
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowCalendar(false)}
+                          className="mt-3 text-brand-teal hover:text-brand-pink hover:bg-transparent"
+                        >
+                          Continue without dates
+                        </Button>
+                      </div>
+                    </div>
+
+                    {dateRange && (
+                      <div className="mt-4 bg-brand-teal/10 p-3 rounded-md flex items-center">
+                        <CalendarIcon className="h-5 w-5 text-brand-teal mr-2" />
+                        <span className="text-brand-teal">
+                          {dateRange.start.toDate(getLocalTimeZone()).toLocaleDateString()} -{" "}
+                          {dateRange.end.toDate(getLocalTimeZone()).toLocaleDateString()}
+                          <span className="text-offblack/70 text-sm ml-2">
+                            (
+                            {Math.round(
+                              (dateRange.end.toDate(getLocalTimeZone()).getTime() -
+                                dateRange.start.toDate(getLocalTimeZone()).getTime()) /
+                                (1000 * 60 * 60 * 24),
+                            )}{" "}
+                            days)
+                          </span>
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex justify-end">
+                      <Button
+                        onClick={() => setShowCalendar(false)}
+                        className="bg-brand-teal hover:bg-brand-pink text-white"
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <Button
-              variant="outline"
-              className="text-red-500 hover:text-red-700"
-              onClick={() => removeVet("origin", index)}
-            >
-              Remove
-            </Button>
           </div>
-        ))}
-        <Button
-          onClick={() => addVet("origin")}
-          className="bg-brand-teal hover:bg-brand-pink text-white"
-        >
-          Add Origin Vet
-        </Button>
+        </div>
       </div>
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-offblack">Destination Vet(s) (Optional)</h3>
-        <p className="text-offblack/70 text-sm">
-          We recommend having a vet contact at your destination for emergencies.
-        </p>
-        {tripData.destination_vet.map((vet, index) => (
-          <div key={index} className="space-y-2 border border-brand-teal/50 rounded-md p-4">
-            <div className="flex items-center gap-2">
-              <Label className="w-24">Name</Label>
-              <Input
-                value={vet.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateVet("destination", index, "name", e.target.value)
-                }
-                placeholder="e.g., Uptown Vet Clinic"
-                className="border-brand-teal/50"
-              />
+
+      {/* Vet Information Sections */}
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-brand-teal flex items-center">
+            <PawPrint className="h-5 w-5 mr-2 text-brand-teal" />
+            Origin Vet(s) <span className="text-sm font-normal ml-2 text-offblack/70">(Optional)</span>
+          </h3>
+          <p className="text-offblack/70 text-sm">
+            We recommend having a vet visit for a health certificate before your trip.
+          </p>
+          {/* Display selected vets */}
+          {tripData.origin_vet_ids.length > 0 && (
+            <div className="space-y-2">
+              {tripData.origin_vet_ids.map((vetId) => {
+                const vet = [...userVets, ...originVetSuggestions].find((v) => v.id === vetId);
+                if (!vet) return null;
+                return (
+                  <div
+                    key={vetId}
+                    className="flex items-center justify-between border border-brand-teal/30 rounded-md p-4 bg-white/80 shadow-sm"
+                  >
+                    <div>
+                      <p className="text-offblack">{vet.name}</p>
+                      <p className="text-offblack/70 text-sm">{vet.address}</p>
+                      {vet.phone && (
+                        <p className="text-offblack/70 text-sm">
+                          <a href={`tel:${vet.phone}`} className="text-brand-teal hover:underline">
+                            {vet.phone}
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => removeVet("origin", vetId)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="w-24">Address</Label>
-              <Input
-                value={vet.address}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateVet("destination", index, "address", e.target.value)
-                }
-                placeholder="e.g., 456 Oak St, Paris, FR"
-                className="border-brand-teal/50"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Label className="w-24">Phone</Label>
-              <Input
-                value={vet.phone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateVet("destination", index, "phone", e.target.value)
-                }
-                placeholder="e.g., 555-987-6543"
-                className="border-brand-teal/50"
-              />
-              {errors[`destination_vet_${index}_phone`] && (
-                <p className="text-red-500 text-sm">{errors[`destination_vet_${index}_phone`]}</p>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              className="text-red-500 hover:text-red-700"
-              onClick={() => removeVet("destination", index)}
-            >
-              Remove
-            </Button>
+          )}
+          {/* Display vet suggestions */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-offblack">Suggested Vets Near {tripData.departure}</h4>
+            {originVetSuggestions.map((vet) => (
+              <div
+                key={vet.id}
+                className="flex items-center justify-between border border-brand-teal/30 rounded-md p-4 bg-white/80 shadow-sm"
+              >
+                <div>
+                  <p className="text-offblack">{vet.name}</p>
+                  <p className="text-offblack/70 text-sm">{vet.address}</p>
+                  {vet.phone && (
+                    <p className="text-offblack/70 text-sm">
+                      <a href={`tel:${vet.phone}`} className="text-brand-teal hover:underline">
+                        {vet.phone}
+                      </a>
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
+                  onClick={() => addVet("origin", vet)}
+                  disabled={tripData.origin_vet_ids.includes(vet.id)}
+                >
+                  Add
+                </Button>
+              </div>
+            ))}
           </div>
-        ))}
-        <Button
-          onClick={() => addVet("destination")}
-          className="bg-brand-teal hover:bg-brand-pink text-white"
-        >
-          Add Destination Vet
-        </Button>
+          {/* Display user's profile vets */}
+          {userVets.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-offblack">Your Saved Vets</h4>
+              {userVets.map((vet) => (
+                <div
+                  key={vet.id}
+                  className="flex items-center justify-between border border-brand-teal/30 rounded-md p-4 bg-white/80 shadow-sm"
+                >
+                  <div>
+                    <p className="text-offblack">{vet.name}</p>
+                    <p className="text-offblack/70 text-sm">{vet.address}</p>
+                    {vet.phone && (
+                      <p className="text-offblack/70 text-sm">
+                        <a href={`tel:${vet.phone}`} className="text-brand-teal hover:underline">
+                          {vet.phone}
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
+                    onClick={() => addVet("origin", vet)}
+                    disabled={tripData.origin_vet_ids.includes(vet.id)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-brand-teal flex items-center">
+            <PawPrint className="h-5 w-5 mr-2 text-brand-teal" />
+            Destination Vet(s) <span className="text-sm font-normal ml-2 text-offblack/70">(Optional)</span>
+          </h3>
+          <p className="text-offblack/70 text-sm">
+            We recommend having a vet contact at your destination for emergencies.
+          </p>
+          {/* Display selected vets */}
+          {tripData.destination_vet_ids.length > 0 && (
+            <div className="space-y-2">
+              {tripData.destination_vet_ids.map((vetId) => {
+                const vet = [...userVets, ...destinationVetSuggestions].find((v) => v.id === vetId);
+                if (!vet) return null;
+                return (
+                  <div
+                    key={vetId}
+                    className="flex items-center justify-between border border-brand-teal/30 rounded-md p-4 bg-white/80 shadow-sm"
+                  >
+                    <div>
+                      <p className="text-offblack">{vet.name}</p>
+                      <p className="text-offblack/70 text-sm">{vet.address}</p>
+                      {vet.phone && (
+                        <p className="text-offblack/70 text-sm">
+                          <a href={`tel:${vet.phone}`} className="text-brand-teal hover:underline">
+                            {vet.phone}
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => removeVet("destination", vetId)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Display vet suggestions */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-offblack">Suggested Vets Near {tripData.destination}</h4>
+            {destinationVetSuggestions.map((vet) => (
+              <div
+                key={vet.id}
+                className="flex items-center justify-between border border-brand-teal/30 rounded-md p-4 bg-white/80 shadow-sm"
+              >
+                <div>
+                  <p className="text-offblack">{vet.name}</p>
+                  <p className="text-offblack/70 text-sm">{vet.address}</p>
+                  {vet.phone && (
+                    <p className="text-offblack/70 text-sm">
+                      <a href={`tel:${vet.phone}`} className="text-brand-teal hover:underline">
+                        {vet.phone}
+                      </a>
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
+                  onClick={() => addVet("destination", vet)}
+                  disabled={tripData.destination_vet_ids.includes(vet.id)}
+                >
+                  Add
+                </Button>
+              </div>
+            ))}
+          </div>
+          {/* Display user's profile vets */}
+          {userVets.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-offblack">Your Saved Vets</h4>
+              {userVets.map((vet) => (
+                <div
+                  key={vet.id}
+                  className="flex items-center justify-between border border-brand-teal/30 rounded-md p-4 bg-white/80 shadow-sm"
+                >
+                  <div>
+                    <p className="text-offblack">{vet.name}</p>
+                    <p className="text-offblack/70 text-sm">{vet.address}</p>
+                    {vet.phone && (
+                      <p className="text-offblack/70 text-sm">
+                        <a href={`tel:${vet.phone}`} className="text-brand-teal hover:underline">
+                          {vet.phone}
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
+                    onClick={() => addVet("destination", vet)}
+                    disabled={tripData.destination_vet_ids.includes(vet.id)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <div>
-        <Label>Travel Method (Optional)</Label>
-        <Select
-          value={tripData.method}
-          onValueChange={(value) => setTripData((prev: TripData) => ({ ...prev, method: value }))}
-        >
-          <SelectTrigger className="border-brand-teal/50">
-            <SelectValue placeholder="Select travel method" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="flight">Flight</SelectItem>
-            <SelectItem value="car">Car</SelectItem>
-            <SelectItem value="train">Train</SelectItem>
-            <SelectItem value="ferry">Ferry</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex gap-2">
+
+      {/* Navigation Buttons */}
+      <div className="flex gap-2 pt-4">
         <Button
           onClick={onBack}
           variant="outline"
@@ -347,9 +795,9 @@ export default function WhereToGoStep({
         </Button>
         <Button
           onClick={handleNextWithValidation}
-          className="w-full bg-brand-teal hover:bg-brand-pink text-white"
+          className="w-full bg-brand-teal hover:bg-brand-pink text-white py-6"
         >
-          Next
+          Continue to Travelers
         </Button>
       </div>
     </div>

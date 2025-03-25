@@ -1,0 +1,29 @@
+/* Custom styles for the range calendar */
+.range-calendar-wrapper [data-selection-start] {
+    background-color: #249ab4 !important;
+    color: white !important;
+    border-radius: 0.375rem 0 0 0.375rem !important;
+  }
+  
+  .range-calendar-wrapper [data-selection-end] {
+    background-color: #249ab4 !important;
+    color: white !important;
+    border-radius: 0 0.375rem 0.375rem 0 !important;
+  }
+  
+  .range-calendar-wrapper [data-selected]:not([data-selection-start]):not([data-selection-end]) {
+    background-color: rgba(36, 154, 180, 0.2) !important;
+    color: #333 !important;
+    border-radius: 0 !important;
+  }
+  
+  .range-calendar-wrapper [data-hovered]:not([data-selected]) {
+    background-color: rgba(36, 154, 180, 0.1) !important;
+  }
+  
+  .range-calendar-wrapper [data-focused] {
+    outline: 2px solid rgba(36, 154, 180, 0.5) !important;
+    outline-offset: -2px;
+  }
+  
+  
