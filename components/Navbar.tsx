@@ -6,7 +6,7 @@ import type React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase-client" // Client-side client
 import type { User } from "@supabase/supabase-js"
 import { Menu, X } from "lucide-react"
@@ -23,6 +23,8 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+  const isHomePage = pathname === "/"
   const supabase = createClient()
 
   useEffect(() => {
@@ -84,10 +86,11 @@ export default function Navbar() {
     { name: "Contact", href: "/contact" },
   ]
 
+  // Always use white background on homepage, otherwise use transparent when not scrolled
+  const navbarBgClass = isHomePage || scrolled ? "bg-white shadow-md" : "bg-transparent"
+
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white shadow-md" : "bg-transparent"}`}
-    >
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navbarBgClass}`}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <NoPrefetchLink href="/" className="flex items-center space-x-2">
@@ -98,15 +101,13 @@ export default function Navbar() {
               height={40}
               className="w-10 h-10"
             />
-            <span className={`text-xl font-semibold ${scrolled ? "text-[#249ab4]" : "text-[#249ab4]"}`}>
-              Wags & Wanders
-            </span>
+            <span className="text-xl font-semibold text-[#249ab4]">Wags & Wanders</span>
           </NoPrefetchLink>
 
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`focus:outline-none ${scrolled ? "text-[#249ab4] hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"}`}
+              className="focus:outline-none text-[#249ab4] hover:text-[#FFA9DE]"
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -118,9 +119,7 @@ export default function Navbar() {
               <NoPrefetchLink
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors ${
-                  scrolled ? "text-offblack hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"
-                }`}
+                className="text-sm font-medium transition-colors text-offblack hover:text-[#FFA9DE]"
               >
                 {item.name}
               </NoPrefetchLink>
@@ -147,12 +146,10 @@ export default function Navbar() {
             </NoPrefetchLink>
             {isLoggedIn && user ? (
               <>
-                <span className={`text-sm ${scrolled ? "text-offblack" : "text-white"}`}>
-                  {user.email?.split("@")[0]}
-                </span>
+                <span className="text-sm text-offblack">{user.email?.split("@")[0]}</span>
                 <NoPrefetchLink
                   href="/profile"
-                  className={`text-sm font-medium transition-colors ${scrolled ? "text-offblack hover:text-[#FFE5E5]" : "text-white hover:text-[#FFE5E5]"}`}
+                  className="text-sm font-medium transition-colors text-offblack hover:text-[#FFA9DE]"
                 >
                   Profile
                 </NoPrefetchLink>
@@ -167,17 +164,13 @@ export default function Navbar() {
               <>
                 <NoPrefetchLink
                   href="/login"
-                  className={`text-sm font-medium transition-colors ${
-                    scrolled ? "text-[#249ab4] hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"
-                  }`}
+                  className="text-sm font-medium transition-colors text-[#249ab4] hover:text-[#FFA9DE]"
                 >
                   Log In
                 </NoPrefetchLink>
                 <NoPrefetchLink
                   href="/signup"
-                  className={`text-sm font-medium transition-colors ${
-                    scrolled ? "text-[#249ab4] hover:text-[#FFA9DE]" : "text-[#249ab4] hover:text-[#FFA9DE]"
-                  }`}
+                  className="text-sm font-medium transition-colors text-[#249ab4] hover:text-[#FFA9DE]"
                 >
                   Sign Up
                 </NoPrefetchLink>
@@ -192,7 +185,7 @@ export default function Navbar() {
             <NoPrefetchLink
               href="/create-trip"
               onClick={() => setIsOpen(false)}
-              className="text-lg font-medium bg-brand-teal text-white hover:bg-brand-pink transition-colors px-6 py-3 rounded-full flex items-center gap-2 shadow-md w-full max-w-xs justify-center mb-4"
+              className="text-lg font-medium bg-[#249ab4] text-white hover:bg-[#FFA9DE] transition-colors px-6 py-3 rounded-full flex items-center gap-2 shadow-md w-full max-w-xs justify-center mb-4"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

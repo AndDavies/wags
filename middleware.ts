@@ -11,10 +11,12 @@ export async function middleware(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser(authToken);
 
-  console.log(`[Middleware] Path: ${request.nextUrl.pathname}, User: ${user?.email || 'none'}, Error: ${error?.message || 'none'}, Auth Token: ${authToken ? authToken.substring(0, 50) + '...' : 'none'}`);
+  console.log(
+    `[Middleware] Path: ${request.nextUrl.pathname}, User: ${user?.email || "none"}, Error: ${error?.message || "none"}, Auth Token: ${authToken ? authToken.substring(0, 50) + "..." : "none"}`
+  );
 
-  const protectedRoutes = ["/profile", "/create-trip"];
-  if (protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route)) && !user) {
+  const protectedRoutes = ["/profile"];
+  if (protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route)) && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -22,5 +24,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/profile/:path*", "/create-trip/:path*"],
+  matcher: ["/profile/:path*"],
 };
