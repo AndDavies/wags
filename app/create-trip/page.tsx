@@ -1,7 +1,7 @@
 // app/create-trip/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // Add Suspense import
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,12 @@ import TravelDetailsStep from "./TravelDetailsStep";
 import GetReadyStep from "./GetReadyStep";
 import StepIndicator from "./StepIndicator";
 import Chatbot from "./Chatbot";
-import { TripData, PetPolicy } from "./types"; // Import shared types
+import { TripData, PetPolicy } from "./types";
 
-export default function CreateTripPage() {
+// Create a component to handle useSearchParams
+function CreateTripContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // This is the line causing the issue
   const supabase = createClient();
 
   const [step, setStep] = useState(1);
@@ -68,7 +69,7 @@ export default function CreateTripPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const handleNext = () => {
     setStep((prev) => prev + 1);
@@ -198,130 +199,138 @@ export default function CreateTripPage() {
   };
 
   return (
+    <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 py-12">
+      <div className="container mx-auto px-4 flex flex-col lg:flex-row gap-6">
+        {/* Chatbot Sidebar */}
+        <div className="lg:w-1/4 w-full">
+          <Chatbot isOpen={isChatbotOpen} setIsOpen={setIsChatbotOpen} />
+        </div>
+
+        {/* Main Content */}
+        <div className="lg:w-3/4 w-full max-w-5xl mx-auto">
+          <Card className="border-none shadow-md">
+            <CardHeader>
+              <CardTitle className="text-2xl text-brand-teal">
+                {step === 1 && "Where to Go"}
+                {step === 2 && "Who’s Traveling"}
+                {step === 3 && "Travel Details"}
+                {step === 4 && "Get Ready"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StepIndicator currentStep={step} totalSteps={4} />
+              {step === 1 && (
+                <WhereToGoStep
+                  tripData={tripData}
+                  setTripData={setTripData}
+                  errors={errors}
+                  setErrors={setErrors}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                  autocompleteLoaded={autocompleteLoaded}
+                  petPolicy={petPolicy}
+                  setPetPolicy={setPetPolicy}
+                />
+              )}
+              {step === 2 && (
+                <TravelersStep
+                  tripData={tripData}
+                  setTripData={setTripData}
+                  errors={errors}
+                  setErrors={setErrors}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                />
+              )}
+              {step === 3 && (
+                <TravelDetailsStep
+                  tripData={tripData}
+                  setTripData={setTripData}
+                  errors={errors}
+                  setErrors={setErrors}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                />
+              )}
+              {step === 4 && (
+                <GetReadyStep
+                  tripData={tripData}
+                  petPolicy={petPolicy}
+                  isLoggedIn={isLoggedIn}
+                  onSave={handleSaveTrip}
+                  onDownload={handleDownloadPDF}
+                  onBack={handleBack}
+                />
+              )}
+
+              {showLoginPrompt && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <Card className="w-full max-w-sm border-none shadow-md">
+                    <CardHeader>
+                      <CardTitle className="text-xl text-brand-teal">Log In to Continue</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-offblack/70 mb-4">
+                        Please log in to save your trip, upload documents, or download the itinerary.
+                      </p>
+                      <Button
+                        onClick={handleLoginRedirect}
+                        className="w-full bg-brand-teal hover:bg-brand-pink text-white"
+                      >
+                        Log In
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {showItineraryUpload && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <Card className="w-full max-w-sm border-none shadow-md">
+                    <CardHeader>
+                      <CardTitle className="text-xl text-brand-teal">Upload Your Booked Itinerary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-offblack/70 mb-4">
+                        Upload your booked itinerary (e.g., from Booking.com) to update your trip details.
+                      </p>
+                      <Input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setItineraryFile(e.target.files?.[0] || null)
+                        }
+                        className="border-brand-teal/50 mb-4"
+                      />
+                      <Button
+                        onClick={handleItineraryUpload}
+                        className="w-full bg-brand-teal hover:bg-brand-pink text-white"
+                        disabled={!itineraryFile}
+                      >
+                        Upload and Update
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CreateTripPage() {
+  return (
     <>
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&libraries=places`}
-        onLoad={() => setAutocompleteLoaded(true)}
+        onLoad={() => {}}
       />
-      <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 py-12">
-        <div className="container mx-auto px-4 flex flex-col lg:flex-row gap-6">
-          {/* Chatbot Sidebar */}
-          <div className="lg:w-1/4 w-full">
-            <Chatbot isOpen={isChatbotOpen} setIsOpen={setIsChatbotOpen} />
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:w-3/4 w-full max-w-5xl mx-auto">
-            <Card className="border-none shadow-md">
-              <CardHeader>
-                <CardTitle className="text-2xl text-brand-teal">
-                  {step === 1 && "Where to Go"}
-                  {step === 2 && "Who’s Traveling"}
-                  {step === 3 && "Travel Details"}
-                  {step === 4 && "Get Ready"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <StepIndicator currentStep={step} totalSteps={4} />
-                {step === 1 && (
-                  <WhereToGoStep
-                    tripData={tripData}
-                    setTripData={setTripData}
-                    errors={errors}
-                    setErrors={setErrors}
-                    onNext={handleNext}
-                    onBack={handleBack}
-                    autocompleteLoaded={autocompleteLoaded}
-                    petPolicy={petPolicy}
-                    setPetPolicy={setPetPolicy}
-                  />
-                )}
-                {step === 2 && (
-                  <TravelersStep
-                    tripData={tripData}
-                    setTripData={setTripData}
-                    errors={errors}
-                    setErrors={setErrors}
-                    onNext={handleNext}
-                    onBack={handleBack}
-                  />
-                )}
-                {step === 3 && (
-                  <TravelDetailsStep
-                    tripData={tripData}
-                    setTripData={setTripData}
-                    errors={errors}
-                    setErrors={setErrors}
-                    onNext={handleNext}
-                    onBack={handleBack}
-                  />
-                )}
-                {step === 4 && (
-                  <GetReadyStep
-                    tripData={tripData}
-                    petPolicy={petPolicy}
-                    isLoggedIn={isLoggedIn}
-                    onSave={handleSaveTrip}
-                    onDownload={handleDownloadPDF}
-                    onBack={handleBack}
-                  />
-                )}
-
-                {showLoginPrompt && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="w-full max-w-sm border-none shadow-md">
-                      <CardHeader>
-                        <CardTitle className="text-xl text-brand-teal">Log In to Continue</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-offblack/70 mb-4">
-                          Please log in to save your trip, upload documents, or download the itinerary.
-                        </p>
-                        <Button
-                          onClick={handleLoginRedirect}
-                          className="w-full bg-brand-teal hover:bg-brand-pink text-white"
-                        >
-                          Log In
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                {showItineraryUpload && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="w-full max-w-sm border-none shadow-md">
-                      <CardHeader>
-                        <CardTitle className="text-xl text-brand-teal">Upload Your Booked Itinerary</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-offblack/70 mb-4">
-                          Upload your booked itinerary (e.g., from Booking.com) to update your trip details.
-                        </p>
-                        <Input
-                          type="file"
-                          accept="application/pdf"
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setItineraryFile(e.target.files?.[0] || null)
-                          }
-                          className="border-brand-teal/50 mb-4"
-                        />
-                        <Button
-                          onClick={handleItineraryUpload}
-                          className="w-full bg-brand-teal hover:bg-brand-pink text-white"
-                          disabled={!itineraryFile}
-                        >
-                          Upload and Update
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-brand-teal" /></div>}>
+        <CreateTripContent />
+      </Suspense>
     </>
   );
 }
