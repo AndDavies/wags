@@ -143,7 +143,7 @@ export default function WhereToGoStep({
       .single();
 
     if (cacheError && cacheError.code !== "PGRST116") {
-      console.error("Error checking cache:", cacheError);
+      console.error("[Google Places] Error checking cache:", cacheError);
       toast({
         title: "Error",
         description: "Failed to check cached vet locations.",
@@ -154,6 +154,7 @@ export default function WhereToGoStep({
 
     let vetResults: Vet[] = [];
     if (cachedData) {
+      console.log(`[Google Places] Using cached vet results for ${location}:`, cachedData.results);
       vetResults = cachedData.results.map((result: Vet) => ({
         id: result.id,
         name: result.name,
@@ -168,6 +169,7 @@ export default function WhereToGoStep({
         )}&key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}`,
       );
       const googleData: GooglePlacesResponse = await googleResponse.json();
+      console.log(`[Google Places] Vet search response for ${location}:`, googleData);
 
       if (googleData.status === "OK") {
         vetResults = googleData.results.map((result) => ({
@@ -183,6 +185,13 @@ export default function WhereToGoStep({
           source: "Google Places",
           results: vetResults,
         });
+      } else {
+        console.error("[Google Places] Vet search failed:", googleData.status);
+        toast({
+          title: "Error",
+          description: `Failed to fetch vet suggestions: ${googleData.status}`,
+          variant: "destructive",
+        });
       }
 
       const mapboxResponse = await fetch(
@@ -191,6 +200,7 @@ export default function WhereToGoStep({
         )}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}`,
       );
       const mapboxData: MapboxResponse = await mapboxResponse.json();
+      console.log(`[Mapbox] Vet search response for ${location}:`, mapboxData);
 
       if (mapboxData.features) {
         const mapboxVets = mapboxData.features.map((feature) => ({
@@ -218,6 +228,7 @@ export default function WhereToGoStep({
   };
 
   useEffect(() => {
+    console.log("[Google Places] Autocomplete loaded:", autocompleteLoaded);
     if (autocompleteLoaded && departureInputRef.current && destinationInputRef.current) {
       departureAutocompleteRef.current = new google.maps.places.Autocomplete(departureInputRef.current, {
         types: ["(cities)"],
@@ -228,6 +239,7 @@ export default function WhereToGoStep({
 
       departureAutocompleteRef.current.addListener("place_changed", () => {
         const place = departureAutocompleteRef.current!.getPlace() as PlaceResult;
+        console.log("[Google Places] Departure place selected:", place);
         if (place.formatted_address && place.place_id) {
           setTripData((prev: TripData) => ({
             ...prev,
@@ -235,11 +247,19 @@ export default function WhereToGoStep({
             departurePlaceId: place.place_id!,
           }));
           fetchVetSuggestions(place.formatted_address!, "origin");
+        } else {
+          console.error("[Google Places] Invalid departure place:", place);
+          toast({
+            title: "Error",
+            description: "Please select a valid departure city from the suggestions.",
+            variant: "destructive",
+          });
         }
       });
 
       destinationAutocompleteRef.current.addListener("place_changed", async () => {
         const place = destinationAutocompleteRef.current!.getPlace() as PlaceResult;
+        console.log("[Google Places] Destination place selected:", place);
         if (place.formatted_address && place.place_id) {
           setTripData((prev: TripData) => ({
             ...prev,
@@ -252,6 +272,7 @@ export default function WhereToGoStep({
             component.types.includes("country"),
           );
           const country = countryComponent?.long_name || "";
+          console.log("[Google Places] Extracted country:", country);
 
           if (country) {
             setTripData((prev: TripData) => ({
@@ -266,16 +287,24 @@ export default function WhereToGoStep({
               .single();
 
             if (error) {
-              console.error("Error fetching pet policy:", error);
+              console.error("[Supabase] Error fetching pet policy:", error);
               toast({
                 title: "Error",
                 description: "Failed to fetch pet travel policies for " + country,
                 variant: "destructive",
               });
             } else if (data) {
+              console.log("[Supabase] Pet policy fetched:", data);
               setPetPolicy(data);
             }
           }
+        } else {
+          console.error("[Google Places] Invalid destination place:", place);
+          toast({
+            title: "Error",
+            description: "Please select a valid destination city from the suggestions.",
+            variant: "destructive",
+          });
         }
       });
     }
@@ -303,7 +332,7 @@ export default function WhereToGoStep({
       .single();
 
     if (error) {
-      console.error("Error saving vet:", error);
+      console.error("[Supabase] Error saving vet:", error);
       toast({
         title: "Error",
         description: "Failed to save vet information.",
