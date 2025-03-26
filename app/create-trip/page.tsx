@@ -17,7 +17,6 @@ import StepIndicator from "./StepIndicator";
 import Chatbot from "./Chatbot";
 import type { TripData, PetPolicy, Vet } from "./types";
 
-// Create a component to handle useSearchParams
 function CreateTripContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,14 +26,14 @@ function CreateTripContent() {
   const [tripData, setTripData] = useState<TripData>({
     tripType: [],
     travelers: { adults: 0, children: 0, pets: 0 },
-    pets: [], // Initialize pets array
+    pets: [],
     departure: "",
     destination: searchParams.get("destination") || "",
     departurePlaceId: "",
     destinationPlaceId: "",
     destinationCountry: "",
-    origin_vet_ids: [], // Use vet IDs
-    destination_vet_ids: [], // Use vet IDs
+    origin_vet_ids: [],
+    destination_vet_ids: [],
     dates: { start: null, end: null },
     method: "",
     interests: [],
@@ -47,73 +46,10 @@ function CreateTripContent() {
   const [itineraryFile, setItineraryFile] = useState<File | null>(null);
   const [autocompleteLoaded, setAutocompleteLoaded] = useState(false);
   const [petPolicy, setPetPolicy] = useState<PetPolicy | null>(null);
-  const [userPets, setUserPets] = useState<{ id: string; name: string }[]>([]); // Store user's pets
-  const [userVets, setUserVets] = useState<Vet[]>([]); // Store user's profile vets
+  const [userPets, setUserPets] = useState<{ id: string; name: string }[]>([]);
+  const [userVets, setUserVets] = useState<Vet[]>([]);
 
-  // Fetch user authentication status and profile data
-  useEffect(() => {
-    const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
-
-      if (session) {
-        // Fetch user's pets
-        const { data: petsData, error: petsError } = await supabase
-          .from("pets")
-          .select("id, name")
-          .eq("user_id", session.user.id);
-
-        if (petsError) {
-          console.error("Error fetching pets:", petsError);
-          toast({
-            title: "Error",
-            description: "Failed to fetch your pets.",
-            variant: "destructive",
-          });
-        } else {
-          setUserPets(petsData || []);
-        }
-
-        // Fetch user's profile vets
-        const { data: vetsData, error: vetsError } = await supabase
-          .from("vets")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .eq("location_type", "profile");
-
-        if (vetsError) {
-          console.error("Error fetching vets:", vetsError);
-          toast({
-            title: "Error",
-            description: "Failed to fetch your vets.",
-            variant: "destructive",
-          });
-        } else {
-          setUserVets(vetsData || []);
-        }
-      }
-    };
-    checkAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsLoggedIn(!!session);
-      if (session && localStorage.getItem("pendingTrip")) {
-        const pendingTrip = JSON.parse(localStorage.getItem("pendingTrip")!);
-        setTripData(pendingTrip);
-        localStorage.removeItem("pendingTrip");
-        handleSaveTrip();
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-
+  // Define functions before useEffect
   const handleNext = () => {
     setStep((prev) => prev + 1);
   };
@@ -134,7 +70,7 @@ function CreateTripContent() {
         .insert({
           user_id: (await supabase.auth.getUser()).data.user?.id,
           travelers: tripData.travelers,
-          pets: tripData.pets, // Save selected pet IDs
+          pets: tripData.pets,
           departure: tripData.departure,
           destination: tripData.destination,
           dates: tripData.dates,
@@ -147,7 +83,6 @@ function CreateTripContent() {
 
       if (error) throw error;
 
-      // Update trip with vet IDs
       await supabase
         .from("trips")
         .update({
@@ -179,7 +114,6 @@ function CreateTripContent() {
       setShowLoginPrompt(true);
       return;
     }
-    // Placeholder for PDF download (premium feature)
     alert("PDF download is a premium feature - coming soon!");
   };
 
@@ -194,7 +128,6 @@ function CreateTripContent() {
     }
 
     try {
-      // Placeholder for OCR integration (Google Vision API)
       const extractedData = {
         hotel: "Fairmont Royal York Hotel",
         checkInDate: "2025-03-31",
@@ -247,15 +180,74 @@ function CreateTripContent() {
     router.push("/login");
   };
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+
+      if (session) {
+        const { data: petsData, error: petsError } = await supabase
+          .from("pets")
+          .select("id, name")
+          .eq("user_id", session.user.id);
+
+        if (petsError) {
+          console.error("Error fetching pets:", petsError);
+          toast({
+            title: "Error",
+            description: "Failed to fetch your pets.",
+            variant: "destructive",
+          });
+        } else {
+          setUserPets(petsData || []);
+        }
+
+        const { data: vetsData, error: vetsError } = await supabase
+          .from("vets")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .eq("location_type", "profile");
+
+        if (vetsError) {
+          console.error("Error fetching vets:", vetsError);
+          toast({
+            title: "Error",
+            description: "Failed to fetch your vets.",
+            variant: "destructive",
+          });
+        } else {
+          setUserVets(vetsData || []);
+        }
+      }
+    };
+    checkAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+      if (session && localStorage.getItem("pendingTrip")) {
+        const pendingTrip = JSON.parse(localStorage.getItem("pendingTrip")!);
+        setTripData(pendingTrip);
+        localStorage.removeItem("pendingTrip");
+        handleSaveTrip();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase, handleSaveTrip]);
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-brand-teal/5 to-brand-pink/5 pt-24 pb-12">
       <div className="container max-w-[1400px] mx-auto px-4 flex flex-col lg:flex-row gap-6">
-        {/* Chatbot Sidebar */}
         <div className="lg:w-1/5 w-full">
           <Chatbot />
         </div>
 
-        {/* Main Content */}
         <div className="lg:w-4/5 w-full mx-auto">
           <Card className="border-none shadow-md">
             <CardHeader>
@@ -278,7 +270,7 @@ function CreateTripContent() {
                   autocompleteLoaded={autocompleteLoaded}
                   petPolicy={petPolicy}
                   setPetPolicy={setPetPolicy}
-                  userVets={userVets} // Pass user's profile vets
+                  userVets={userVets}
                 />
               )}
               {step === 2 && (
@@ -289,7 +281,7 @@ function CreateTripContent() {
                   setErrors={setErrors}
                   onNext={handleNext}
                   onBack={handleBack}
-                  userPets={userPets} // Pass user's pets
+                  userPets={userPets}
                 />
               )}
               {step === 3 && (
@@ -362,11 +354,25 @@ function CreateTripContent() {
 }
 
 export default function CreateTripPage() {
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
   return (
     <>
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&libraries=places`}
-        onLoad={() => {}}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&libraries=places&loading=async&callback=initMap`}
+        strategy="afterInteractive"
+        onLoad={() => {
+          console.log("[Google Maps Script] Loaded successfully");
+          setScriptLoaded(true);
+        }}
+        onError={(e) => {
+          console.error("[Google Maps Script] Failed to load:", e);
+          toast({
+            title: "Error",
+            description: "Failed to load Google Maps API. Please try again later.",
+            variant: "destructive",
+          });
+        }}
       />
       <Suspense
         fallback={
@@ -380,3 +386,14 @@ export default function CreateTripPage() {
     </>
   );
 }
+
+// Define a global initMap function to be called by the Google Maps API
+declare global {
+  interface Window {
+    initMap: () => void;
+  }
+}
+
+window.initMap = () => {
+  console.log("[Google Maps Script] initMap callback executed");
+};
