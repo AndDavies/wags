@@ -17,7 +17,12 @@ import StepIndicator from "./StepIndicator";
 import Chatbot from "./Chatbot";
 import type { TripData, PetPolicy, Vet } from "./types";
 
-function CreateTripContent() {
+// Extend the Window interface to include initMap
+interface ExtendedWindow extends Window {
+  initMap: () => void;
+}
+
+function CreateTripContent({ scriptLoaded }: { scriptLoaded: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -44,12 +49,10 @@ function CreateTripContent() {
   const [savedTripId, setSavedTripId] = useState<string | null>(null);
   const [showItineraryUpload, setShowItineraryUpload] = useState(false);
   const [itineraryFile, setItineraryFile] = useState<File | null>(null);
-  const [autocompleteLoaded, setAutocompleteLoaded] = useState(false);
   const [petPolicy, setPetPolicy] = useState<PetPolicy | null>(null);
   const [userPets, setUserPets] = useState<{ id: string; name: string }[]>([]);
   const [userVets, setUserVets] = useState<Vet[]>([]);
 
-  // Define functions before useEffect
   const handleNext = () => {
     setStep((prev) => prev + 1);
   };
@@ -267,7 +270,7 @@ function CreateTripContent() {
                   setErrors={setErrors}
                   onNext={handleNext}
                   onBack={handleBack}
-                  autocompleteLoaded={autocompleteLoaded}
+                  autocompleteLoaded={scriptLoaded}
                   petPolicy={petPolicy}
                   setPetPolicy={setPetPolicy}
                   userVets={userVets}
@@ -356,6 +359,14 @@ function CreateTripContent() {
 export default function CreateTripPage() {
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
+  // Define initMap on the client side only
+  useEffect(() => {
+    (window as unknown as ExtendedWindow).initMap = () => {
+      console.log("[Google Maps Script] initMap callback executed");
+      setScriptLoaded(true);
+    };
+  }, []);
+
   return (
     <>
       <Script
@@ -363,7 +374,6 @@ export default function CreateTripPage() {
         strategy="afterInteractive"
         onLoad={() => {
           console.log("[Google Maps Script] Loaded successfully");
-          setScriptLoaded(true);
         }}
         onError={(e) => {
           console.error("[Google Maps Script] Failed to load:", e);
@@ -381,19 +391,8 @@ export default function CreateTripPage() {
           </div>
         }
       >
-        <CreateTripContent />
+        <CreateTripContent scriptLoaded={scriptLoaded} />
       </Suspense>
     </>
   );
 }
-
-// Define a global initMap function to be called by the Google Maps API
-declare global {
-  interface Window {
-    initMap: () => void;
-  }
-}
-
-window.initMap = () => {
-  console.log("[Google Maps Script] initMap callback executed");
-};
