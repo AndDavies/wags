@@ -2,11 +2,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
+// Define the structure of a part in the message
+interface Part {
+  type: string;
+  text: string;
+}
+
 // Define the expected message structure from the custom fetch
 interface ChatMessage {
   role: string;
   content: string;
-  parts?: any[];
+  parts?: Part[];
 }
 
 // Define the expected request body type from the custom fetch
@@ -59,6 +65,8 @@ export async function POST(req: NextRequest) {
     const prompt = `
       You are Baggo, a pet travel assistant. Always view questions as being from people interested in travelling with their pet and who may not know exactly what to do or where to go. Answer this question: "${sanitizedMessage}"
       - Tailor advice for a ${sanitizedPetType}.
+      - If a country is mentioned, provide a step-by-step list of requirements for traveling with a pet to that country, including microchip, vaccinations, health certificates, import permits, and quarantine if applicable.
+      - If activities are mentioned (${sanitizedTags.join(', ')}), suggest relevant pet-friendly activities.
       - If specific details are provided (e.g., country, activities), end with a suggestion to plan a trip, including a query string like "/create-trip?destination=[country]&pet=${sanitizedPetType}&activities=[activity]".
       - If no specific details are provided, give a general pet travel tip.
       Provide a concise, helpful response.
