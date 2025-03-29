@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react"; // Added FormEvent
+import { useState, useEffect, FormEvent } from "react"; // Fixed FormEvent import
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -9,13 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ScrollIndicator from "./ScrollIndicator";
-import { // Added Lucide imports
-  Send,
-  Globe,
-  ChevronRight,
-  MapPin,
-  Users,
-} from "lucide-react";
+import { Send, Globe, ChevronRight, MapPin, Users, PawPrint } from "lucide-react"; // Added PawPrint
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -32,6 +26,7 @@ export default function Hero() {
   const [isMobile, setIsMobile] = useState(false);
   const [isZoomingIn, setIsZoomingIn] = useState(true);
   const [inputValue, setInputValue] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -49,12 +44,30 @@ export default function Hero() {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (inputValue.trim()) {
+      setIsLoading(true);
       router.push(`/chat?input=${encodeURIComponent(inputValue.trim())}`);
     }
   };
 
   const handleSuggestion = (text: string) => {
+    setIsLoading(true);
     router.push(`/chat?input=${encodeURIComponent(text)}`);
+  };
+
+  // Loader animation variants
+  const pawVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: (i: number) => ({
+      opacity: 1,
+      scale: 1,
+      transition: {
+        delay: i * 0.2,
+        duration: 0.6,
+        repeat: Infinity,
+        repeatType: "reverse" as const,
+        ease: "easeInOut",
+      },
+    }),
   };
 
   return (
@@ -102,7 +115,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="w-full max-w-4xl mx-auto mb-8"
+          className="w-full max-w-4xl mx-auto mb-8 relative"
         >
           <div className="relative">
             <Input
@@ -110,20 +123,38 @@ export default function Hero() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Create a weekend getaway..."
-              className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-pink-500 shadow-sm"
+              className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-pink-500 shadow-sm disabled:opacity-75"
+              disabled={isLoading}
             />
             <Button
               type="submit"
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-full p-3 transition-all shadow-sm",
+                "absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-full p-3 transition-all shadow-sm flex items-center justify-center",
                 inputValue.trim()
                   ? "hover:shadow-md hover:from-pink-600 hover:to-pink-700 active:scale-95"
                   : "opacity-75 cursor-not-allowed"
               )}
               aria-label="Send message"
-              disabled={!inputValue.trim()}
+              disabled={isLoading || !inputValue.trim()}
             >
-              <Send className="h-5 w-5" />
+              {isLoading ? (
+                <div className="flex space-x-1">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      variants={pawVariants}
+                      initial="hidden"
+                      animate="visible"
+                      custom={i}
+                      className="w-2 h-2"
+                    >
+                      <PawPrint className="w-4 h-4 text-white" />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </motion.form>
@@ -135,24 +166,27 @@ export default function Hero() {
           className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
         >
           <Button
-            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
             onClick={() => handleSuggestion("Create a new Trip")}
+            disabled={isLoading}
           >
             <Globe className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
             <span>Create a new Trip</span>
             <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
           </Button>
           <Button
-            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
             onClick={() => handleSuggestion("Inspire me where to go")}
+            disabled={isLoading}
           >
             <MapPin className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
             <span>Inspire me where to go</span>
             <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
           </Button>
           <Button
-            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
             onClick={() => handleSuggestion("Find pet-friendly hotels")}
+            disabled={isLoading}
           >
             <Users className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
             <span>Find pet-friendly hotels</span>
