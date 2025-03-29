@@ -4,7 +4,7 @@ import FeaturedBlog from "@/components/FeaturedBlog"
 import AboutUs from "@/components/AboutUs"
 import HowItWorks from "@/components/HowItWorks"
 import ServicesSection from '@/components/Services'
-import Hero from '@/components/Hero'
+import Hero from '@/components/hero'
 
 
 export default function HomePage() {
