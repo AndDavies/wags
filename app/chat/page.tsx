@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation"; // For query params
+import { useState, useEffect, useRef, type FormEvent, Suspense } from "react"; // Added Suspense
+import { useSearchParams } from "next/navigation";
 import {
   Send,
   Globe,
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Interfaces unchanged
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -51,7 +52,8 @@ interface ChatResponse {
   updatedMemory?: ConversationMemory;
 }
 
-export default function ChatPage() {
+// Inner ChatPage component
+function ChatPageInner() {
   const [stage, setStage] = useState<"greeting" | "planning" | "exploring" | "tips" | "itinerary">("greeting");
   const [memory, setMemory] = useState<ConversationMemory>({});
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -139,7 +141,6 @@ export default function ChatPage() {
     setInputValue("");
   };
 
-  // Handle query param on mount
   useEffect(() => {
     const input = searchParams.get("input");
     if (input && stage === "greeting") {
@@ -320,7 +321,6 @@ export default function ChatPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Chat Header */}
             <div className="border-b border-slate-200 bg-white py-3 px-4 md:px-6 flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center mr-3">
@@ -338,9 +338,7 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* Main Content Area */}
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-              {/* Chat Area (Left) */}
               <div className="md:w-1/2 flex flex-col h-[calc(100vh-132px)]">
                 <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6" ref={chatContainerRef}>
                   <div className="space-y-4">
@@ -404,7 +402,6 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              {/* Itinerary Panel (Right) */}
               <div className="md:w-1/2 border-l border-slate-200 flex flex-col h-[calc(100vh-132px)]">
                 <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6" ref={itineraryContainerRef}>
                   <h2 className="text-lg font-medium text-slate-800 mb-4 pb-2 border-b border-slate-200 flex items-center">
@@ -447,7 +444,6 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* Floating Input */}
             <div className="sticky bottom-0 left-0 right-0 border-t border-slate-200 bg-white py-3 px-4 md:px-6 z-10">
               <form onSubmit={handleSubmit} className="max-w-full mx-auto">
                 <div className="relative">
@@ -479,5 +475,14 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// Wrap ChatPageInner in Suspense
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center text-slate-500">Loading chat...</div>}>
+      <ChatPageInner />
+    </Suspense>
   );
 }
