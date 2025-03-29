@@ -1,289 +1,179 @@
-// components/Hero.tsx
-"use client"
+"use client";
 
-import type React from "react"
+import { useState, useEffect, FormEvent } from "react"; // Added FormEvent
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Outfit, Pacifico } from "next/font/google";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import ScrollIndicator from "./ScrollIndicator";
+import { // Added Lucide imports
+  Send,
+  Globe,
+  ChevronRight,
+  MapPin,
+  Users,
+} from "lucide-react";
 
-import Link from "next/link"
-import { Outfit, Pacifico } from "next/font/google"
-import Image from "next/image"
-import { cn } from "@/lib/utils"
-import { PawPrint, Compass, Sparkles, ChevronRight } from "lucide-react"
-import { useEffect, useState } from "react"
-import ResponsiveSearchForm from "./SearchForm"
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+});
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
-const pacifico = Pacifico({ subsets: ["latin"], weight: ["400"], variable: "--font-pacifico" })
+const pacifico = Pacifico({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-pacifico",
+});
 
-// Custom NoPrefetchLink
-const NoPrefetchLink = ({ href, children, ...props }: React.ComponentProps<typeof Link>) => (
-  <Link href={href} prefetch={false} {...props}>
-    {children}
-  </Link>
-)
+export default function Hero() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [isZoomingIn, setIsZoomingIn] = useState(true);
+  const [inputValue, setInputValue] = useState<string>("");
+  const router = useRouter();
 
-interface FloatingImageProps {
-  src: string
-  alt: string
-  width: number
-  height: number
-  className?: string
-}
-
-function FloatingImage({ src, alt, width, height, className }: FloatingImageProps) {
-  return (
-    <div className={cn("absolute hidden md:block", className)}>
-      <div className="hover-float">
-        <Image
-          src={src || "/placeholder.svg"}
-          alt={alt}
-          width={width}
-          height={height}
-          className="rounded-none"
-          style={{ borderRadius: "0", background: "transparent" }}
-          loading="lazy"
-        />
-      </div>
-    </div>
-  )
-}
-
-export function HeroSection({
-  title1 = "Unleash Adventures",
-  title2 = "Wags & Wanders",
-}: {
-  title1?: string
-  title2?: string
-}) {
-  // State to track if we're on mobile
-  const [isMobile, setIsMobile] = useState(false)
-
-  // Effect to check screen size
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => setIsZoomingIn((prev) => !prev), 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (inputValue.trim()) {
+      router.push(`/chat?input=${encodeURIComponent(inputValue.trim())}`);
     }
+  };
 
-    // Initial check
-    checkMobile()
-
-    // Add event listener for resize
-    window.addEventListener("resize", checkMobile)
-
-    // Cleanup
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [])
+  const handleSuggestion = (text: string) => {
+    router.push(`/chat?input=${encodeURIComponent(text)}`);
+  };
 
   return (
-    <div
-      className={`relative w-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#30B8C4] via-[#30B8C4]/90 to-[#30B8C4]/80 ${outfit.variable}`}
-      style={{ minHeight: "calc(100vh - 20px)" }}
-    >
-      {/* Mobile background pattern */}
-      <div className="absolute inset-0 md:hidden opacity-10">
-        <div className="absolute inset-0 bg-pattern"></div>
+    <div className={`relative w-full min-h-screen overflow-hidden ${outfit.variable}`} style={{ zIndex: 1 }}>
+      <div className="absolute inset-0 w-full h-full">
+        <motion.div
+          className="w-full h-full"
+          animate={{ scale: isZoomingIn ? 1.1 : 1 }}
+          transition={{ duration: 15, ease: "easeInOut" }}
+        >
+          <Image
+            src="/placeholders/hero-landscape_5.png"
+            alt="Hero background"
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
+          />
+        </motion.div>
       </div>
 
-      {/* Floating images - only visible on desktop */}
-      <div className="absolute inset-0 overflow-hidden z-10">
-        <FloatingImage
-          src="/placeholders/hero_floating_wags_and_wanders_1.png"
-          alt="Dog on a beach"
-          width={250}
-          height={250}
-          className="left-[5%] top-[30%]"
-        />
-        <FloatingImage
-          src="/placeholders/hero_floating_wags_and_wanders_2.png"
-          alt="Cat in a carrier"
-          width={200}
-          height={200}
-          className="right-[10%] top-[30%]"
-        />
+      <div
+        className="relative container mx-auto px-4 py-32 flex flex-col items-center justify-center min-h-screen"
+        style={{ zIndex: 50 }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 tracking-tight leading-tight text-white drop-shadow-lg">
+            <span className="inline-block">Travel Confidently</span>
+            <br />
+            <span className={cn("text-[#FFE5E5]", pacifico.className)}>With Your Pet</span>
+          </h1>
+          <p className="mx-auto mb-8 max-w-2xl text-lg sm:text-xl md:text-2xl font-light text-white drop-shadow-md leading-relaxed">
+            From personal experience to professional guidance - we help you navigate pet-friendly travel across the
+            globe.
+          </p>
+        </motion.div>
+
+        <motion.form
+          onSubmit={handleSubmit}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="w-full max-w-4xl mx-auto mb-8"
+        >
+          <div className="relative">
+            <Input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Create a weekend getaway..."
+              className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-pink-500 shadow-sm"
+            />
+            <Button
+              type="submit"
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-full p-3 transition-all shadow-sm",
+                inputValue.trim()
+                  ? "hover:shadow-md hover:from-pink-600 hover:to-pink-700 active:scale-95"
+                  : "opacity-75 cursor-not-allowed"
+              )}
+              aria-label="Send message"
+              disabled={!inputValue.trim()}
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </div>
+        </motion.form>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+          className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
+        >
+          <Button
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+            onClick={() => handleSuggestion("Create a new Trip")}
+          >
+            <Globe className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
+            <span>Create a new Trip</span>
+            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+          </Button>
+          <Button
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+            onClick={() => handleSuggestion("Inspire me where to go")}
+          >
+            <MapPin className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
+            <span>Inspire me where to go</span>
+            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+          </Button>
+          <Button
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+            onClick={() => handleSuggestion("Find pet-friendly hotels")}
+          >
+            <Users className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
+            <span>Find pet-friendly hotels</span>
+            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+          </Button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1 }}
+          className="absolute bottom-8 left-0 right-0 flex justify-center"
+        >
+          <div className="text-white/80 text-sm flex items-center gap-2">
+            <span>Trusted by</span>
+            <span className="font-bold">10,000+</span>
+            <span>pet travelers worldwide</span>
+          </div>
+        </motion.div>
       </div>
-
-      <div className="relative z-20 container mx-auto px-4 md:px-6 py-16 pt-28 md:py-20 md:pt-32">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="mb-4 md:mb-6 fade-in">
-            <div className="relative inline-block">
-              <Image
-                src="/wags_and_wanders_logo_trans.png"
-                alt="Wags & Wanders"
-                width={120}
-                height={120}
-                className="mx-auto"
-                loading="eager"
-              />
-              <div
-                className="absolute -inset-1 opacity-75 blur-md"
-                style={{
-                  background:
-                    "radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,229,229,0.2) 70%, rgba(255,255,255,0) 100%)",
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="fade-in delay-1">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold mb-4 md:mb-6 tracking-tight leading-tight text-white">
-              <span className="inline-block relative drop-shadow-md">{title1}</span>
-              <br />
-              <span className={cn("text-[#FFE5E5]", pacifico.className)}>{title2}</span>
-            </h1>
-          </div>
-
-          <div className="fade-in delay-2">
-            <p className="text-base sm:text-lg md:text-xl text-white mb-6 leading-relaxed font-light tracking-wide max-w-xl mx-auto px-4 drop-shadow-sm">
-              Where every journey becomes a tail-wagging adventure. Expert guidance for seamless pet travel worldwide.
-            </p>
-          </div>
-
-          {/* New Responsive Search Form Component */}
-          <div className="relative fade-in delay-3 max-w-5xl mx-auto">
-            {/* Decorative elements - only visible on desktop */}
-            <div className="absolute -top-6 -left-4 text-white/20 rotate-icon hidden md:block">
-              <PawPrint size={40} />
-            </div>
-            <div className="absolute -bottom-6 -right-4 text-white/20 rotate-icon-reverse hidden md:block">
-              <Compass size={40} />
-            </div>
-
-            <ResponsiveSearchForm />
-          </div>
-
-          {/* Social proof indicators */}
-          <div className="mt-6 pt-4 border-t border-white/20 fade-in delay-4">
-            <div className="flex justify-center items-center gap-2 text-sm text-white">
-              <span>Trusted by</span>
-              <span className="font-bold">10,000+</span>
-              <span>pet travelers</span>
-            </div>
-          </div>
-
-          {/* New Enhanced Early Access CTA - Slimmer version */}
-          <div className="mt-4 fade-in delay-5">
-            <div className="relative max-w-3xl mx-auto">
-              {/* Glass background with blur effect */}
-              <div className="absolute inset-0 bg-white/20 backdrop-blur-md rounded-full"></div>
-
-              {/* Content container */}
-              <Link
-                href="/join-our-pack"
-                className="relative block py-2 px-4 rounded-full border border-white/30 hover:border-white/50 transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="bg-[#FFE5E5] p-1.5 rounded-full mr-3">
-                      <Sparkles className="h-3.5 w-3.5 text-[#30B8C4]" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-white font-semibold text-xs md:text-sm">Ready for Epic Pet Adventures?</p>
-                      <p className="text-white/90 text-xs hidden md:block">Get Early Access to Our App</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center bg-[#FF6B98] hover:bg-[#FF5A8B] rounded-full px-3 py-1.5 transition-all group-hover:scale-105">
-                    <span className="text-white text-xs font-bold mr-1">Join Our Pack</span>
-                    <ChevronRight className="h-3 w-3 text-white" />
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .bg-pattern {
-          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23ffffff' fillOpacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-        
-        .fade-in {
-          opacity: 0;
-          transform: translateY(20px);
-          animation: fadeIn 0.8s ease-out forwards;
-        }
-        
-        .delay-1 {
-          animation-delay: 0.2s;
-        }
-        
-        .delay-2 {
-          animation-delay: 0.4s;
-        }
-        
-        .delay-3 {
-          animation-delay: 0.6s;
-        }
-        
-        .delay-4 {
-          animation-delay: 0.8s;
-        }
-        
-        .delay-5 {
-          animation-delay: 1s;
-        }
-        
-        .hover-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        
-        .rotate-icon {
-          animation: rotateSlow 6s ease-in-out infinite;
-        }
-        
-        .rotate-icon-reverse {
-          animation: rotateSlowReverse 7s ease-in-out infinite;
-        }
-        
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes float {
-          0% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(15px);
-          }
-          100% {
-            transform: translateY(0px);
-          }
-        }
-        
-        @keyframes rotateSlow {
-          0% {
-            transform: rotate(0deg);
-          }
-          50% {
-            transform: rotate(15deg);
-          }
-          100% {
-            transform: rotate(0deg);
-          }
-        }
-        
-        @keyframes rotateSlowReverse {
-          0% {
-            transform: rotate(0deg);
-          }
-          50% {
-            transform: rotate(-15deg);
-          }
-          100% {
-            transform: rotate(0deg);
-          }
-        }
-      `}</style>
+      <ScrollIndicator />
     </div>
-  )
+  );
 }
-
-export default HeroSection
-

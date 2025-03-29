@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef, type FormEvent } from "react"
+import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation"; // For query params
 import {
   Send,
   Globe,
@@ -11,48 +12,48 @@ import {
   MessageSquare,
   Calendar,
   PawPrint,
-} from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ChatMessage {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  options?: { text: string; action: string }[]
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  options?: { text: string; action: string }[];
 }
 
 interface ConversationMemory {
-  origin?: string
-  destination?: string
-  travelDates?: { start: string; end: string }
-  numPeople?: number
-  numPets?: number
-  petTypes?: string[]
-  petNames?: string[]
-  petNeeds?: string[]
-  activities?: string[]
-  preferences?: string
-  vetInfo?: string
+  origin?: string;
+  destination?: string;
+  travelDates?: { start: string; end: string };
+  numPeople?: number;
+  numPets?: number;
+  petTypes?: string[];
+  petNames?: string[];
+  petNeeds?: string[];
+  activities?: string[];
+  preferences?: string;
+  vetInfo?: string;
   itinerary?: {
-    days: { day: number; date: string; activities: { time: string; description: string; cost: string }[] }[]
-    accommodation: { name: string; address: string; cost: string }
-    dining: { name: string; address: string; cost: string; cuisine: string }[]
-    transportation: { type: string; details: string; cost: string }[]
-    tips: string[]
-  }
+    days: { day: number; date: string; activities: { time: string; description: string; cost: string }[] }[];
+    accommodation: { name: string; address: string; cost: string };
+    dining: { name: string; address: string; cost: string; cuisine: string }[];
+    transportation: { type: string; details: string; cost: string }[];
+    tips: string[];
+  };
 }
 
 interface ChatResponse {
-  content: string
-  updatedMemory?: ConversationMemory
+  content: string;
+  updatedMemory?: ConversationMemory;
 }
 
 export default function ChatPage() {
-  const [stage, setStage] = useState<"greeting" | "planning" | "exploring" | "tips" | "itinerary">("greeting")
-  const [memory, setMemory] = useState<ConversationMemory>({})
+  const [stage, setStage] = useState<"greeting" | "planning" | "exploring" | "tips" | "itinerary">("greeting");
+  const [memory, setMemory] = useState<ConversationMemory>({});
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -60,15 +61,16 @@ export default function ChatPage() {
       content:
         "Here we are again, what are we chatting about today? Ask me literally anything related to travelling with your pets, and we'll build your family the bestest trip ever!",
     },
-  ])
-  const [inputValue, setInputValue] = useState<string>("")
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [tripDetails, setTripDetails] = useState<string[]>([])
-  const chatContainerRef = useRef<HTMLDivElement>(null)
-  const itineraryContainerRef = useRef<HTMLDivElement>(null)
+  ]);
+  const [inputValue, setInputValue] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [tripDetails, setTripDetails] = useState<string[]>([]);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const itineraryContainerRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
   const handleOptionSelect = (action: string) => {
-    setStage(action === "plan" ? "planning" : action === "explore" ? "exploring" : "tips")
+    setStage(action === "plan" ? "planning" : action === "explore" ? "exploring" : "tips");
     setMessages((prev) => [
       ...prev,
       {
@@ -78,81 +80,88 @@ export default function ChatPage() {
           action === "plan"
             ? "Tell me where you're going, when, and how many pets you're bringing!"
             : action === "explore"
-              ? "Not sure where to go? What do you prefer—parks, cities, or beaches?"
-              : "Need travel advice? Ask away about packing, logistics, or anything else!",
+            ? "Not sure where to go? What do you prefer—parks, cities, or beaches?"
+            : "Need travel advice? Ask away about packing, logistics, or anything else!",
       },
-    ])
-  }
+    ]);
+  };
 
   const sendMessage = async (message: string) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "user", content: message }),
-      })
+      });
 
-      if (!response.ok) throw new Error(`API error: ${response.status}`)
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
 
-      const data: ChatResponse = await response.json()
-      console.log("API Response:", data)
+      const data: ChatResponse = await response.json();
+      console.log("API Response:", data);
 
-      const contentWithCTA = `${data.content}\n\nAnything else you need? Ready to save this trip? [Build Your Itinerary](#)`
+      const contentWithCTA = `${data.content}\n\nAnything else you need? Ready to save this trip? [Build Your Itinerary](#)`;
 
       setMessages((prev) => [
         ...prev,
         { id: Date.now().toString(), role: "user", content: message },
         { id: (Date.now() + 1).toString(), role: "assistant", content: contentWithCTA },
-      ])
+      ]);
 
-      setTripDetails((prev) => [...prev, contentWithCTA])
+      setTripDetails((prev) => [...prev, contentWithCTA]);
 
       if (data.updatedMemory) {
         setMemory((prev) => {
-          const newMemory = { ...prev, ...data.updatedMemory }
-          console.log("New Memory State:", newMemory)
-          return newMemory
-        })
+          const newMemory = { ...prev, ...data.updatedMemory };
+          console.log("New Memory State:", newMemory);
+          return newMemory;
+        });
       }
 
       if (stage === "greeting") {
-        setStage("planning")
+        setStage("planning");
       }
     } catch (error) {
-      console.error("Chat error:", error)
+      console.error("Chat error:", error);
       setMessages((prev) => [
         ...prev,
         { id: Date.now().toString(), role: "assistant", content: "Oops, something went wrong! Try again?" },
-      ])
+      ]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!inputValue.trim()) return
-    sendMessage(inputValue)
-    setInputValue("")
-  }
+    e.preventDefault();
+    if (!inputValue.trim()) return;
+    sendMessage(inputValue);
+    setInputValue("");
+  };
+
+  // Handle query param on mount
+  useEffect(() => {
+    const input = searchParams.get("input");
+    if (input && stage === "greeting") {
+      sendMessage(decodeURIComponent(input));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
     if (itineraryContainerRef.current) {
-      itineraryContainerRef.current.scrollTop = itineraryContainerRef.current.scrollHeight
+      itineraryContainerRef.current.scrollTop = itineraryContainerRef.current.scrollHeight;
     }
-  }, [messages, tripDetails])
+  }, [messages, tripDetails]);
 
   const formatResponse = (text: string) => {
-    // Handle bullet points
     if (text.includes("* ")) {
       const items = text
         .split("* ")
         .slice(1)
-        .map((item) => item.trim())
+        .map((item) => item.trim());
       return (
         <ul className="list-disc pl-5 text-slate-700 space-y-1">
           {items.map((item, idx) => (
@@ -161,10 +170,9 @@ export default function ChatPage() {
             </li>
           ))}
         </ul>
-      )
+      );
     }
 
-    // Handle links in the text
     return (
       <div className="text-slate-700">
         {text.split("\n").map((para, idx) => (
@@ -172,7 +180,7 @@ export default function ChatPage() {
             {para.includes("[") && para.includes("](")
               ? para.split(/(\[.*?\]$$.*?$$)/g).map((part, i) => {
                   if (part.match(/\[(.*?)\]$$(.*?)$$/)) {
-                    const [_, linkText, linkUrl] = part.match(/\[(.*?)\]$$(.*?)$$/) || []
+                    const [_, linkText, linkUrl] = part.match(/\[(.*?)\]$$(.*?)$$/) || [];
                     return (
                       <a
                         key={i}
@@ -181,16 +189,16 @@ export default function ChatPage() {
                       >
                         {linkText}
                       </a>
-                    )
+                    );
                   }
-                  return <span key={i}>{part}</span>
+                  return <span key={i}>{part}</span>;
                 })
               : para}
           </div>
         ))}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="chat-interface-container flex flex-col overflow-hidden font-sans bg-gradient-to-br from-slate-50 to-slate-100">
@@ -331,7 +339,7 @@ export default function ChatPage() {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col md:flex-row overflow-hidden border-2">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               {/* Chat Area (Left) */}
               <div className="md:w-1/2 flex flex-col h-[calc(100vh-132px)]">
                 <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6" ref={chatContainerRef}>
@@ -471,6 +479,5 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
-
