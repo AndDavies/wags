@@ -1,8 +1,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase-server"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { ArrowRight } from "lucide-react"
 
 interface BlogPost {
   id: number
@@ -31,15 +31,32 @@ export default async function FeaturedBlog() {
     return <div>No featured posts available.</div>
   }
 
+  // Format date function
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(date)
+  }
+
   return (
-    <section className="py-16 bg-white">
+    <section className="py-24 bg-gray-50">
       <div className="container mx-auto px-4">
-        <h2 className="text-4xl font-bold text-[#249ab4] mb-6 text-center">From Our Blog</h2>
+        <div className="max-w-3xl mx-auto mb-16 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Insights for Pet Travelers</h2>
+          <p className="text-gray-600 text-lg">Expert advice and stories from our community of pet-loving travelers</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {posts.map((post: BlogPost) => (
-            <Card key={post.id} className="overflow-hidden bg-brand-pink">
+            <Card
+              key={post.id}
+              className="overflow-hidden bg-white border-0 shadow-sm hover:shadow-md transition-shadow duration-300"
+            >
               {post.featured_image && (
-                <div className="relative h-48">
+                <div className="relative h-56 w-full">
                   <Image
                     src={post.featured_image || "/placeholder.svg"}
                     alt={post.title}
@@ -48,19 +65,29 @@ export default async function FeaturedBlog() {
                   />
                 </div>
               )}
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-[#249ab4]">{post.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-offblack">{post.excerpt}</p>
-              </CardContent>
-              <CardFooter>
-                <Button asChild variant="link" className="text-brand-teal hover:text-brand-pink">
-                  <Link href={`/blog/${post.slug}`}>Read More</Link>
-                </Button>
-              </CardFooter>
+              <div className="p-6">
+                <div className="text-sm text-gray-500 mb-2">{formatDate(post.published_at)}</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2">{post.title}</h3>
+                <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
+                <Link
+                  href={`/blog/${post.slug}`}
+                  className="inline-flex items-center text-[#249ab4] hover:text-[#1a7a8f] font-medium"
+                >
+                  Read Article
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </div>
             </Card>
           ))}
+        </div>
+
+        <div className="mt-16 text-center">
+          <Link
+            href="/blog"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#249ab4] hover:bg-[#1a7a8f] shadow-sm transition-colors duration-200"
+          >
+            View All Articles
+          </Link>
         </div>
       </div>
     </section>

@@ -3,9 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plane, Hotel, FileText, ArrowRight, Search, MapPin, CheckCircle, Globe } from "lucide-react"
+import { Plane, Hotel, FileText, Compass, ArrowRight, Search, CheckCircle, Globe, ChevronRight } from "lucide-react"
 
 const FeaturedDirectory = () => {
   const [activeTab, setActiveTab] = useState<string>("airlines")
@@ -15,7 +15,7 @@ const FeaturedDirectory = () => {
       id: "airlines",
       title: "Pet-Friendly Airlines",
       description: "Comprehensive guide to airline policies for pet travel.",
-      icon: <Plane className="h-8 w-8 text-brand-teal" />,
+      icon: <Plane className="h-6 w-6 text-[#249ab4]" />,
       image: "/placeholders/Pet_Friendly_Airlines.png",
       link: "/directory/airlines",
       features: ["Cabin policies", "Cargo regulations", "Breed restrictions"],
@@ -30,7 +30,7 @@ const FeaturedDirectory = () => {
       id: "hotels",
       title: "Pet-Friendly Hotels",
       description: "Find accommodations that welcome your furry companions.",
-      icon: <Hotel className="h-8 w-8 text-brand-teal" />,
+      icon: <Hotel className="h-6 w-6 text-[#249ab4]" />,
       image: "/placeholders/Pet_Friendly_Hotels.png",
       link: "/directory/hotels",
       features: ["Pet amenities", "Size restrictions", "Additional fees"],
@@ -45,7 +45,7 @@ const FeaturedDirectory = () => {
       id: "policies",
       title: "Country Import Policies",
       description: "Navigate international pet travel requirements with ease.",
-      icon: <FileText className="h-8 w-8 text-brand-teal" />,
+      icon: <FileText className="h-6 w-6 text-[#249ab4]" />,
       image: "/placeholders/Pet_Travel_Policies.png",
       link: "/directory/policies",
       features: ["Vaccination requirements", "Quarantine info", "Necessary paperwork"],
@@ -56,178 +56,160 @@ const FeaturedDirectory = () => {
       ],
       stats: "190+ Countries",
     },
+    {
+      id: "activities",
+      title: "Pet-Friendly Activities",
+      description: "Discover experiences you can enjoy together with your pet.",
+      icon: <Compass className="h-6 w-6 text-[#249ab4]" />,
+      image: "/placeholder.svg?height=400&width=600",
+      link: "/directory/activities",
+      features: ["Parks & trails", "Outdoor dining", "Tourist attractions"],
+      benefits: [
+        "Find activities where pets are welcome",
+        "Discover pet-friendly beaches and parks",
+        "Plan your itinerary with your pet in mind",
+      ],
+      stats: "500+ Activities",
+    },
   ]
 
   const activeDirectory = directories.find((dir) => dir.id === activeTab) || directories[0]
 
   return (
-    <section className="py-16 bg-brand-pink">
+    <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-[#249ab4] mb-6">Your Pet Travel Resource Hub</h2>
-          <p className="text-center text-offblack mb-10 max-w-2xl mx-auto text-lg">
-            Plan your journey with confidence using our comprehensive directories covering every aspect of pet travel.
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Travel Resources</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Comprehensive directories to help you plan every aspect of traveling with your pet.
           </p>
-
-          {/* Directory Tabs */}
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
-            {directories.map((dir) => (
-              <button
-                key={dir.id}
-                onClick={() => setActiveTab(dir.id)}
-                className={`px-6 py-3 rounded-full text-sm md:text-base font-medium transition-all duration-300 flex items-center gap-2
-                  ${
-                    activeTab === dir.id
-                      ? "bg-brand-teal text-white shadow-md"
-                      : "bg-white text-offblack hover:bg-brand-teal/10"
-                  }`}
-              >
-                {dir.id === "airlines" && <Plane className="h-4 w-4" />}
-                {dir.id === "hotels" && <Hotel className="h-4 w-4" />}
-                {dir.id === "policies" && <FileText className="h-4 w-4" />}
-                {dir.title}
-              </button>
-            ))}
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          {/* Featured Directory Content */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-brand-teal rounded-full text-white">{activeDirectory.icon}</div>
-              <h3 className="text-xl font-bold text-[#249ab4]">{activeDirectory.title}</h3>
-            </div>
-
-            <p className="text-lg text-offblack">{activeDirectory.description}</p>
-
-            <div className="bg-white p-5 rounded-xl shadow-md">
-              <h4 className="font-semibold text-[#249ab4] mb-3 flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                What You'll Find
-              </h4>
-              <ul className="space-y-2">
-                {activeDirectory.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center text-offblack">
-                    <ArrowRight className="h-4 w-4 mr-2 text-brand-teal flex-shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl shadow-md">
-              <h4 className="font-semibold text-[#249ab4] mb-3 flex items-center gap-2">
-                <CheckCircle className="h-5 w-5" />
-                How This Helps Your Journey
-              </h4>
-              <ul className="space-y-3">
-                {activeDirectory.benefits.map((benefit, idx) => (
-                  <li key={idx} className="flex items-start text-offblack">
-                    <span className="bg-brand-pink/40 text-brand-teal rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold mr-2 mt-0.5 flex-shrink-0">
-                      {idx + 1}
-                    </span>
-                    <span>{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-brand-teal" />
-                <span className="text-lg font-semibold text-brand-teal">{activeDirectory.stats}</span>
+        {/* Directory Cards - Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          {directories.map((directory) => (
+            <Card
+              key={directory.id}
+              className={`overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 ${
+                activeTab === directory.id ? "ring-2 ring-[#249ab4] ring-opacity-50" : ""
+              }`}
+              onClick={() => setActiveTab(directory.id)}
+            >
+              <div className="relative h-40 bg-gray-50">
+                <Image
+                  src={directory.image || "/placeholder.svg"}
+                  alt={directory.title}
+                  fill
+                  className="object-cover opacity-90"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent flex items-end">
+                  <div className="p-4 text-white">
+                    <p className="text-sm font-medium">{directory.stats}</p>
+                  </div>
+                </div>
               </div>
-              <Button asChild className="bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack">
-                <Link href={activeDirectory.link} className="flex items-center gap-2">
-                  Explore Directory
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-gray-50 rounded-md text-[#249ab4]">{directory.icon}</div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">{directory.title}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <p className="text-gray-600 text-sm mb-3">{directory.description}</p>
+                <div className="flex items-center text-xs text-[#249ab4] font-medium">
+                  <span>View directory</span>
+                  <ChevronRight className="h-3 w-3 ml-1" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-          {/* Featured Image */}
-          <div className="relative">
-            <div className="relative h-[400px] rounded-xl overflow-hidden shadow-xl">
+        {/* Selected Directory Details */}
+        <div className="bg-gray-50 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+            {/* Featured Image */}
+            <div className="relative h-[300px] lg:h-auto order-1 lg:order-2">
               <Image
                 src={activeDirectory.image || "/placeholder.svg"}
                 alt={activeDirectory.title}
                 fill
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                <div className="p-6 text-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="h-5 w-5" />
-                    <span className="font-medium">Directory Highlight</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-900/70 via-gray-900/40 to-transparent lg:bg-gradient-to-l flex items-center lg:items-start justify-center lg:justify-end">
+                <div className="p-8 text-white lg:max-w-md">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-white/10 backdrop-blur-sm rounded-md">{activeDirectory.icon}</div>
+                    <h3 className="text-2xl font-bold">{activeDirectory.title}</h3>
                   </div>
-                  <p className="text-lg font-semibold">
-                    {activeDirectory.id === "airlines" && "Find the perfect airline for your pet's journey"}
-                    {activeDirectory.id === "hotels" && "Discover pet-friendly stays around the world"}
-                    {activeDirectory.id === "policies" && "Navigate country requirements with confidence"}
-                  </p>
+                  <p className="mb-6 text-white/90">{activeDirectory.description}</p>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-[#249ab4]" />
+                    <span className="font-medium text-white">{activeDirectory.stats}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Floating Stats */}
-            <div className="absolute -top-4 -right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-3">
-              <div className="bg-brand-pink rounded-full p-2">{activeDirectory.icon}</div>
-              <div>
-                <p className="text-xs text-offblack/70">Our Directory Includes</p>
-                <p className="text-lg font-bold text-brand-teal">{activeDirectory.stats}</p>
+            {/* Directory Content */}
+            <div className="p-8 order-2 lg:order-1">
+              <div className="space-y-6 max-w-lg">
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Search className="h-5 w-5 text-[#249ab4]" />
+                    What You'll Find
+                  </h4>
+                  <ul className="space-y-3">
+                    {activeDirectory.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-center text-gray-700">
+                        <div className="h-1.5 w-1.5 rounded-full bg-[#249ab4] mr-3"></div>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-[#249ab4]" />
+                    How This Helps Your Journey
+                  </h4>
+                  <ul className="space-y-4">
+                    {activeDirectory.benefits.map((benefit, idx) => (
+                      <li key={idx} className="flex items-start text-gray-700">
+                        <span className="flex items-center justify-center h-5 w-5 rounded-full border border-[#249ab4] text-[#249ab4] text-xs font-bold mr-3 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <Button asChild className="mt-6 bg-[#249ab4] hover:bg-[#1c7a8f] text-white rounded-md">
+                  <Link href={activeDirectory.link} className="flex items-center gap-2">
+                    Explore {activeDirectory.title}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* All Directories Cards - Mobile View */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 lg:hidden">
-          {directories.map((directory, index) => (
-            <Card
-              key={index}
-              className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg bg-white"
-            >
-              <div className="relative h-40">
-                <Image
-                  src={directory.image || "/placeholder.svg"}
-                  alt={directory.title}
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-brand-teal bg-opacity-40 flex items-center justify-center">
-                  {directory.icon}
-                </div>
-              </div>
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-[#249ab4]">{directory.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-offblack mb-4">{directory.description}</p>
-              </CardContent>
-              <CardFooter>
-                <Button asChild className="w-full bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack">
-                  <Link href={directory.link}>Explore {directory.title}</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-
         {/* Call to Action */}
         <div className="mt-16 text-center">
-          <h3 className="text-xl font-bold text-[#249ab4] mb-4">Ready to Plan Your Pet's Journey?</h3>
-          <p className="text-offblack mb-6 max-w-2xl mx-auto">
-            Our comprehensive directories provide everything you need to plan a stress-free travel experience with your
-            pet.
+          <div className="inline-flex items-center justify-center mb-6">
+            <div className="h-px w-12 bg-gray-200"></div>
+            <span className="px-4 text-sm text-gray-500 font-medium">EXPLORE MORE</span>
+            <div className="h-px w-12 bg-gray-200"></div>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">Ready to plan your journey?</h3>
+          <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+            Our comprehensive directories provide everything you need for a stress-free travel experience with your pet.
           </p>
-          <Button
-            asChild
-            size="lg"
-            className="bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack px-8 py-6 text-lg"
-          >
-            <Link href="/directory">Explore All Directories</Link>
+          <Button asChild className="bg-[#249ab4] hover:bg-[#1c7a8f] text-white px-6 py-2.5 rounded-md">
+            <Link href="/directory">View All Directories</Link>
           </Button>
         </div>
       </div>

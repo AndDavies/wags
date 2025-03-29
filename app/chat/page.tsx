@@ -1,283 +1,476 @@
-// app/chat/page.tsx
-"use client";
+"use client"
 
-import { useState, FormEvent, useRef } from "react";
-import { Send, Globe, MapPin, Users, MoreHorizontal } from "lucide-react";
-import { motion } from "framer-motion";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useState, useEffect, useRef, type FormEvent } from "react"
+import {
+  Send,
+  Globe,
+  MapPin,
+  Users,
+  MoreHorizontal,
+  ChevronRight,
+  MessageSquare,
+  Calendar,
+  PawPrint,
+} from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
-// Define the type for chat messages
 interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
+  id: string
+  role: "user" | "assistant"
+  content: string
+  options?: { text: string; action: string }[]
 }
 
-// Define the type for the data returned by /api/chat
-type ChatData = {
-  content: string;
-  queryString?: string;
-};
+interface ConversationMemory {
+  origin?: string
+  destination?: string
+  travelDates?: { start: string; end: string }
+  numPeople?: number
+  numPets?: number
+  petTypes?: string[]
+  petNames?: string[]
+  petNeeds?: string[]
+  activities?: string[]
+  preferences?: string
+  vetInfo?: string
+  itinerary?: {
+    days: { day: number; date: string; activities: { time: string; description: string; cost: string }[] }[]
+    accommodation: { name: string; address: string; cost: string }
+    dining: { name: string; address: string; cost: string; cuisine: string }[]
+    transportation: { type: string; details: string; cost: string }[]
+    tips: string[]
+  }
+}
+
+interface ChatResponse {
+  content: string
+  updatedMemory?: ConversationMemory
+}
 
 export default function ChatPage() {
-  const [petType, setPetType] = useState<string>("Dog");
-  const [tags, setTags] = useState<string[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputValue, setInputValue] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<ChatData[]>([]);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [stage, setStage] = useState<"greeting" | "planning" | "exploring" | "tips" | "itinerary">("greeting")
+  const [memory, setMemory] = useState<ConversationMemory>({})
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "welcome",
+      role: "assistant",
+      content:
+        "Here we are again, what are we chatting about today? Ask me literally anything related to travelling with your pets, and we'll build your family the bestest trip ever!",
+    },
+  ])
+  const [inputValue, setInputValue] = useState<string>("")
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [tripDetails, setTripDetails] = useState<string[]>([])
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+  const itineraryContainerRef = useRef<HTMLDivElement>(null)
 
-  // Extract tags from the latest user message
-  const extractTags = (message: string) => {
-    const messageLower = message.toLowerCase();
-    const possibleTags = messageLower.match(/\b(spain|france|iceland|japan|uk|usa|hiking|sightseeing|relaxing)\b/gi) || [];
-    setTags([...new Set([...tags, ...possibleTags])]);
-    console.log("[Chat Page] Extracted tags:", possibleTags);
-  };
+  const handleOptionSelect = (action: string) => {
+    setStage(action === "plan" ? "planning" : action === "explore" ? "exploring" : "tips")
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        role: "assistant",
+        content:
+          action === "plan"
+            ? "Tell me where you're going, when, and how many pets you're bringing!"
+            : action === "explore"
+              ? "Not sure where to go? What do you prefer—parks, cities, or beaches?"
+              : "Need travel advice? Ask away about packing, logistics, or anything else!",
+      },
+    ])
+  }
 
-  // Custom fetch function to call /api/chat
   const sendMessage = async (message: string) => {
-    setIsLoading(true);
-    setError(null);
-
+    setIsLoading(true)
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: Date.now().toString(), // Generate a unique ID
-          messages: [
-            {
-              role: "user",
-              content: message,
-              parts: [{ type: "text", text: message }],
-            },
-          ],
-          petType,
-          tags,
-        }),
-      });
+        body: JSON.stringify({ role: "user", content: message }),
+      })
 
-      console.log("[Chat Page] Received response:", response.status, response.statusText);
+      if (!response.ok) throw new Error(`API error: ${response.status}`)
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch response: ${response.status} ${response.statusText}`);
-      }
+      const data: ChatResponse = await response.json()
+      console.log("API Response:", data)
 
-      const result: ChatData = await response.json();
-      console.log("[Chat Page] Response data:", result);
+      const contentWithCTA = `${data.content}\n\nAnything else you need? Ready to save this trip? [Build Your Itinerary](#)`
 
-      // Add the user message and assistant response to the chat
       setMessages((prev) => [
         ...prev,
         { id: Date.now().toString(), role: "user", content: message },
-        { id: (Date.now() + 1).toString(), role: "assistant", content: result.content },
-      ]);
+        { id: (Date.now() + 1).toString(), role: "assistant", content: contentWithCTA },
+      ])
 
-      // Update data for queryString
-      setData((prev) => [...prev, result]);
-    } catch (err) {
-      console.error("[Chat Page] Error:", err);
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setTripDetails((prev) => [...prev, contentWithCTA])
+
+      if (data.updatedMemory) {
+        setMemory((prev) => {
+          const newMemory = { ...prev, ...data.updatedMemory }
+          console.log("New Memory State:", newMemory)
+          return newMemory
+        })
+      }
+
+      if (stage === "greeting") {
+        setStage("planning")
+      }
+    } catch (error) {
+      console.error("Chat error:", error)
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now().toString(), role: "assistant", content: "Oops, something went wrong! Try again?" },
+      ])
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!inputValue.trim()) {
-      console.log("[Chat Page] No input provided");
-      return;
+    e.preventDefault()
+    if (!inputValue.trim()) return
+    sendMessage(inputValue)
+    setInputValue("")
+  }
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
-    console.log("[Chat Page] Submitting message:", inputValue);
-    extractTags(inputValue);
-    sendMessage(inputValue);
-    setInputValue(""); // Clear the input after submission
-  };
-
-  // Handle tag click by updating the input and submitting the form
-  const handleTagClick = (tag: string) => {
-    const newMessage = `Tell me more about ${tag}`;
-    setInputValue(newMessage);
-    extractTags(newMessage);
-    if (formRef.current) {
-      const submitEvent = new Event("submit", { cancelable: true, bubbles: true });
-      formRef.current.dispatchEvent(submitEvent);
+    if (itineraryContainerRef.current) {
+      itineraryContainerRef.current.scrollTop = itineraryContainerRef.current.scrollHeight
     }
-  };
+  }, [messages, tripDetails])
 
-  // Handle suggested prompt click by updating the input and submitting the form
-  const handlePromptClick = (promptText: string) => {
-    setInputValue(promptText);
-    extractTags(promptText);
-    if (formRef.current) {
-      const submitEvent = new Event("submit", { cancelable: true, bubbles: true });
-      formRef.current.dispatchEvent(submitEvent);
+  const formatResponse = (text: string) => {
+    // Handle bullet points
+    if (text.includes("* ")) {
+      const items = text
+        .split("* ")
+        .slice(1)
+        .map((item) => item.trim())
+      return (
+        <ul className="list-disc pl-5 text-slate-700 space-y-1">
+          {items.map((item, idx) => (
+            <li key={idx} className="text-sm leading-relaxed">
+              {item}
+            </li>
+          ))}
+        </ul>
+      )
     }
-  };
 
-  const suggestedPrompts = [
-    { text: "Plan a trip to Paris with my dog", params: { destination: "Paris", pet: "dog" } },
-    { text: "What does Spain require for pets?", params: { destination: "Spain" } },
-    { text: "Find pet-friendly activities in London", params: { destination: "London", activities: "sightseeing" } },
-    { text: "More", params: {} },
-  ];
-
-  // Safely access the latest queryString from data
-  const latestData = data && data.length > 0 ? data[data.length - 1] : null;
-  const queryString = latestData?.queryString;
+    // Handle links in the text
+    return (
+      <div className="text-slate-700">
+        {text.split("\n").map((para, idx) => (
+          <div key={idx} className="mb-2 text-sm leading-relaxed">
+            {para.includes("[") && para.includes("](")
+              ? para.split(/(\[.*?\]$$.*?$$)/g).map((part, i) => {
+                  if (part.match(/\[(.*?)\]$$(.*?)$$/)) {
+                    const [_, linkText, linkUrl] = part.match(/\[(.*?)\]$$(.*?)$$/) || []
+                    return (
+                      <a
+                        key={i}
+                        href={linkUrl}
+                        className="text-teal-600 hover:text-teal-800 font-medium underline underline-offset-2 transition-colors"
+                      >
+                        {linkText}
+                      </a>
+                    )
+                  }
+                  return <span key={i}>{part}</span>
+                })
+              : para}
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-white pt-24 pb-16 px-4 md:px-6">
-      <div className="max-w-3xl mx-auto">
-        <motion.div
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-[#333]">
-            Hey, I’m Baggo your
-            <br />
-            personal pet travel agent
-          </h1>
-          <p className="text-lg text-[#555] max-w-2xl mx-auto">
-            Let me help plan your pet’s next adventure—from requirements to activities. Think of me as your pet travel-savvy friend who knows all the ins and outs!
-          </p>
-        </motion.div>
+    <div className="chat-interface-container flex flex-col overflow-hidden font-sans bg-gradient-to-br from-slate-50 to-slate-100">
+      <AnimatePresence mode="wait">
+        {stage === "greeting" ? (
+          <motion.div
+            key="greeting"
+            className="flex-1 flex flex-col justify-center items-center px-4 md:px-8 py-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="text-center mb-10 max-w-2xl">
+              <motion.div
+                className="mb-6 flex justify-center"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-lg">
+                  <PawPrint className="h-10 w-10 text-white" />
+                </div>
+              </motion.div>
 
-        {/* Chat Area */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <div className="bg-[#f5f5f5] rounded-lg p-4 mb-4 max-h-96 overflow-y-auto">
-            {messages.length === 0 ? (
-              <p className="text-gray-500 text-center">Start by asking me anything about pet travel!</p>
-            ) : (
-              messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`mb-4 p-3 rounded-lg ${
-                    m.role === "user" ? "bg-gray-200 text-right" : "bg-brand-teal/10 text-left"
-                  }`}
+              <motion.h1
+                className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-cyan-600"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                Hey, I'm Baggo your personal travel agent
+              </motion.h1>
+
+              <motion.p
+                className="text-base md:text-lg text-slate-600 font-light"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+              >
+                Let me help you plan a stress-free trip with your furry friend—from flights to pet-friendly spots. I'm
+                your travel-savvy buddy who knows the ropes!
+              </motion.p>
+            </div>
+
+            <motion.form
+              onSubmit={handleSubmit}
+              className="w-full max-w-xl mb-8"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.4 }}
+            >
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Create a weekend getaway..."
+                  className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-sm"
+                />
+                <Button
+                  type="submit"
+                  className={cn(
+                    "absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-full p-3 transition-all shadow-sm",
+                    isLoading
+                      ? "opacity-75 cursor-not-allowed"
+                      : "hover:shadow-md hover:from-teal-600 hover:to-teal-700 active:scale-95",
+                  )}
+                  aria-label="Send message"
+                  disabled={isLoading}
                 >
-                  {m.content}
-                  {m.role === "assistant" && queryString && (
-                    <div className="mt-2">
-                      <Link href={queryString} className="text-brand-teal underline">
-                        Plan This Trip
-                      </Link>
+                  <Send className="h-5 w-5" />
+                </Button>
+              </div>
+            </motion.form>
+
+            <motion.div
+              className="flex flex-wrap gap-3 justify-center"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.5 }}
+            >
+              <Button
+                className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+                onClick={() => handleOptionSelect("plan")}
+              >
+                <Globe className="h-4 w-4 text-teal-500 group-hover:text-teal-600 transition-colors" />
+                <span>Create a new Trip</span>
+                <ChevronRight className="h-3.5 w-3.5 text-teal-500 group-hover:text-teal-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+              </Button>
+              <Button
+                className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+                onClick={() => handleOptionSelect("explore")}
+              >
+                <MapPin className="h-4 w-4 text-teal-500 group-hover:text-teal-600 transition-colors" />
+                <span>Inspire me where to go</span>
+                <ChevronRight className="h-3.5 w-3.5 text-teal-500 group-hover:text-teal-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+              </Button>
+              <Button
+                className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group"
+                onClick={() => handleOptionSelect("tips")}
+              >
+                <Users className="h-4 w-4 text-teal-500 group-hover:text-teal-600 transition-colors" />
+                <span>Find pet-friendly hotels</span>
+                <ChevronRight className="h-3.5 w-3.5 text-teal-500 group-hover:text-teal-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+              </Button>
+              <Button className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group">
+                <MoreHorizontal className="h-4 w-4 text-teal-500 group-hover:text-teal-600 transition-colors" />
+                <span>More</span>
+              </Button>
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="chat"
+            className="flex-1 flex flex-col h-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Chat Header */}
+            <div className="border-b border-slate-200 bg-white py-3 px-4 md:px-6 flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center mr-3">
+                  <PawPrint className="h-4 w-4 text-white" />
+                </div>
+                <h1 className="text-lg font-medium text-slate-800">Baggo</h1>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
+                  <Calendar className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
+                  <Users className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden border-2">
+              {/* Chat Area (Left) */}
+              <div className="md:w-1/2 flex flex-col h-[calc(100vh-132px)]">
+                <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6" ref={chatContainerRef}>
+                  <div className="space-y-4">
+                    {messages.map((m) => (
+                      <motion.div
+                        key={m.id}
+                        className="mb-4"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <div
+                          className={cn(
+                            "p-3 rounded-2xl max-w-[85%]",
+                            m.role === "user"
+                              ? "bg-gradient-to-r from-teal-500 to-teal-600 text-white ml-auto shadow-sm"
+                              : "bg-white text-slate-800 mr-auto border border-slate-200 shadow-sm",
+                          )}
+                        >
+                          {m.role === "user" ? <div className="text-sm">{m.content}</div> : formatResponse(m.content)}
+                        </div>
+                        {m.options && (
+                          <div className="mt-2 flex gap-2 flex-wrap">
+                            {m.options.map((opt) => (
+                              <Button
+                                key={opt.action}
+                                className="bg-white hover:bg-slate-50 text-slate-700 text-xs rounded-full py-1 px-3 border border-slate-200 shadow-sm hover:shadow transition-all"
+                                onClick={() => handleOptionSelect(opt.action)}
+                              >
+                                {opt.text}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+
+                    {isLoading && (
+                      <div
+                        className="p-3 bg-white rounded-2xl max-w-[85%] mr-auto border border-slate-200 shadow-sm"
+                        aria-busy="true"
+                        aria-live="polite"
+                      >
+                        <div className="flex space-x-2">
+                          <div
+                            className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"
+                            style={{ animationDelay: "0ms" }}
+                          />
+                          <div
+                            className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"
+                            style={{ animationDelay: "300ms" }}
+                          />
+                          <div
+                            className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"
+                            style={{ animationDelay: "600ms" }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Itinerary Panel (Right) */}
+              <div className="md:w-1/2 border-l border-slate-200 flex flex-col h-[calc(100vh-132px)]">
+                <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6" ref={itineraryContainerRef}>
+                  <h2 className="text-lg font-medium text-slate-800 mb-4 pb-2 border-b border-slate-200 flex items-center">
+                    <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+                      Trip Details
+                    </span>
+                  </h2>
+
+                  {tripDetails.length > 0 ? (
+                    <div className="space-y-4">
+                      {tripDetails.map((detail, idx) => (
+                        <motion.div
+                          key={idx}
+                          className="p-3 rounded-lg border border-slate-200 shadow-sm bg-white"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: idx * 0.1 }}
+                        >
+                          {formatResponse(detail)}
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : isLoading ? (
+                    <div className="space-y-3 p-4" aria-busy="true" aria-live="polite">
+                      <div className="h-3 w-[90%] bg-slate-200 rounded-full animate-pulse" />
+                      <div className="h-3 w-[70%] bg-slate-200 rounded-full animate-pulse" />
+                      <div className="h-3 w-[80%] bg-slate-200 rounded-full animate-pulse" />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-[calc(100%-3rem)] text-center p-6">
+                      <div className="w-14 h-14 rounded-full bg-teal-100 flex items-center justify-center mb-4">
+                        <MessageSquare className="h-6 w-6 text-teal-500" />
+                      </div>
+                      <p className="text-slate-500 text-sm">
+                        Your trip details and itinerary will appear here once Baggo has gathered enough information.
+                      </p>
                     </div>
                   )}
                 </div>
-              ))
-            )}
-            {isLoading && (
-              <p className="text-gray-500 text-center">Baggo is thinking...</p>
-            )}
-            {error && (
-              <p className="text-red-500 text-center">Error: {error}</p>
-            )}
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <form onSubmit={handleSubmit} className="mb-8">
-            <div className="relative">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask about pet travel requirements..."
-                className="w-full bg-[#f5f5f5] border-none rounded-full py-5 px-6 pr-16 text-[#333] placeholder-[#999] focus:outline-none focus:ring-2 focus:ring-brand-teal/50 shadow-sm"
-                disabled={isLoading}
-              />
-              <button
-                type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-teal text-white rounded-full p-3 hover:bg-brand-teal/90 transition-colors"
-                aria-label="Send message"
-                disabled={isLoading}
-              >
-                <Send className="h-5 w-5" />
-              </button>
+              </div>
             </div>
-          </form>
-        </motion.div>
 
-        {/* Pet Type Selector */}
-        <motion.div
-          className="mb-8 flex justify-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <Select value={petType} onValueChange={setPetType}>
-            <SelectTrigger className="w-32 bg-[#f5f5f5] border-none rounded-full py-3 px-5 text-[#333] focus:outline-none focus:ring-2 focus:ring-brand-teal/50 shadow-sm">
-              <SelectValue placeholder="Select Pet" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Dog">Dog</SelectItem>
-              <SelectItem value="Cat">Cat</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
-
-        {/* Tags */}
-        {tags.length > 0 && (
-          <motion.div
-            className="flex flex-wrap gap-2 justify-center mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            {tags.map((tag) => (
-              <Button
-                key={tag}
-                variant="outline"
-                className="bg-[#f5f5f5] hover:bg-[#eaeaea] text-[#555] rounded-full py-3 px-5 transition-colors"
-                onClick={() => handleTagClick(tag)}
-              >
-                {tag}
-              </Button>
-            ))}
+            {/* Floating Input */}
+            <div className="sticky bottom-0 left-0 right-0 border-t border-slate-200 bg-white py-3 px-4 md:px-6 z-10">
+              <form onSubmit={handleSubmit} className="max-w-full mx-auto">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Type your response here..."
+                    className="w-full bg-white border border-slate-200 rounded-full py-2.5 px-4 pr-12 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-sm"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="submit"
+                    className={cn(
+                      "absolute right-1 top-1/2 -translate-y-1/2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-full p-2 transition-all",
+                      isLoading
+                        ? "opacity-75 cursor-not-allowed"
+                        : "hover:from-teal-600 hover:to-teal-700 active:scale-95",
+                    )}
+                    aria-label="Send message"
+                    disabled={isLoading}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </form>
+            </div>
           </motion.div>
         )}
-
-        <motion.div
-          className="flex flex-wrap gap-3 justify-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          {suggestedPrompts.map((prompt) => (
-            <Button
-              key={prompt.text}
-              className="flex items-center gap-2 bg-[#f5f5f5] hover:bg-[#eaeaea] text-[#555] rounded-full py-3 px-5 transition-colors"
-              onClick={() => handlePromptClick(prompt.text)}
-            >
-              {prompt.text === "Plan a trip to Paris with my dog" && <Globe className="h-5 w-5 text-brand-teal" />}
-              {prompt.text === "What does Spain require for pets?" && <MapPin className="h-5 w-5 text-brand-teal" />}
-              {prompt.text === "Find pet-friendly activities in London" && <Users className="h-5 w-5 text-brand-teal" />}
-              {prompt.text === "More" && <MoreHorizontal className="h-5 w-5 text-brand-teal" />}
-              {prompt.text}
-            </Button>
-          ))}
-        </motion.div>
-      </div>
+      </AnimatePresence>
     </div>
-  );
+  )
 }
+

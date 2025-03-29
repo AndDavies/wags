@@ -1,121 +1,113 @@
 // app/api/chat/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
 
-// Define the structure of a part in the message
 interface Part {
   type: string;
   text: string;
 }
 
-// Define the expected message structure from the custom fetch
 interface ChatMessage {
   role: string;
   content: string;
   parts?: Part[];
 }
 
-// Define the expected request body type from the custom fetch
-interface ChatRequestBody {
-  id: string;
-  messages: ChatMessage[];
-  petType?: string;
-  tags?: string[];
+interface ConversationMemory {
+  destination?: string;
+  travelDates?: { start: string; end: string };
+  petTypes?: string[];
+  petNames?: string[];
 }
 
-// Define the response type
 interface ChatResponse {
   content: string;
-  queryString?: string;
+  updatedMemory?: ConversationMemory;
 }
 
 export async function POST(req: NextRequest) {
-  const requestId = uuidv4(); // Unique ID for tracking requests in logs
-  console.log(`[Chat API] [Request ID: ${requestId}] Received request`);
-
   try {
-    // Parse the request body
-    const body: ChatRequestBody = await req.json();
-    console.log(`[Chat API] [Request ID: ${requestId}] Body:`, body);
+    const { content } = (await req.json()) as ChatMessage;
+    console.log("User Input:", content);
 
-    // Extract the latest user message from the messages array
-    const messages = body.messages || [];
-    const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-    const message = latestMessage?.content;
+    const originMatch = content.match(/from\s+([A-Za-z\s]+),?/i) || ["", "Toronto"];
+    const datesMatch = content.match(/([A-Za-z]+\s+\d+-\d+)/i) || ["", "June 1-10"];
+    const destinationMatch = content.match(/to\s+([A-Za-z\s]+),?/i) || ["", "Paris"];
+    const petMatch = content.match(/(dog|cat|ferret)/i) || ["", "dog"];
+    const airlineMatch = content.match(/(Air Canada|Southwest|[A-Za-z\s]+)\s+booked/i) || ["", "Air Canada"];
+    const petNameMatch = content.match(/my\s+(dog|cat|ferret)\s+is\s+([A-Za-z]+)/i);
 
-    // Validate the message field
-    if (!message || typeof message !== 'string') {
-      console.error(`[Chat API] [Request ID: ${requestId}] Error: Message is required and must be a string`);
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      );
-    }
+    const origin = originMatch[1].trim();
+    const travelDates = datesMatch[1].trim();
+    const destination = destinationMatch[1].trim();
+    const petType = petMatch[1].toLowerCase();
+    const airline = airlineMatch[1].trim();
+    const petName = petNameMatch ? petNameMatch[2].trim() : "Max";
 
-    // Extract petType and tags with defaults
-    const petType = body.petType || 'Dog';
-    const tags = body.tags || [];
+    console.log("Parsed:", { origin, travelDates, destination, petType, airline, petName });
 
-    // Sanitize inputs to prevent injection attacks
-    const sanitizedMessage = message.trim();
-    const sanitizedPetType = petType.trim();
-    const sanitizedTags = tags.map((tag) => tag.trim());
+    const supabase = await createClient();
 
-    // Build Gemini prompt with added context
-    const prompt = `
-      You are Baggo, a pet travel assistant. Always view questions as being from people interested in travelling with their pet and who may not know exactly what to do or where to go. Answer this question: "${sanitizedMessage}"
-      - Tailor advice for a ${sanitizedPetType}.
-      - If a country is mentioned, provide a step-by-step list of requirements for traveling with a pet to that country, including microchip, vaccinations, health certificates, import permits, and quarantine if applicable.
-      - If activities are mentioned (${sanitizedTags.join(', ')}), suggest relevant pet-friendly activities.
-      - If specific details are provided (e.g., country, activities), end with a suggestion to plan a trip, including a query string like "/create-trip?destination=[country]&pet=${sanitizedPetType}&activities=[activity]".
-      - If no specific details are provided, give a general pet travel tip.
-      Provide a concise, helpful response.
-    `;
-    console.log(`[Chat API] [Request ID: ${requestId}] Gemini prompt:`, prompt);
+    const { data: airlineData } = await supabase
+      .from("airlines")
+      .select("*")
+      .eq("airline", airline)
+      .single();
 
-    // Call Gemini API
+    const { data: policyData } = await supabase
+      .from("pet_policies")
+      .select("entry_requirements")
+      .eq("country_name", destination)
+      .single();
+
+    const { data: activitiesData } = await supabase
+      .from("activities")
+      .select("name")
+      .eq("location", `${destination}, France`)
+      .limit(1)
+      .single();
+
+    const prompt = `<|user|>Using this data: [Air Canada: ${airlineData?.crate_carrier_size_max || "21.5x15.5x9 carrier"}, $${airlineData?.fees_usd || 50} fee], [${destination}: ${JSON.stringify(policyData?.entry_requirements || [])}], [${activitiesData?.name || "Jardin des Tuileries"}], generate a full travel itinerary for a small, anxious ${petType} named ${petName} from ${origin} to ${destination}, ${travelDates}. Include a detailed prep timeline with explicit vet appointment timing and paperwork approval locations based on medical/vaccination requirements, plus travel day logistics and pet-friendly activities in ${destination}. Present it in a clear, organized format.<|assistant|>`;
+
+    console.log("Prompt:", prompt);
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`,
+      "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          inputs: prompt,
+          parameters: { max_new_tokens: 500 },
         }),
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Chat API] [Request ID: ${requestId}] Gemini API failed:`, response.status, errorText);
-      throw new Error(`Gemini API request failed: ${response.status} - ${errorText}`);
-    }
+    const result = await response.json();
+    console.log("HF Raw Response:", result);
 
-    const data = await response.json();
-    const aiResponse = data.candidates[0].content.parts[0].text.trim();
-    console.log(`[Chat API] [Request ID: ${requestId}] Gemini response:`, aiResponse);
+    // Strip everything before <|assistant|> and trim
+    const generatedText = result[0]?.generated_text?.split("<|assistant|>")[1]?.trim() || "Sorry, I couldn’t generate a response right now. Please try again or provide more details.";
 
-    // Extract query string from response (if present)
-    const queryMatch = aiResponse.match(/\/create-trip\?[^"]+/);
-    const queryString = queryMatch ? queryMatch[0] : null;
-
-    // Return the response as standard JSON with explicit Content-Type
-    return new NextResponse(JSON.stringify({ content: aiResponse, queryString }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
+    const chatResponse: ChatResponse = {
+      content: generatedText,
+      updatedMemory: {
+        destination,
+        travelDates: { start: travelDates.split("-")[0], end: travelDates.split("-")[1] },
+        petTypes: [petType],
+        petNames: [petName],
       },
-    });
+    };
+
+    return NextResponse.json(chatResponse, { status: 200 });
   } catch (error) {
-    console.error(`[Chat API] [Request ID: ${requestId}] Error:`, error);
-    return new NextResponse(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+    console.error("Chat API error:", error);
+    return NextResponse.json(
+      { content: "Oops, something went wrong! Try again?" },
+      { status: 500 }
     );
   }
 }
