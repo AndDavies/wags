@@ -47,11 +47,13 @@ function ChatInitializer({
   sendMessage: (message: string) => Promise<void>;
 }) {
   const searchParams = useSearchParams();
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
     const input = searchParams.get("input");
-    if (input && stage === "greeting") {
+    if (input && stage === "greeting" && !hasInitialized.current) {
       console.log("Starting Chat from Query Param:", input);
+      hasInitialized.current = true; // Prevent re-run
       sendMessage(decodeURIComponent(input));
     }
   }, [searchParams, stage, sendMessage]);
@@ -102,7 +104,7 @@ export default function ChatPage() {
         body: JSON.stringify({ role: "user", content: message }),
       });
 
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      if (!response.ok) throw new Error(`API error: ${response.status} - ${await response.text()}`);
 
       const data: ChatResponse = await response.json();
       console.log("API Response Received:", data);
@@ -123,7 +125,7 @@ export default function ChatPage() {
 
       if (stage === "greeting") setStage("planning");
     } catch (error) {
-      console.error("Error Sending Message:", error);
+      console.error("Error Sending Message:", error.message || error);
       const errorMessage: ChatMessage = { id: Date.now().toString(), role: "assistant", content: "Oops, something went wrong! Try again?" };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
