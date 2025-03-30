@@ -101,20 +101,20 @@ export default function ChatPage() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "user", content: message }),
+        body: JSON.stringify({ role: "user", content: message, memory }), // Add memory
       });
-
+  
       if (!response.ok) throw new Error(`API error: ${response.status} - ${await response.text()}`);
-
+  
       const data: ChatResponse = await response.json();
       console.log("API Response Received:", data);
-
+  
       const userMessage: ChatMessage = { id: Date.now().toString(), role: "user", content: message };
       const assistantMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: data.content };
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
-
+  
       setTripDetails((prev) => [...prev, data.content]);
-
+  
       if (data.updatedMemory) {
         setMemory((prev) => {
           const newMemory = { ...prev, ...data.updatedMemory };
@@ -122,9 +122,9 @@ export default function ChatPage() {
           return newMemory;
         });
       }
-
+  
       if (stage === "greeting") setStage("planning");
-    } catch (error: unknown) { // Changed to unknown
+    } catch (error: unknown) {
       console.error("Error Sending Message:", error instanceof Error ? error.message : String(error));
       const errorMessage: ChatMessage = { id: Date.now().toString(), role: "assistant", content: "Oops, something went wrong! Try again?" };
       setMessages((prev) => [...prev, errorMessage]);
