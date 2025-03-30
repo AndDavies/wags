@@ -4,7 +4,7 @@ import FeaturedBlog from "@/components/FeaturedBlog"
 import AboutUs from "@/components/AboutUs"
 import HowItWorks from "@/components/HowItWorks"
 import ServicesSection from '@/components/Services'
-import Hero from '@/components/hero'
+import Hero from '@/components/Hero'
 
 
 export default function HomePage() {
@@ -14,7 +14,7 @@ export default function HomePage() {
       <Hero />     
       <FeaturedDirectory />
       <FeaturedBlog />
-      {/* <ServicesSection />  */}
+      <ServicesSection /> 
       <AboutUs />
       <HowItWorks />
     </div>
