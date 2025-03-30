@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type FormEvent, Suspense } from "react"; // Added Suspense
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Send,
@@ -12,13 +12,13 @@ import {
   MessageSquare,
   Calendar,
   PawPrint,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// Interfaces unchanged
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -27,24 +27,10 @@ interface ChatMessage {
 }
 
 interface ConversationMemory {
-  origin?: string;
   destination?: string;
   travelDates?: { start: string; end: string };
-  numPeople?: number;
-  numPets?: number;
   petTypes?: string[];
   petNames?: string[];
-  petNeeds?: string[];
-  activities?: string[];
-  preferences?: string;
-  vetInfo?: string;
-  itinerary?: {
-    days: { day: number; date: string; activities: { time: string; description: string; cost: string }[] }[];
-    accommodation: { name: string; address: string; cost: string };
-    dining: { name: string; address: string; cost: string; cuisine: string }[];
-    transportation: { type: string; details: string; cost: string }[];
-    tips: string[];
-  };
 }
 
 interface ChatResponse {
@@ -52,8 +38,7 @@ interface ChatResponse {
   updatedMemory?: ConversationMemory;
 }
 
-// Inner ChatPage component
-function ChatPageInner() {
+export default function ChatPage() {
   const [stage, setStage] = useState<"greeting" | "planning" | "exploring" | "tips" | "itinerary">("greeting");
   const [memory, setMemory] = useState<ConversationMemory>({});
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -61,7 +46,7 @@ function ChatPageInner() {
       id: "welcome",
       role: "assistant",
       content:
-        "Here we are again, what are we chatting about today? Ask me literally anything related to travelling with your pets, and we'll build your family the bestest trip ever!",
+        "Hey there! I’m Baggo, your pet travel companion. Let’s plan a pawsome trip—tell me where you’re going with your furry friend!",
     },
   ]);
   const [inputValue, setInputValue] = useState<string>("");
@@ -73,23 +58,23 @@ function ChatPageInner() {
 
   const handleOptionSelect = (action: string) => {
     setStage(action === "plan" ? "planning" : action === "explore" ? "exploring" : "tips");
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        role: "assistant",
-        content:
-          action === "plan"
-            ? "Tell me where you're going, when, and how many pets you're bringing!"
-            : action === "explore"
-            ? "Not sure where to go? What do you prefer—parks, cities, or beaches?"
-            : "Need travel advice? Ask away about packing, logistics, or anything else!",
-      },
-    ]);
+    const optionMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: "assistant",
+      content:
+        action === "plan"
+          ? "Tell me where you're going, when, and how many pets you're bringing!"
+          : action === "explore"
+          ? "Not sure where to go? What do you prefer—parks, cities, or beaches?"
+          : "Need travel advice? Ask away about packing, logistics, or anything else!",
+    };
+    setMessages((prev) => [...prev, optionMessage]);
+    console.log("Option Selected:", action, "New Message:", optionMessage);
   };
 
   const sendMessage = async (message: string) => {
     setIsLoading(true);
+    console.log("Sending Message:", message);
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -100,35 +85,27 @@ function ChatPageInner() {
       if (!response.ok) throw new Error(`API error: ${response.status}`);
 
       const data: ChatResponse = await response.json();
-      console.log("API Response:", data);
+      console.log("API Response Received:", data);
 
-      const contentWithCTA = `${data.content}\n\nAnything else you need? Ready to save this trip? [Build Your Itinerary](#)`;
+      const userMessage: ChatMessage = { id: Date.now().toString(), role: "user", content: message };
+      const assistantMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: data.content };
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now().toString(), role: "user", content: message },
-        { id: (Date.now() + 1).toString(), role: "assistant", content: contentWithCTA },
-      ]);
-
-      setTripDetails((prev) => [...prev, contentWithCTA]);
+      setTripDetails((prev) => [...prev, data.content]);
 
       if (data.updatedMemory) {
         setMemory((prev) => {
           const newMemory = { ...prev, ...data.updatedMemory };
-          console.log("New Memory State:", newMemory);
+          console.log("Updated Memory:", newMemory);
           return newMemory;
         });
       }
 
-      if (stage === "greeting") {
-        setStage("planning");
-      }
+      if (stage === "greeting") setStage("planning");
     } catch (error) {
-      console.error("Chat error:", error);
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now().toString(), role: "assistant", content: "Oops, something went wrong! Try again?" },
-      ]);
+      console.error("Error Sending Message:", error);
+      const errorMessage: ChatMessage = { id: Date.now().toString(), role: "assistant", content: "Oops, something went wrong! Try again?" };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -141,9 +118,26 @@ function ChatPageInner() {
     setInputValue("");
   };
 
+  const startNewConversation = () => {
+    console.log("Starting New Conversation—Resetting State");
+    setStage("greeting");
+    setMemory({});
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content:
+          "Hey there! I’m Baggo, your pet travel companion. Let’s plan a pawsome trip—tell me where you’re going with your furry friend!",
+      },
+    ]);
+    setTripDetails([]);
+    setInputValue("");
+  };
+
   useEffect(() => {
     const input = searchParams.get("input");
     if (input && stage === "greeting") {
+      console.log("Starting Chat from Query Param:", input);
       sendMessage(decodeURIComponent(input));
     }
   }, [searchParams]);
@@ -155,20 +149,16 @@ function ChatPageInner() {
     if (itineraryContainerRef.current) {
       itineraryContainerRef.current.scrollTop = itineraryContainerRef.current.scrollHeight;
     }
+    console.log("Scroll Updated—Messages:", messages.length, "Trip Details:", tripDetails.length);
   }, [messages, tripDetails]);
 
   const formatResponse = (text: string) => {
     if (text.includes("* ")) {
-      const items = text
-        .split("* ")
-        .slice(1)
-        .map((item) => item.trim());
+      const items = text.split("* ").slice(1).map((item) => item.trim());
       return (
         <ul className="list-disc pl-5 text-slate-700 space-y-1">
           {items.map((item, idx) => (
-            <li key={idx} className="text-sm leading-relaxed">
-              {item}
-            </li>
+            <li key={idx} className="text-sm leading-relaxed">{item}</li>
           ))}
         </ul>
       );
@@ -240,8 +230,7 @@ function ChatPageInner() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
               >
-                Let me help you plan a stress-free trip with your furry friend—from flights to pet-friendly spots. I'm
-                your travel-savvy buddy who knows the ropes!
+                Let me help you plan a stress-free trip with your furry friend—from flights to pet-friendly spots. I’m your travel-savvy buddy who knows the ropes!
               </motion.p>
             </div>
 
@@ -258,15 +247,14 @@ function ChatPageInner() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Create a weekend getaway..."
-                  className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-sm"
+                  className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-sm disabled:opacity-75"
+                  disabled={isLoading}
                 />
                 <Button
                   type="submit"
                   className={cn(
                     "absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-full p-3 transition-all shadow-sm",
-                    isLoading
-                      ? "opacity-75 cursor-not-allowed"
-                      : "hover:shadow-md hover:from-teal-600 hover:to-teal-700 active:scale-95",
+                    isLoading ? "opacity-75 cursor-not-allowed" : "hover:shadow-md hover:from-teal-600 hover:to-teal-700 active:scale-95"
                   )}
                   aria-label="Send message"
                   disabled={isLoading}
@@ -329,6 +317,15 @@ function ChatPageInner() {
                 <h1 className="text-lg font-medium text-slate-800">Baggo</h1>
               </div>
               <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-600 hover:text-slate-900"
+                  onClick={startNewConversation}
+                  aria-label="Start New Conversation"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
                 <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900">
                   <Calendar className="h-4 w-4" />
                 </Button>
@@ -355,7 +352,7 @@ function ChatPageInner() {
                             "p-3 rounded-2xl max-w-[85%]",
                             m.role === "user"
                               ? "bg-gradient-to-r from-teal-500 to-teal-600 text-white ml-auto shadow-sm"
-                              : "bg-white text-slate-800 mr-auto border border-slate-200 shadow-sm",
+                              : "bg-white text-slate-800 mr-auto border border-slate-200 shadow-sm"
                           )}
                         >
                           {m.role === "user" ? <div className="text-sm">{m.content}</div> : formatResponse(m.content)}
@@ -375,7 +372,6 @@ function ChatPageInner() {
                         )}
                       </motion.div>
                     ))}
-
                     {isLoading && (
                       <div
                         className="p-3 bg-white rounded-2xl max-w-[85%] mr-auto border border-slate-200 shadow-sm"
@@ -383,18 +379,9 @@ function ChatPageInner() {
                         aria-live="polite"
                       >
                         <div className="flex space-x-2">
-                          <div
-                            className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"
-                            style={{ animationDelay: "0ms" }}
-                          />
-                          <div
-                            className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"
-                            style={{ animationDelay: "300ms" }}
-                          />
-                          <div
-                            className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"
-                            style={{ animationDelay: "600ms" }}
-                          />
+                          <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" style={{ animationDelay: "0ms" }} />
+                          <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" style={{ animationDelay: "300ms" }} />
+                          <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" style={{ animationDelay: "600ms" }} />
                         </div>
                       </div>
                     )}
@@ -409,7 +396,6 @@ function ChatPageInner() {
                       Trip Details
                     </span>
                   </h2>
-
                   {tripDetails.length > 0 ? (
                     <div className="space-y-4">
                       {tripDetails.map((detail, idx) => (
@@ -452,16 +438,14 @@ function ChatPageInner() {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Type your response here..."
-                    className="w-full bg-white border border-slate-200 rounded-full py-2.5 px-4 pr-12 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded-full py-2.5 px-4 pr-12 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-sm disabled:opacity-75"
                     disabled={isLoading}
                   />
                   <Button
                     type="submit"
                     className={cn(
                       "absolute right-1 top-1/2 -translate-y-1/2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-full p-2 transition-all",
-                      isLoading
-                        ? "opacity-75 cursor-not-allowed"
-                        : "hover:from-teal-600 hover:to-teal-700 active:scale-95",
+                      isLoading ? "opacity-75 cursor-not-allowed" : "hover:from-teal-600 hover:to-teal-700 active:scale-95"
                     )}
                     aria-label="Send message"
                     disabled={isLoading}
@@ -475,14 +459,5 @@ function ChatPageInner() {
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-// Wrap ChatPageInner in Suspense
-export default function ChatPage() {
-  return (
-    <Suspense fallback={<div className="flex-1 flex items-center justify-center text-slate-500">Loading chat...</div>}>
-      <ChatPageInner />
-    </Suspense>
   );
 }
