@@ -5,6 +5,7 @@ interface Part { type: string; text: string; }
 interface ChatMessage { role: string; content: string; parts?: Part[]; }
 interface ConversationMemory { destination?: string; travelDates?: { start: string; end: string }; petTypes?: string[]; petNames?: string[]; airline?: string }
 interface ChatResponse { content: string; updatedMemory?: ConversationMemory; }
+interface PlaceResult { name: string; formatted_address: string; }
 
 async function extractTripDetails(message: string): Promise<{ origin: string; destination: string; petType: string; dates: { start: string; end: string }; airline: string; petName: string }> {
   const originMatch = message.match(/from\s+([A-Za-z\s]+),?/i) || ["", "Toronto"];
@@ -40,17 +41,17 @@ async function generateItinerary(parsed: { origin: string; destination: string; 
     `https://maps.googleapis.com/maps/api/place/textsearch/json?query=pet+friendly+hotels+in+${encodeURIComponent(parsed.destination)}&key=${googleApiKey}`
   );
   const hotelData = await hotelResponse.json();
-  const hotels = hotelData.results?.slice(0, 2).map((h: any) => ({ name: h.name, address: h.formatted_address })) || [];
+  const hotels = hotelData.results?.slice(0, 2).map((h: PlaceResult) => ({ name: h.name, address: h.formatted_address })) || [];
   console.log("Hotel Data:", hotels);
 
   const vetResponse = await fetch(
     `https://maps.googleapis.com/maps/api/place/textsearch/json?query=veterinarian+in+${encodeURIComponent(parsed.destination)}&key=${googleApiKey}`
   );
   const vetData = await vetResponse.json();
-  const vets = vetData.results?.slice(0, 2).map((v: any) => ({ name: v.name, address: v.formatted_address })) || [];
+  const vets = vetData.results?.slice(0, 2).map((v: PlaceResult) => ({ name: v.name, address: v.formatted_address })) || [];
   console.log("Vet Data:", vets);
 
-  const prompt = `Using this data: [${parsed.airline}: ${airlineData?.crate_carrier_size_max || "21.5x15.5x9 carrier"}, $${airlineData?.fees_usd || 50} fee], [${parsed.destination}: ${JSON.stringify(policyData?.entry_requirements || [])}], [Activity: ${activitiesData?.name || "Jardin des Tuileries"}], [Hotels: ${JSON.stringify(hotels)}], [Vets: ${JSON.stringify(vets)}], generate a full travel itinerary for a small, anxious ${parsed.petType} named ${parsed.petName} from ${parsed.origin} to ${parsed.destination}, ${parsed.dates.start}-${parsed.dates.end}. Include a detailed prep timeline with explicit vet appointment timing and paperwork approval locations based on medical/vaccination requirements, plus travel day logistics and pet-friendly activities in ${parsed.destination}. Present it in a clear, organized format with bullet points.`;
+  const prompt = `Using this data: [${parsed.airline}: ${airlineData?.crate_carrier_size_max || "21.5x15.5x9 carrier"}, $${airlineData?.fees_usd || 50} fee], [${parsed.destination}: ${JSON.stringify(policyData?.entry_requirements || [])}], [configuration: ${activitiesData?.name || "Jardin des Tuileries"}], [Hotels: ${JSON.stringify(hotels)}], [Vets: ${JSON.stringify(vets)}], generate a full travel itinerary for a small, anxious ${parsed.petType} named ${parsed.petName} from ${parsed.origin} to ${parsed.destination}, ${parsed.dates.start}-${parsed.dates.end}. Include a detailed prep timeline with explicit vet appointment timing and paperwork approval locations based on medical/vaccination requirements, plus travel day logistics and pet-friendly activities in ${parsed.destination}. Present it in a clear, organized format with bullet points.`;
 
   console.log("Generated Prompt for Itinerary:", prompt);
 
