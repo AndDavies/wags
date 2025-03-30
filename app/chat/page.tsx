@@ -53,7 +53,7 @@ function ChatInitializer({
     const input = searchParams.get("input");
     if (input && stage === "greeting" && !hasInitialized.current) {
       console.log("Starting Chat from Query Param:", input);
-      hasInitialized.current = true; // Prevent re-run
+      hasInitialized.current = true;
       sendMessage(decodeURIComponent(input));
     }
   }, [searchParams, stage, sendMessage]);
@@ -124,8 +124,8 @@ export default function ChatPage() {
       }
 
       if (stage === "greeting") setStage("planning");
-    } catch (error) {
-      console.error("Error Sending Message:", error.message || error);
+    } catch (error: unknown) { // Changed to unknown
+      console.error("Error Sending Message:", error instanceof Error ? error.message : String(error));
       const errorMessage: ChatMessage = { id: Date.now().toString(), role: "assistant", content: "Oops, something went wrong! Try again?" };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
