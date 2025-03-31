@@ -10,6 +10,12 @@ const openai = new OpenAI({
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
+// Define a type for Google Places API results
+interface PlaceResult {
+  name: string;
+  [key: string]: unknown; // Allow other properties without enforcing them
+}
+
 async function fetchPlaces(destination: string, tags: string[]): Promise<string[]> {
   try {
     const query = `pet-friendly ${tags.join(' ')} in ${destination}`;
@@ -18,7 +24,7 @@ async function fetchPlaces(destination: string, tags: string[]): Promise<string[
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Places API failed with status: ${response.status}`);
     const data = await response.json();
-    const results = data.results.slice(0, 3).map((place: any) => place.name);
+    const results = data.results.slice(0, 3).map((place: PlaceResult) => place.name);
     console.log('Places API results:', results);
     return results;
   } catch (error) {
@@ -34,7 +40,7 @@ async function fetchVets(destination: string): Promise<string[]> {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Vets API failed with status: ${response.status}`);
     const data = await response.json();
-    const results = data.results.slice(0, 2).map((place: any) => place.name);
+    const results = data.results.slice(0, 2).map((place: PlaceResult) => place.name);
     console.log('Vets API results:', results);
     return results;
   } catch (error) {
@@ -50,7 +56,7 @@ async function fetchHotels(destination: string): Promise<string[]> {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Hotels API failed with status: ${response.status}`);
     const data = await response.json();
-    const results = data.results.slice(0, 2).map((place: any) => place.name);
+    const results = data.results.slice(0, 2).map((place: PlaceResult) => place.name);
     console.log('Hotels API results:', results);
     return results;
   } catch (error) {
