@@ -1,148 +1,258 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from '@/lib/supabase-server';
+import OpenAI from 'openai';
+import { v4 as uuidv4 } from 'uuid';
 
-interface Part { type: string; text: string; }
-interface ChatMessage { role: string; content: string; parts?: Part[]; memory?: ConversationMemory; }
-interface ConversationMemory { destination?: string; travelDates?: { start: string; end: string }; petTypes?: string[]; petNames?: string[]; airline?: string }
-interface ChatResponse { content: string; updatedMemory: ConversationMemory; }
+export const runtime = 'edge';
 
-async function extractTripDetails(message: string): Promise<{ origin: string; destination: string; petType: string; dates: { start: string; end: string }; airline: string; petName: string }> {
-  const originMatch = message.match(/from\s+([A-Za-z\s]+),?/i) || ["", "Unknown"];
-  const datesMatch = message.match(/([A-Za-z]+\s+\d+(-\d+)?)/i) || ["", "June 1-10"];
-  const destinationMatch = message.match(/(?:to|in)\s+([A-Za-z\s]+),?/i) || ["", "France"];
-  const petMatch = message.match(/(dog|cat|ferret)/i) || ["", "dog"];
-  const airlineMatch = message.match(/(Air Canada|Southwest|[A-Za-z\s]+)\s+booked/i) || ["", "Air Canada"];
-  const petNameMatch = message.match(/my\s+(dog|cat|ferret)\s+(?:is\s+)?([A-Za-z]+)/i);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-  const parsed = {
-    origin: originMatch[1].trim(),
-    dates: { start: datesMatch[1].split("-")[0].trim(), end: datesMatch[1].split("-")[1]?.trim() || datesMatch[1].split("-")[0].trim() },
-    destination: destinationMatch[1].trim(),
-    petType: petMatch[1].toLowerCase(),
-    airline: airlineMatch[1].trim(),
-    petName: petNameMatch ? petNameMatch[2].trim() : "Max",
-  };
-  console.log("Extracted Trip Details:", parsed);
-  return parsed;
-}
+const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
-async function generateItinerary(parsed: { origin: string; destination: string; petType: string; dates: { start: string; end: string }; airline: string; petName: string }): Promise<string> {
-  const supabase = await createClient();
-  const { data: airlineData } = await supabase.from("airlines").select("*").eq("airline", parsed.airline).single();
-  const { data: policyData } = await supabase.from("pet_policies").select("entry_requirements").eq("country_name", parsed.destination).single();
-  const { data: activitiesData } = await supabase.from("activities").select("name").eq("location", `${parsed.destination}, France`).limit(1).single();
-
-  const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
-  if (!googleApiKey) throw new Error("Missing GOOGLE_PLACES_API_KEY");
-
-  const hotelResponse = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=pet+friendly+hotels+in+${encodeURIComponent(parsed.destination)}&key=${googleApiKey}`);
-  const hotelData = await hotelResponse.json();
-  const hotels = hotelData.results?.slice(0, 2).map((h: any) => ({ name: h.name, address: h.formatted_address })) || [];
-
-  const vetResponse = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=veterinarian+in+${encodeURIComponent(parsed.destination)}&key=${googleApiKey}`);
-  const vetData = await vetResponse.json();
-  const vets = vetData.results?.slice(0, 2).map((v: any) => ({ name: v.name, address: v.formatted_address })) || [];
-
-  const prompt = `Using this data: [${parsed.airline}: ${airlineData?.crate_carrier_size_max || "21.5x15.5x9 carrier"}, $${airlineData?.fees_usd || 50} fee], [${parsed.destination}: ${JSON.stringify(policyData?.entry_requirements || [])}], [Activity: ${activitiesData?.name || "Jardin des Tuileries"}], [Hotels: ${JSON.stringify(hotels)}], [Vets: ${JSON.stringify(vets)}], generate a full travel itinerary for a small, anxious ${parsed.petType} named ${parsed.petName} from ${parsed.origin} to ${parsed.destination}, ${parsed.dates.start}-${parsed.dates.end}. Include a detailed prep timeline with explicit vet appointment timing and paperwork approval locations based on medical/vaccination requirements, plus travel day logistics and pet-friendly activities in ${parsed.destination}. Present it in a clear, organized format with bullet points.`;
-
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  if (!geminiApiKey) throw new Error("Missing GEMINI_API_KEY");
-
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
-    }),
-  });
-
-  const result = await response.json();
-  if (!response.ok || result.error) throw new Error(result.error?.message || "Gemini API call failed");
-
-  return result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Sorry, I couldn’t generate a response right now.";
-}
-
-async function getEntryRequirements(message: string, memory: ConversationMemory): Promise<string> {
-  const supabase = await createClient();
-  const destination = memory.destination || "France";
-  const petName = memory.petNames?.[0] || "your pet";
-
-  const { data: policyData } = await supabase.from("pet_policies").select("entry_requirements").eq("country_name", destination).single();
-
-  const prompt = `Using this data: [${destination}: ${JSON.stringify(policyData?.entry_requirements || [])}], explain the entry requirements for bringing a dog named ${petName} into ${destination} from Canada. Present it in a clear, organized format with bullet points.`;
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  if (!geminiApiKey) throw new Error("Missing GEMINI_API_KEY");
-
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
-    }),
-  });
-
-  const result = await response.json();
-  if (!response.ok || result.error) throw new Error(result.error?.message || "Gemini API call failed");
-
-  return result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Sorry, I couldn’t fetch entry requirements right now.";
-}
-
-async function askFollowUp(message: string, memory: ConversationMemory): Promise<string> {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  if (!geminiApiKey) throw new Error("Missing GEMINI_API_KEY");
-
-  const prompt = `Previous context: ${JSON.stringify(memory)}. The user said: "${message}". Ask a concise follow-up question to clarify their intent, using the context if relevant, or provide a helpful response if the intent is clear.`;
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 100, temperature: 0.7 },
-    }),
-  });
-
-  const result = await response.json();
-  if (!response.ok || result.error) throw new Error(result.error?.message || "Gemini API call failed");
-
-  return result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Could you clarify what you’d like me to help with?";
-}
-
-export async function POST(req: NextRequest) {
+async function fetchPlaces(destination: string, tags: string[]): Promise<string[]> {
   try {
-    const { content, memory: previousMemory } = (await req.json()) as ChatMessage;
-    console.log("User Input Received:", content, "Previous Memory:", previousMemory);
-
-    let generatedText: string;
-    let updatedMemory: ConversationMemory = previousMemory || {};
-
-    const lowerContent = content.toLowerCase();
-    if (lowerContent.match(/(to|in)\s+[a-z\s]+.*(june|july|\d+-\d+)/i) || lowerContent.includes("trip")) {
-      const parsed = await extractTripDetails(content);
-      generatedText = await generateItinerary(parsed);
-      updatedMemory = {
-        destination: parsed.destination,
-        travelDates: parsed.dates,
-        petTypes: [parsed.petType],
-        petNames: [parsed.petName],
-        airline: parsed.airline,
-      };
-    } else if (lowerContent.includes("entry requirements") || lowerContent.includes("enter") || lowerContent.includes("medical documents")) {
-      generatedText = await getEntryRequirements(content, updatedMemory);
-    } else {
-      generatedText = await askFollowUp(content, updatedMemory);
-    }
-
-    const chatResponse: ChatResponse = {
-      content: generatedText,
-      updatedMemory,
-    };
-    console.log("Chat Response Prepared:", chatResponse);
-
-    return NextResponse.json(chatResponse, { status: 200 });
+    const query = `pet-friendly ${tags.join(' ')} in ${destination}`;
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${PLACES_API_KEY}`;
+    console.log('Fetching Places API:', url);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Places API failed with status: ${response.status}`);
+    const data = await response.json();
+    const results = data.results.slice(0, 3).map((place: any) => place.name);
+    console.log('Places API results:', results);
+    return results;
   } catch (error) {
-    console.error("Chat API Error:", error);
-    return NextResponse.json({ content: "Oops, something went wrong! Try again?" }, { status: 500 });
+    console.error('Error fetching Places API:', error);
+    return ['Explore local parks'];
   }
+}
+
+async function fetchVets(destination: string): Promise<string[]> {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=vet+clinic+near+${encodeURIComponent(destination)}&key=${PLACES_API_KEY}`;
+    console.log('Fetching Vets API:', url);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Vets API failed with status: ${response.status}`);
+    const data = await response.json();
+    const results = data.results.slice(0, 2).map((place: any) => place.name);
+    console.log('Vets API results:', results);
+    return results;
+  } catch (error) {
+    console.error('Error fetching Vets API:', error);
+    return ['Local Vet Clinic'];
+  }
+}
+
+async function fetchHotels(destination: string): Promise<string[]> {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=pet-friendly+hotels+near+${encodeURIComponent(destination)}&key=${PLACES_API_KEY}`;
+    console.log('Fetching Hotels API:', url);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Hotels API failed with status: ${response.status}`);
+    const data = await response.json();
+    const results = data.results.slice(0, 2).map((place: any) => place.name);
+    console.log('Hotels API results:', results);
+    return results;
+  } catch (error) {
+    console.error('Error fetching Hotels API:', error);
+    return ['Pet-Friendly Hotel'];
+  }
+}
+
+export async function POST(req: Request) {
+  console.log('Received POST request');
+  const { messages }: { messages: { role: string; content: string }[] } = await req.json();
+  console.log('Messages:', messages);
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || null;
+  console.log('User ID:', userId || 'No authenticated user');
+
+  // Retrieve or initialize conversation
+  let conversationId = uuidv4();
+  let tripData = {
+    departure: '',
+    destination: '',
+    petType: '',
+    travelDate: '',
+    activityTags: [] as string[],
+    activities: [] as string[],
+  };
+
+  const existingConv = await supabase
+    .from('conversations')
+    .select('id, trip_data')
+    .eq('user_id', userId || 'anonymous')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (existingConv.data) {
+    conversationId = existingConv.data.id;
+    tripData = existingConv.data.trip_data || tripData;
+  }
+
+  // Update tripData based on user messages
+  for (const m of messages.filter(msg => msg.role === 'user')) {
+    const text = m.content.toLowerCase();
+    if (text.includes('to') && !tripData.departure) {
+      [tripData.departure, tripData.destination] = text.split(' to ').map((s: string) => s.trim());
+      tripData.destination = tripData.destination.split(' with ')[0].trim();
+    }
+    if (text.includes('with') && !tripData.petType) tripData.petType = text.split('with')[1].split('on')[0].trim();
+    if (text.includes('on') && !tripData.travelDate) tripData.travelDate = text.split('on')[1].trim();
+    else if (['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'].some(month => text.includes(month)) && !tripData.travelDate) {
+      tripData.travelDate = m.content;
+    }
+    const activityKeywords = ['relaxing', 'adventure', 'cultural', 'romantic', 'family', 'luxury', 'budget', 'solo', 'historical', 'culinary', 'wellness', 'eco'];
+    if (text.includes('yes') || activityKeywords.some(tag => text.includes(tag))) {
+      tripData.activityTags = text.split(/[, ]+/).filter(tag => activityKeywords.includes(tag.toLowerCase()));
+    }
+  }
+
+  const lastMessage = messages[messages.length - 1].content.toLowerCase();
+  let tripId: string | null = null;
+  let additionalContent = '';
+
+  // Save or update conversation with tripData
+  const { error: convError } = await supabase
+    .from('conversations')
+    .upsert({
+      id: conversationId,
+      user_id: userId || 'anonymous',
+      history_json: JSON.stringify(messages),
+      trip_data: tripData,
+    });
+  if (convError) console.error('Supabase conversation error:', convError);
+  else console.log('Conversation saved/updated with ID:', conversationId);
+
+  // Function definitions for OpenAI
+  const functions = [
+    {
+      name: 'fetchPlaces',
+      description: 'Fetch pet-friendly activities for a destination based on tags',
+      parameters: {
+        type: 'object',
+        properties: {
+          destination: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['destination', 'tags'],
+      },
+    },
+    {
+      name: 'fetchVets',
+      description: 'Fetch vet clinics near a destination',
+      parameters: {
+        type: 'object',
+        properties: {
+          destination: { type: 'string' },
+        },
+        required: ['destination'],
+      },
+    },
+    {
+      name: 'fetchHotels',
+      description: 'Fetch pet-friendly hotels near a destination',
+      parameters: {
+        type: 'object',
+        properties: {
+          destination: { type: 'string' },
+        },
+        required: ['destination'],
+      },
+    },
+  ];
+
+  console.log('Calling OpenAI API with function calling...');
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: `You are a friendly, expert pet travel assistant for Wags & Wanders. Your goal is to craft a DREAM pet-friendly trip step-by-step. Follow this flow:
+        1. Ask for origin and destination if not provided.
+        2. Ask for pet type if missing (assume 'dog' if unclear).
+        3. Ask for travel date if missing (assume 'Next Month' if not given).
+        4. Ask for activities (e.g., Relaxing Beach, Adventure, Cultural Immersion) if not specified, confirm them, and assume 'Family-Friendly, Adventure' if none given.
+        5. Once origin and destination are gathered, ask: "Are you ready to build your dream itinerary?" even with partial data.
+        6. If they say "yes," call fetchPlaces with tags: ${tripData.activityTags.join(', ') || 'family, adventure'}, then create a 5-day itinerary with activities spread across days, flights, a hotel placeholder, and vets from fetchVets.
+        7. If concerned (e.g., "nervous"), call fetchVets and reassure them.
+        8. If hotels mentioned, call fetchHotels.
+        - Detect sentiment and intent from their last message: "${lastMessage}".
+        - Summarize trip details (e.g., "So far: Origin: Paris, Pet: Dog") before each question.
+        - Format itinerary richly with bold headings and icons (e.g., **Day 1: Arrival**, **✈️ Activity:**).
+        - Embed API data with bold labels and icons (e.g., **✈️ Activities:**, **🐾 Vets:**).
+        - End with "Looks good? Want to tweak anything?" after itinerary.
+        - Keep it engaging with emojis (🐾✨)!`,
+      },
+      ...messages.map((msg) => ({
+        role: msg.role as 'system' | 'user' | 'assistant',
+        content: msg.content,
+      })),
+    ],
+    functions,
+    function_call: 'auto',
+    temperature: 0.7,
+    stream: false,
+  });
+
+  const responseMessage = completion.choices[0].message;
+  console.log('OpenAI response:', responseMessage.content);
+
+  if (responseMessage.function_call) {
+    const { name, arguments: args } = responseMessage.function_call;
+    const parsedArgs = JSON.parse(args);
+    if (name === 'fetchPlaces' && parsedArgs.destination && parsedArgs.tags) {
+      tripData.activities = await fetchPlaces(parsedArgs.destination, parsedArgs.tags);
+      additionalContent = `\n\n**✈️ Activities:** ${tripData.activities.map(a => `📍 ${a}`).join(', ')}.`;
+    } else if (name === 'fetchVets' && parsedArgs.destination) {
+      const vets = await fetchVets(parsedArgs.destination);
+      additionalContent = `\n\n**🐾 Vets:** ${vets.map(v => `📍 ${v}`).join(', ')}.`;
+    } else if (name === 'fetchHotels' && parsedArgs.destination) {
+      const hotels = await fetchHotels(parsedArgs.destination);
+      additionalContent = `\n\n**🏨 Hotels:** ${hotels.map(h => `📍 ${h}`).join(', ')}.`;
+    }
+  }
+
+  if (lastMessage.includes('yes') && (lastMessage.includes('itinerary') || tripData.departure && tripData.destination)) {
+    tripId = uuidv4();
+    // Assume defaults if missing
+    if (!tripData.petType) tripData.petType = 'dog';
+    if (!tripData.travelDate) tripData.travelDate = 'Next Month';
+    if (!tripData.activityTags.length) tripData.activityTags = ['family', 'adventure'];
+    tripData.activities = await fetchPlaces(tripData.destination, tripData.activityTags);
+    const vets = await fetchVets(tripData.destination);
+    const activityList = tripData.activities.length ? tripData.activities : ['Explore local parks'];
+    const fullTripData = {
+      id: tripId,
+      user_id: userId || 'anonymous',
+      departure: tripData.departure,
+      destination: tripData.destination,
+      dates: tripData.travelDate ? { start: tripData.travelDate } : { start: 'TBD' },
+      travelers: tripData.petType ? { pet: { type: tripData.petType } } : { pet: { type: 'dog' } },
+      method: 'flight',
+      status: 'upcoming',
+      itinerary: { steps: [{ from: tripData.departure, to: tripData.destination, method: 'flight', activities: tripData.activities }] },
+      tips: { general: 'Check pet import rules and pack comfort items.' },
+    };
+    const { error: tripError } = await supabase.from('trips').insert(fullTripData);
+    if (tripError) console.error('Supabase trip error:', tripError);
+    else console.log('Trip saved with ID:', tripId);
+    additionalContent = `Here’s your DREAM itinerary from ${tripData.departure} to ${tripData.destination} for your ${tripData.petType}! ✨\n\n**Day 1: Arrival in ${tripData.destination}**  \n- **✈️ Travel:** Depart ${tripData.departure} to ${tripData.destination} Airport (book via Expedia).  \n- **🏨 Stay:** Check into a pet-friendly hotel (e.g., Conrad ${tripData.destination}).  \n- **💡 Tip:** Rest up after your journey—your ${tripData.petType} deserves it!\n\n**Day 2: ${tripData.activityTags[0] || 'Explore'}**  \n- **✈️ Activity:** ${activityList[0] ? `📍 ${activityList[0]}` : 'Explore local parks'}.\n\n**Day 3: ${tripData.activityTags[1] || 'Discover'}**  \n- **✈️ Activity:** ${activityList[1] ? `📍 ${activityList[1]}` : 'Visit a local market'}.\n\n**Day 4: ${tripData.activityTags[2] || 'Relax'}**  \n- **✈️ Activity:** ${activityList[2] ? `📍 ${activityList[2]}` : 'Enjoy a quiet day'}.\n\n**Day 5: Departure**  \n- **✈️ Travel:** Return flight from ${tripData.destination} Airport.  \n- **🐾 Vets:** ${vets.map(v => `📍 ${v}`).join(', ')}.\n\nLooks good? Want to tweak anything? 🐾✨`;
+  }
+
+  const response = {
+    id: uuidv4(),
+    role: 'assistant',
+    content: (responseMessage.content || '') + additionalContent,
+    tripId: tripId || undefined,
+    tripData,
+  };
+
+  return new Response(JSON.stringify(response), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
