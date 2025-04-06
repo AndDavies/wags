@@ -6,17 +6,25 @@ import { Button } from '@/components/ui/button';
 import SidePanel from '@/components/ui/side-panel';
 import { createClient } from '@/lib/supabase-client';
 
+// Define a type for side-panel data
+interface SidePanelData {
+  title: string;
+  content: string;
+  imageUrl?: string;
+  bookingLink?: string;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  sidePanelData?: any;
+  sidePanelData?: SidePanelData;
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sidePanelContent, setSidePanelContent] = useState<any>(null);
+  const [sidePanelContent, setSidePanelContent] = useState<SidePanelData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
@@ -69,7 +77,7 @@ export default function ChatPage() {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: data.message,
-        sidePanelData: data.sidePanelData // This will be used in the future
+        sidePanelData: data.sidePanelData // Typed as SidePanelData
       }]);
 
     } catch (error) {
@@ -109,7 +117,7 @@ export default function ChatPage() {
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 {message.sidePanelData && (
                   <button
-                    onClick={() => setSidePanelContent(message.sidePanelData)}
+                    onClick={() => setSidePanelContent(message.sidePanelData ?? null)} // Fixed undefined to null
                     className="mt-2 text-sm underline"
                   >
                     View Details
@@ -157,4 +165,4 @@ export default function ChatPage() {
       </div>
     </div>
   );
-} 
+}
