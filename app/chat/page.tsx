@@ -17,23 +17,21 @@ interface SidePanelData {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  sidePanelData?: SidePanelData;
+  sidePanelData?: any;
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sidePanelContent, setSidePanelContent] = useState<SidePanelData | null>(null);
+  const [sidePanelContent, setSidePanelContent] = useState<any>(null);
+  const [streamedContent, setStreamedContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Scroll to bottom of messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Initial greeting based on PRD
+  // Initial greeting on mount
   useEffect(() => {
     setMessages([
       {
@@ -43,13 +41,45 @@ export default function ChatPage() {
     ]);
   }, []);
 
+  // Clean up any ongoing requests when component unmounts
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Handle streaming response from the Grok API
+  const processStreamData = (data: string) => {
+    try {
+      if (data === "[DONE]") return;
+      
+      const parsed = JSON.parse(data);
+      const content = parsed.choices[0]?.delta?.content || '';
+      
+      if (content) {
+        setStreamedContent(prev => prev + content);
+      }
+    } catch (e) {
+      console.error('Error parsing stream data:', e);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: input };
+    
+    // Update the messages with the user's input
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setStreamedContent('');
+
+    // Create a new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       // Prepare messages for API in the format expected by Grok
@@ -64,35 +94,93 @@ export default function ChatPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ 
+          messages: apiMessages,
+          stream: true // Enable streaming
+        }),
+        signal
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from server');
+        const errorText = await response.text();
+        console.error(`API error (${response.status}):`, errorText);
+        throw new Error(`API error: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      // Add the bot's response to the messages
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data.message,
-        sidePanelData: data.sidePanelData // Typed as SidePanelData
-      }]);
+      // Handle the streaming response
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No reader available in response');
+      }
 
-    } catch (error) {
-      console.error('Error sending message:', error);
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode the chunk and add it to our buffer
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        // Process any complete SSE messages
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep any incomplete line for the next chunk
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            processStreamData(data);
+          }
+        }
+      }
+
+      // Process any remaining data in the buffer
+      if (buffer && buffer.startsWith('data: ')) {
+        const data = buffer.slice(6);
+        processStreamData(data);
+      }
+
+      // Add the complete response to messages
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: streamedContent,
+        sidePanelData: null // Will be updated later when we implement structured data
       }]);
+      
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log('Request was cancelled');
+      } else {
+        console.error('Error sending message:', error);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Sorry, I encountered an error processing your request. Please try again.'
+        }]);
+      }
     } finally {
       setIsLoading(false);
+      setStreamedContent('');
+      abortControllerRef.current = null;
+    }
+  };
+
+  const cancelRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'I stopped generating the response.'
+      }]);
+      setStreamedContent('');
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50" ref={containerRef}>
       {/* Main Chat Area - Left Panel */}
       <div className="flex-1 flex flex-col border-r border-gray-200">
         {/* Chat Header */}
@@ -117,7 +205,7 @@ export default function ChatPage() {
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 {message.sidePanelData && (
                   <button
-                    onClick={() => setSidePanelContent(message.sidePanelData ?? null)} // Fixed undefined to null
+                    onClick={() => setSidePanelContent(message.sidePanelData)}
                     className="mt-2 text-sm underline"
                   >
                     View Details
@@ -126,6 +214,14 @@ export default function ChatPage() {
               </div>
             </div>
           ))}
+          {/* Streaming content */}
+          {streamedContent && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-lg p-4 bg-white border border-gray-200">
+                <p className="whitespace-pre-wrap">{streamedContent}</p>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -141,9 +237,15 @@ export default function ChatPage() {
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               disabled={isLoading}
             />
-            <Button onClick={handleSendMessage} disabled={isLoading}>
-              {isLoading ? 'Sending...' : 'Send'}
-            </Button>
+            {isLoading ? (
+              <Button onClick={cancelRequest} variant="destructive">
+                Stop
+              </Button>
+            ) : (
+              <Button onClick={handleSendMessage} disabled={!input.trim()}>
+                Send
+              </Button>
+            )}
           </div>
         </div>
       </div>

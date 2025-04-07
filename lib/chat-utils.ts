@@ -52,7 +52,7 @@ export async function getGrokChatResponse(
 
   try {
     console.log('Sending request to Grok API...');
-    const response = await fetch('https://api.grok.com/v1/chat/completions', {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,6 +69,8 @@ export async function getGrokChatResponse(
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Grok API error (${response.status}):`, errorText);
       throw new Error(`Grok API responded with status: ${response.status}`);
     }
 
@@ -87,5 +89,81 @@ export async function getGrokChatResponse(
   } catch (error) {
     console.error('Error fetching response from Grok API:', error);
     return 'Sorry, I encountered an error while processing your request. Please try again later.';
+  }
+}
+
+/**
+ * Sends a streaming request to the Grok API.
+ * 
+ * @param messageHistory - The conversation history
+ * @returns A Response object with a streaming body
+ */
+export async function streamGrokChatResponse(
+  messageHistory: ChatMessage[]
+): Promise<Response> {
+  if (!grokApiKey) {
+    return new Response(
+      'data: {"choices":[{"delta":{"content":"Sorry, my chat capabilities are currently offline."}}]}\n\ndata: [DONE]\n\n', 
+      {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      }
+    );
+  }
+
+  // System prompt
+  const systemPrompt: ChatMessage = {
+    role: 'system',
+    content: `You are Wags & Wanders, a proactive, uplifting, and trustworthy pet travel planner chatbot. 
+    Your goal is to help users plan joyful, seamless trips with their pets (cats and dogs primarily).
+    - Start conversations by asking clarifying questions (work hours, travel style: city/nature, family/solo/luxury) to personalize suggestions.
+    - Proactively suggest destinations, activities (like parks, cafes, coworking spaces), and lodging, tailored to user needs (digital nomad, family, luxury).
+    - Provide precise, actionable pet policy information (like required documents, vet visit timelines).
+    - Keep responses concise, use bullet points for lists, and maintain a positive, empowering tone.
+    - When suggesting things, mention *why* it fits the user's stated preferences.`
+  };
+
+  // Make streaming API request to Grok
+  try {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${grokApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'grok-2-1212',
+        messages: [systemPrompt, ...messageHistory],
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 1500,
+      })
+    });
+
+    // Return the streaming response directly
+    return new Response(response.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+  } catch (error) {
+    console.error('Error setting up Grok API stream:', error);
+    
+    // Return an error in the correct SSE format so the client can handle it
+    return new Response(
+      'data: {"choices":[{"delta":{"content":"Sorry, I encountered an error. Please try again later."}}]}\n\ndata: [DONE]\n\n', 
+      {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      }
+    );
   }
 } 

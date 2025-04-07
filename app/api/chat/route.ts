@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getGrokChatResponse } from '@/lib/chat-utils';
+import { getGrokChatResponse, streamGrokChatResponse } from '@/lib/chat-utils';
 
 // Define the expected request body type
 interface ChatRequest {
@@ -7,6 +7,7 @@ interface ChatRequest {
     role: 'user' | 'assistant' | 'system';
     content: string;
   }>;
+  stream?: boolean;
 }
 
 export async function POST(request: Request) {
@@ -21,7 +22,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get response from Grok API
+    // If streaming is requested, use our streamGrokChatResponse utility
+    if (body.stream) {
+      return streamGrokChatResponse(body.messages);
+    }
+
+    // Non-streaming response
     const response = await getGrokChatResponse(body.messages);
 
     if (!response) {
@@ -31,11 +37,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Return the response
     return NextResponse.json({ 
       message: response,
-      // In the future, we'll add structured data here for the side panel
-      // sidePanelData: { ... }
+      sidePanelData: null // This will be updated when we implement structured data
     });
 
   } catch (error) {

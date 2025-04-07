@@ -1,3 +1,86 @@
+# Wags & Wanders - Pet Travel Planner
+
+Wags & Wanders is a pet travel planning platform that helps pet owners plan trips with their furry companions. This README documents the chatbot functionality.
+
+## Chatbot Implementation
+
+The Wags & Wanders chatbot is built with the following technologies:
+
+- **Frontend**: Next.js, React, TypeScript, and TailwindCSS
+- **AI Model**: Grok (grok-2-1212)
+- **Backend**: Next.js API routes, Supabase for data
+
+### Key Features
+
+- **Real-time Streaming**: Responses appear as they're generated for a smooth user experience
+- **Two-panel Layout**: Chat panel on the left, rich content panel on the right
+- **Contextual Suggestions**: Personalized recommendations based on the user's preferences
+- **Mobile-responsive Design**: Works well on all screen sizes
+
+### Implementation Details
+
+The chatbot consists of the following key components:
+
+1. **Chat Page (`app/chat/page.tsx`)**:
+   - Manages chat state including messages, input, and loading states
+   - Implements streaming UX for smooth response generation
+   - Connects to the chat API endpoint to process messages
+   - Handles cancellation of requests with AbortController
+
+2. **API Route (`app/api/chat/route.ts`)**:
+   - Receives and validates chat requests
+   - Connects to the Grok API
+   - Supports both streaming and non-streaming responses
+   - Handles errors gracefully
+
+3. **Chat Utilities (`lib/chat-utils.ts`)**:
+   - Contains helper functions for interacting with the Grok API
+   - Implements both streaming and non-streaming response handling
+   - Formats system prompts and handles error cases
+
+4. **Side Panel Component (`components/ui/side-panel.tsx`)**:
+   - Displays rich content related to chat suggestions
+   - Provides UI for destination details, images, and booking links
+
+### Environment Variables
+
+The following environment variables need to be set in `.env.local`:
+
+```
+GROK_API_KEY=your_grok_api_key
+```
+
+### Future Enhancements
+
+Planned enhancements for the chatbot include:
+
+1. **Structured Data Parsing**: Automatically detect and extract recommended destinations
+2. **Location Maps**: Integrate maps for suggested destinations
+3. **User Preferences**: Store and recall user preferences
+4. **Multi-modal Support**: Add image upload capability for pet photos
+
+## Development
+
+### Getting Started
+
+1. Install dependencies:
+   ```
+   npm install
+   ```
+
+2. Set up environment variables:
+   Create a `.env.local` file with necessary API keys
+
+3. Run the development server:
+   ```
+   npm run dev
+   ```
+
+4. Access the chatbot at:
+   ```
+   http://localhost:3000/chat
+   ```
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
