@@ -1,39 +1,74 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { motion } from "framer-motion"
-import { Outfit, Pacifico } from "next/font/google"
-import { cn } from "@/lib/utils"
-import ScrollIndicator from "./ScrollIndicator"
-import { Calendar, ChevronRight, MapPin, PawPrint } from "lucide-react"
+import { useState, useEffect, FormEvent } from "react"; // Fixed FormEvent import
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Outfit, Pacifico } from "next/font/google";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import ScrollIndicator from "./ScrollIndicator";
+import { Send, Globe, ChevronRight, MapPin, Users, PawPrint } from "lucide-react"; // Added PawPrint
 
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
-})
+});
 
 const pacifico = Pacifico({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-pacifico",
-})
+});
 
 export default function Hero() {
-  const [isMobile, setIsMobile] = useState(false)
-  const [isZoomingIn, setIsZoomingIn] = useState(true)
+  const [isMobile, setIsMobile] = useState(false);
+  const [isZoomingIn, setIsZoomingIn] = useState(true);
+  const [inputValue, setInputValue] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [])
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => setIsZoomingIn((prev) => !prev), 15000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(() => setIsZoomingIn((prev) => !prev), 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (inputValue.trim()) {
+      setIsLoading(true);
+      router.push(`/chat?input=${encodeURIComponent(inputValue.trim())}`);
+    }
+  };
+
+  const handleSuggestion = (text: string) => {
+    setIsLoading(true);
+    router.push(`/chat?input=${encodeURIComponent(text)}`);
+  };
+
+  // Loader animation variants
+  const pawVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: (i: number) => ({
+      opacity: 1,
+      scale: 1,
+      transition: {
+        delay: i * 0.2,
+        duration: 0.6,
+        repeat: Infinity,
+        repeatType: "reverse" as const,
+        ease: "easeInOut",
+      },
+    }),
+  };
 
   return (
     <div className={`relative w-full min-h-screen overflow-hidden ${outfit.variable}`} style={{ zIndex: 1 }}>
@@ -75,51 +110,88 @@ export default function Hero() {
           </p>
         </motion.div>
 
-        <motion.div
+        <motion.form
+          onSubmit={handleSubmit}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="w-full max-w-4xl mx-auto mb-8 flex flex-col sm:flex-row gap-4 justify-center"
+          className="w-full max-w-4xl mx-auto mb-8 relative"
         >
-          <motion.a
-            href="/create-trip"
-            className="flex-1 bg-[#30B8C4] hover:bg-[#2aa6b1] text-white rounded-xl py-5 px-6 shadow-lg transition-all flex items-center justify-center gap-3 text-lg font-medium group"
-            whileHover={{ scale: 1.03, boxShadow: "0 10px 25px -5px rgba(48, 184, 196, 0.4)" }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Calendar className="h-5 w-5" />
-            <span>Plan Your Journey</span>
-            <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-          </motion.a>
-
-          <motion.a
-            href="/join-our-pack"
-            className="flex-1 bg-white text-slate-800 rounded-xl py-5 px-6 shadow-lg border border-slate-100 transition-all flex items-center justify-center gap-3 text-lg font-medium group"
-            whileHover={{ scale: 1.03, boxShadow: "0 10px 25px -5px rgba(255, 229, 229, 0.4)" }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <PawPrint className="h-5 w-5 text-[#FFE5E5]" />
-            <span>Join Our Pack</span>
-            <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-          </motion.a>
-        </motion.div>
+          <div className="relative">
+            <Input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Create a weekend getaway..."
+              className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-pink-500 shadow-sm disabled:opacity-75"
+              disabled={isLoading}
+            />
+            <Button
+              type="submit"
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-full p-3 transition-all shadow-sm flex items-center justify-center",
+                inputValue.trim()
+                  ? "hover:shadow-md hover:from-pink-600 hover:to-pink-700 active:scale-95"
+                  : "opacity-75 cursor-not-allowed"
+              )}
+              aria-label="Send message"
+              disabled={isLoading || !inputValue.trim()}
+            >
+              {isLoading ? (
+                <div className="flex space-x-1">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      variants={pawVariants}
+                      initial="hidden"
+                      animate="visible"
+                      custom={i}
+                      className="w-2 h-2"
+                    >
+                      <PawPrint className="w-4 h-4 text-white" />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+        </motion.form>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.8 }}
-          className="flex justify-center"
+          className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
         >
-          <motion.a
-            href="/directory"
-            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30 rounded-full py-3 px-6 transition-all flex items-center gap-2 shadow-sm group"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
+          <Button
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
+            onClick={() => handleSuggestion("Create a new Trip")}
+            disabled={isLoading}
           >
-            <MapPin className="h-4 w-4" />
-            <span>Explore Pet-Friendly Destinations</span>
-            <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transform duration-200" />
-          </motion.a>
+            <Globe className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
+            <span>Create a new Trip</span>
+            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+          </Button>
+          <Button
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
+            onClick={() => handleSuggestion("Inspire me where to go")}
+            disabled={isLoading}
+          >
+            <MapPin className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
+            <span>Inspire me where to go</span>
+            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+          </Button>
+          <Button
+            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
+            onClick={() => handleSuggestion("Find pet-friendly hotels")}
+            disabled={isLoading}
+          >
+            <Users className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
+            <span>Find pet-friendly hotels</span>
+            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+          </Button>
         </motion.div>
 
         <motion.div
@@ -137,6 +209,5 @@ export default function Hero() {
       </div>
       <ScrollIndicator />
     </div>
-  )
+  );
 }
-
