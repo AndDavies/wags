@@ -17,6 +17,7 @@ const eslintConfig = [
       "react/no-unescaped-entities": "off",
       "@next/next/no-page-custom-font": "off",
       "@typescript-eslint/ban-ts-comment": "off", // Disable ban-ts-comment rule globally
+      "react-hooks/exhaustive-deps": "warn"
     },
   },
 ];
