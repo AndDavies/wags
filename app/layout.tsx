@@ -113,7 +113,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="bg-background text-foreground min-h-screen flex flex-col">
+      <body 
+        className="bg-background text-foreground min-h-screen flex flex-col"
+        suppressHydrationWarning
+      >
         <SpeedInsights />
         <ToastProvider>
           <Notifications />
