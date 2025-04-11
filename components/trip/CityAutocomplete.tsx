@@ -120,15 +120,15 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
             } else if (err.message.includes('Failed to fetch') || err.message.includes('Network request failed')) {
               setErrorType('network');
             } else {
-              setErrorType('unknown');
+              setErrorType(null);
             }
             setError('Mapbox API error: ' + err.message);
           });
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error initializing Mapbox:', err);
         setApiAvailable(false);
-        setErrorType('unknown');
-        setError('Failed to initialize Mapbox: ' + err.message);
+        setErrorType(null);
+        setError('Failed to initialize Mapbox: ' + (err instanceof Error ? err.message : String(err)));
       }
     }
   }, []);
@@ -207,16 +207,17 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
           setSuggestions([]);
           setShowSuggestions(false);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error fetching suggestions:', error);
-        setError(`Failed to get suggestions: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setError(`Failed to get suggestions: ${errorMessage}`);
         setSuggestions([]);
         setShowSuggestions(false);
         
         // Set error type based on error message
-        if (error.message.includes('403')) {
+        if (errorMessage.includes('403')) {
           setErrorType('url-restriction');
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('Network request failed')) {
+        } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network request failed')) {
           setErrorType('network');
         }
       } finally {

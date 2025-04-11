@@ -102,8 +102,8 @@ export default function TripBuilderClient() {
       const newTrip: Trip = {
         title: `Trip to ${tripData.primaryDestination}`,
         destination: tripData.primaryDestination,
-        startDate: tripData.startDate,
-        endDate: tripData.endDate,
+        startDate: tripData.startDate ? new Date(tripData.startDate) : null as unknown as string | Date,
+        endDate: tripData.endDate ? new Date(tripData.endDate) : null as unknown as string | Date,
         days,
         petDetails: {
           type: tripData.petType,

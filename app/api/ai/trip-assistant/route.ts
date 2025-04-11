@@ -136,11 +136,14 @@ export async function POST(req: NextRequest) {
       text: responseText,
       suggestedActivities
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in trip assistant API:', error);
     
-    const statusCode = error.status || 500;
-    const errorMessage = error.message || 'An error occurred while processing your request';
+    // Type assertion for the error
+    const typedError = error as { status?: number; message?: string };
+    
+    const statusCode = typedError.status || 500;
+    const errorMessage = typedError.message || 'An error occurred while processing your request';
     
     return NextResponse.json(
       { error: errorMessage },
