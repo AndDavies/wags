@@ -2,6 +2,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@/lib/supabase-server';
 
+// Define types for the request and response
+type TripDetails = {
+  destination: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  petDetails: {
+    type: string;
+    size: string;
+    breed?: string;
+  };
+  preferences?: {
+    budget?: string;
+    accommodationType?: string[];
+    interests?: string[];
+  };
+};
+
+type Message = {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+};
+
+type SuggestedActivity = {
+  type: 'activity' | 'hotel' | 'restaurant';
+  title: string;
+  description: string;
+  location?: string;
+  isPetFriendly: boolean;
+};
+
+type ApiRequest = {
+  messages: Message[];
+  trip: TripDetails;
+};
+
+type ApiResponse = {
+  text: string;
+  suggestedActivities?: SuggestedActivity[];
+};
+
 // Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -15,53 +55,45 @@ export async function POST(req: NextRequest) {
     const { data: { session } } = await supabase.auth.getSession();
     
     // Get request body
-    const body = await req.json();
-    const { messages, temperature = 0.7, max_tokens = 1000 } = body;
+    const body = await req.json() as ApiRequest;
+    const { messages, trip } = body;
     
-    if (!messages || !Array.isArray(messages)) {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
-        { error: 'Invalid request: messages array is required' },
+        { error: 'Messages array is required' },
         { status: 400 }
       );
     }
     
-    // Prepare the default system message if not provided
-    const hasSystemMessage = messages.some(msg => msg.role === 'system');
-    
-    if (!hasSystemMessage) {
-      messages.unshift({
-        role: 'system',
-        content: `
-You are a helpful AI assistant for Wags & Wanders, a pet travel planning platform. Your goal is to help users 
-plan pet-friendly trips, provide information about pet travel requirements, and offer advice on traveling with pets.
-
-When responding to users:
-1. Be concise and friendly
-2. Focus on pet-related travel information
-3. Suggest pet-friendly activities, accommodations, and restaurants when appropriate
-4. When making suggestions, ask if they'd like to add these to their itinerary
-5. Provide accurate information about pet travel regulations and requirements
-6. Be helpful and supportive for all types of pets
-
-You have access to a database of pet-friendly hotels, airlines with pet policies, and activities.
-If asked about specific policies, indicate that the user can check the directory on Wags & Wanders.
-`
-      });
+    if (!trip || !trip.destination) {
+      return NextResponse.json(
+        { error: 'Trip details are required' },
+        { status: 400 }
+      );
     }
     
-    // Make API call to OpenAI
+    // Create system prompt with trip details
+    const systemPrompt = createSystemPrompt(trip);
+    
+    // Add system prompt to beginning of messages array
+    const fullMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ];
+    
+    // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      })),
-      temperature,
-      max_tokens,
+      model: 'gpt-4',
+      messages: fullMessages as OpenAI.Chat.ChatCompletionMessageParam[],
+      temperature: 0.7,
+      max_tokens: 500
     });
     
-    // Extract the response content
-    const content = response.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response.';
+    // Extract response text
+    const responseText = response.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+    
+    // Extract suggested activities if any
+    const suggestedActivities = extractSuggestedActivities(responseText);
     
     // Save the conversation if user is authenticated
     if (session?.user) {
@@ -70,7 +102,7 @@ If asked about specific policies, indicate that the user can check the directory
       // Add the new response to messages
       const updatedMessages = [
         ...messages,
-        { role: 'assistant', content }
+        { role: 'assistant', content: responseText }
       ];
       
       // Check if there's an existing conversation
@@ -100,10 +132,9 @@ If asked about specific policies, indicate that the user can check the directory
       }
     }
     
-    // Return the response
     return NextResponse.json({
-      content,
-      usage: response.usage
+      text: responseText,
+      suggestedActivities
     });
   } catch (error: any) {
     console.error('Error in trip assistant API:', error);
@@ -116,4 +147,84 @@ If asked about specific policies, indicate that the user can check the directory
       { status: statusCode }
     );
   }
+}
+
+// Helper function to create system prompt
+function createSystemPrompt(trip: TripDetails): string {
+  const { destination, startDate, endDate, petDetails, preferences } = trip;
+  
+  // Format dates
+  const formattedStartDate = typeof startDate === 'string' ? startDate : startDate.toDateString();
+  const formattedEndDate = typeof endDate === 'string' ? endDate : endDate.toDateString();
+  
+  // Basic prompt
+  let prompt = `You are an expert travel assistant specializing in pet-friendly travel. The user is planning a trip to ${destination} from ${formattedStartDate} to ${formattedEndDate} with their ${petDetails.size} ${petDetails.type}`;
+  
+  // Add pet breed if available
+  if (petDetails.breed) {
+    prompt += ` (${petDetails.breed})`;
+  }
+  
+  prompt += '.\n\n';
+  
+  // Add preferences if available
+  if (preferences) {
+    prompt += 'Trip preferences:\n';
+    
+    if (preferences.budget) {
+      prompt += `- Budget: ${preferences.budget}\n`;
+    }
+    
+    if (preferences.accommodationType?.length) {
+      prompt += `- Accommodation types: ${preferences.accommodationType.join(', ')}\n`;
+    }
+    
+    if (preferences.interests?.length) {
+      prompt += `- Interests: ${preferences.interests.join(', ')}\n`;
+    }
+    
+    prompt += '\n';
+  }
+  
+  // Add instructions for the assistant
+  prompt += `When suggesting specific activities, hotels, or restaurants, identify them clearly by saying "SUGGESTION: [type]" where type is one of: activity, hotel, restaurant. Include location, description, and whether it's pet-friendly.
+
+Example:
+SUGGESTION: hotel
+Name: Pet Paradise Hotel
+Location: Downtown
+Description: Luxury hotel with pet amenities
+Pet-friendly: Yes
+
+Provide helpful, specific advice for traveling with pets to ${destination}. Focus on pet-friendly accommodations, activities, restaurants, and transportation options. Consider the specific needs of a ${petDetails.size} ${petDetails.type} when making suggestions.`;
+  
+  return prompt;
+}
+
+// Helper function to extract suggested activities from response text
+function extractSuggestedActivities(text: string): SuggestedActivity[] {
+  const activities: SuggestedActivity[] = [];
+  
+  // Use regex to find suggestions in the format 
+  // SUGGESTION: type
+  // Name: name
+  // Location: location (optional)
+  // Description: description
+  // Pet-friendly: yes/no
+  const regex = /SUGGESTION:\s*(\w+)\s*\n+Name:\s*([^\n]+)\s*\n+(?:Location:\s*([^\n]+)\s*\n+)?Description:\s*([^\n]+)\s*\n+Pet-friendly:\s*(\w+)/gi;
+  
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const [_, type, title, location, description, petFriendly] = match;
+    
+    activities.push({
+      type: type.toLowerCase() as 'activity' | 'hotel' | 'restaurant',
+      title,
+      description,
+      location,
+      isPetFriendly: petFriendly.toLowerCase() === 'yes'
+    });
+  }
+  
+  return activities;
 } 

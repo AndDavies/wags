@@ -122,7 +122,7 @@ export function TripModalStepper({
     }
   }, [tripData]);
   
-  const updateTripData = (field: keyof TripData, value: any) => {
+  const updateTripData = (field: keyof TripData, value: string | string[] | number | Date | null | boolean) => {
     setTripData(prev => ({
       ...prev,
       [field]: value

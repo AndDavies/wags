@@ -22,6 +22,26 @@ const TripChatbot = dynamic(
   { ssr: false }
 );
 
+// Define a type for the trip data coming from the form
+type TripFormData = {
+  primaryDestination: string;
+  additionalCities: string[];
+  startDate: Date | null;
+  endDate: Date | null;
+  origin: string;
+  petType: string;
+  petSize: string;
+  petBreed: string;
+  temperament: string;
+  numPeople: number;
+  tripType: string;
+  budget: 'budget' | 'moderate' | 'luxury' | string;
+  accommodationType: string[];
+  interests: string[];
+  additionalInfo: string;
+  [key: string]: unknown; // For any additional fields that might be present
+};
+
 export default function TripBuilderClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -55,7 +75,7 @@ export default function TripBuilderClient() {
   }, []);
 
   // Function to handle creating a new trip
-  const handleCreateTrip = async (tripData: any, closeModal = true) => {
+  const handleCreateTrip = async (tripData: TripFormData, closeModal = true) => {
     setIsLoading(true);
     setError(null);
     

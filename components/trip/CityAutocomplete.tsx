@@ -10,14 +10,30 @@ import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 
-interface CityAutocompleteProps {
+type GeocoderResult = {
+  id: string;
+  place_name: string;
+  text: string;
+  center: [number, number];
+  place_type: string[];
+  [key: string]: unknown;
+};
+
+type GeocodeResponse = {
+  features: GeocoderResult[];
+  attribution: string;
+  query: string[];
+  type: string;
+};
+
+type CityAutocompleteProps = {
+  id: string;
   label: string;
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
-  id?: string;
   required?: boolean;
-}
+};
 
 const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   label,
@@ -27,15 +43,17 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   id,
   required = false,
 }) => {
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<GeocoderResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [apiAvailable, setApiAvailable] = useState(true);
-  const [errorType, setErrorType] = useState<'token' | 'url_restriction' | 'network' | 'unknown' | null>(null);
+  const [errorType, setErrorType] = useState<'token' | 'url-restriction' | 'network' | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const geocoderRef = useRef<MapboxGeocoder | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [currentUrl, setCurrentUrl] = useState('');
   
   // Initialize Mapbox on client-side only
   useEffect(() => {
@@ -82,7 +100,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
             if (!response.ok) {
               if (response.status === 403) {
                 // 403 Forbidden usually indicates URL restriction issues
-                setErrorType('url_restriction');
+                setErrorType('url-restriction');
                 throw new Error(`Mapbox API error: 403 - URL restrictions might be in place for this token`);
               }
               throw new Error(`Mapbox API error: ${response.status} ${response.statusText}`);
@@ -98,7 +116,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
             console.error('Mapbox API test failed:', err);
             setApiAvailable(false);
             if (err.message.includes('403')) {
-              setErrorType('url_restriction');
+              setErrorType('url-restriction');
             } else if (err.message.includes('Failed to fetch') || err.message.includes('Network request failed')) {
               setErrorType('network');
             } else {
@@ -172,7 +190,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
         
         if (!response.ok) {
           if (response.status === 403) {
-            setErrorType('url_restriction');
+            setErrorType('url-restriction');
             throw new Error(`API returned 403: URL restrictions might be in place for this token`);
           }
           throw new Error(`API returned ${response.status}: ${response.statusText}`);
@@ -197,7 +215,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
         
         // Set error type based on error message
         if (error.message.includes('403')) {
-          setErrorType('url_restriction');
+          setErrorType('url-restriction');
         } else if (error.message.includes('Failed to fetch') || error.message.includes('Network request failed')) {
           setErrorType('network');
         }
@@ -210,7 +228,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
     }
   };
   
-  const handleSelectSuggestion = (suggestion: any) => {
+  const handleSelectSuggestion = (suggestion: GeocoderResult) => {
     console.log('Selected suggestion:', suggestion);
     const placeName = suggestion.place_name.split(',')[0]; // Get just the city name
     setInputValue(placeName);
@@ -238,7 +256,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
             <AlertCircle className="h-3 w-3 mt-0.5 mr-1 flex-shrink-0" />
             <div>
               <p>City suggestions unavailable</p>
-              {errorType === 'url_restriction' && (
+              {errorType === 'url-restriction' && (
                 <p className="mt-1">URL restriction error: Your Mapbox token may have URL restrictions. Go to <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noreferrer" className="underline">Mapbox account</a> and add your website URL to token restrictions.</p>
               )}
             </div>
@@ -268,6 +286,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
           placeholder={placeholder}
           className={`pr-8 ${isLoading ? 'bg-gray-50' : ''}`}
           required={required}
+          ref={inputRef}
         />
         {isLoading ? (
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4">
