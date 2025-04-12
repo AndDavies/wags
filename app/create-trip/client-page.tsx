@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Trip, TripActivity, TripDay } from '@/lib/trip-service';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import ItineraryView from '@/components/trip/ItineraryView';
 
 // Dynamically import components that might cause hydration issues
 const TripModalStepper = dynamic(
@@ -34,11 +35,11 @@ type TripFormData = {
   petBreed: string;
   temperament: string;
   numPeople: number;
-  tripType: string;
+  numChildren: number;
+  numPets: number;
   budget: 'budget' | 'moderate' | 'luxury' | string;
   accommodationType: string[];
   interests: string[];
-  additionalInfo: string;
   [key: string]: unknown; // For any additional fields that might be present
 };
 
@@ -98,6 +99,16 @@ export default function TripBuilderClient() {
         }
       }
       
+      // Process accommodation type to ensure it's an array
+      const accommodationType = Array.isArray(tripData.accommodationType) 
+        ? tripData.accommodationType 
+        : [tripData.accommodationType].filter(Boolean);
+      
+      // Process interests to ensure it's an array
+      const interests = Array.isArray(tripData.interests)
+        ? tripData.interests
+        : [tripData.interests].filter(Boolean);
+      
       // Create trip object
       const newTrip: Trip = {
         title: `Trip to ${tripData.primaryDestination}`,
@@ -113,11 +124,9 @@ export default function TripBuilderClient() {
         },
         preferences: {
           budget: tripData.budget as 'budget' | 'moderate' | 'luxury',
-          tripType: tripData.tripType,
-          interests: tripData.interests,
-          accommodationType: Array.isArray(tripData.accommodationType) 
-            ? tripData.accommodationType 
-            : [tripData.accommodationType].filter(Boolean)
+          tripType: (tripData as any).tripType || '',
+          interests: interests,
+          accommodationType: accommodationType
         }
       };
       
@@ -369,101 +378,45 @@ export default function TripBuilderClient() {
           
           {/* Timeline view */}
           <div className="w-full md:w-2/3 bg-white rounded-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold">Your Itinerary</h2>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" className="text-xs">
-                  <Hotel className="h-3.5 w-3.5 mr-1" /> Add Hotel
-                </Button>
-                <Button size="sm" variant="outline" className="text-xs">
-                  <Car className="h-3.5 w-3.5 mr-1" /> Add Transport
-                </Button>
-                <Button size="sm" variant="outline" className="text-xs">
-                  <MapPin className="h-3.5 w-3.5 mr-1" /> Add Activity
-                </Button>
-                <Button size="sm" variant="outline" className="text-xs">
-                  <Utensils className="h-3.5 w-3.5 mr-1" /> Add Restaurant
-                </Button>
-              </div>
-            </div>
-            
-            {/* Trip timeline */}
-            <Timeline>
-              {trip.days.map((day, index) => (
-                <TimelineItem key={index} step={index + 1}>
-                  <TimelineSeparator />
-                  <TimelineIndicator>
-                    <span className="sr-only">Day {index + 1}</span>
-                  </TimelineIndicator>
-                  <TimelineHeader>
-                    <TimelineDate>
-                      {day.date instanceof Date ? day.date.toLocaleDateString('en-US', { 
-                        weekday: 'short',
-                        month: 'short', 
-                        day: 'numeric' 
-                      }) : new Date(day.date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </TimelineDate>
-                    <TimelineTitle>
-                      Day {index + 1}: {index === 0 ? `Arrive in ${trip.destination}` : `Explore ${trip.destination}`}
-                    </TimelineTitle>
-                  </TimelineHeader>
-                  <TimelineContent>
-                    {day.activities.length === 0 ? (
-                      <div className="py-4 text-gray-500 italic">
-                        No activities planned yet. Use the buttons above or ask the Travel Assistant to add activities.
-                      </div>
-                    ) : (
-                      <div className="space-y-3 py-2">
-                        {day.activities.map((activity) => (
-                          <div key={activity.id} className="border border-gray-200 rounded-md p-3">
-                            <div className="flex justify-between">
-                              <h4 className="font-medium">{activity.title}</h4>
-                              {activity.isPetFriendly && (
-                                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
-                                  Pet-Friendly
-                                </span>
-                              )}
-                            </div>
-                            {activity.description && (
-                              <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
-                            )}
-                            {activity.location && (
-                              <div className="flex items-center mt-2 text-xs text-gray-500">
-                                <MapPin className="h-3 w-3 mr-1" />
-                                {activity.location}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+            <ItineraryView 
+              trip={trip}
+              onAddActivity={addActivity}
+              onEditActivity={(dayIndex, activityId, updatedActivity) => {
+                if (!trip) return;
+                
+                try {
+                  const newTrip = { ...trip };
+                  const activityIndex = newTrip.days[dayIndex].activities.findIndex(a => a.id === activityId);
+                  
+                  if (activityIndex !== -1) {
+                    newTrip.days[dayIndex].activities[activityIndex] = {
+                      ...updatedActivity,
+                      id: activityId
+                    };
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary hover:text-primary/80 mt-2"
-                      onClick={() => {
-                        // Sample activity for demo purposes
-                        addActivity(index, {
-                          type: 'activity',
-                          title: 'Visit Dog-Friendly Park',
-                          description: 'A beautiful park with dedicated areas for dogs to play off-leash',
-                          location: `${trip.destination} Central Park`,
-                          isPetFriendly: true
-                        });
-                      }}
-                    >
-                      <PlusCircle className="h-4 w-4 mr-1" />
-                      Add Activity
-                    </Button>
-                  </TimelineContent>
-                </TimelineItem>
-              ))}
-            </Timeline>
+                    setTrip(newTrip);
+                  }
+                } catch (err) {
+                  console.error('Error editing activity:', err);
+                  setError('Failed to edit activity. Please try again.');
+                }
+              }}
+              onDeleteActivity={(dayIndex, activityId) => {
+                if (!trip) return;
+                
+                try {
+                  const newTrip = { ...trip };
+                  newTrip.days[dayIndex].activities = newTrip.days[dayIndex].activities.filter(
+                    activity => activity.id !== activityId
+                  );
+                  
+                  setTrip(newTrip);
+                } catch (err) {
+                  console.error('Error deleting activity:', err);
+                  setError('Failed to delete activity. Please try again.');
+                }
+              }}
+            />
           </div>
         </div>
       )}
@@ -472,7 +425,7 @@ export default function TripBuilderClient() {
         <TripModalStepper 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
-          onComplete={handleCreateTrip}
+          onComplete={(data) => handleCreateTrip(data as TripFormData)}
         />
       )}
     </>

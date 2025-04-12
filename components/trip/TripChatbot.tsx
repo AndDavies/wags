@@ -20,6 +20,24 @@ type ChatMessage = {
   content: string;
 };
 
+// Add custom ChatResponse type for our component
+interface ChatResponse {
+  message: Message;
+  text?: string;
+  suggestions?: SuggestedActivity[];
+  suggestedActions?: SuggestedAction[];
+}
+
+interface SuggestedActivity {
+  type: 'activity' | 'hotel' | 'restaurant';
+  title: string;
+  description: string;
+  location?: string;
+  isPetFriendly: boolean;
+  startTime?: string;
+  endTime?: string;
+}
+
 export function TripChatbot({ 
   trip, 
   onAddActivity, 
@@ -62,20 +80,31 @@ export function TripChatbot({
         tripData: trip || undefined
       });
       
+      // Extract text from response.message
+      const responseText = response.message.content;
+      
       // Add AI message
-      setMessages(prev => [...prev, { role: 'assistant', content: response.text }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
+      
+      // Extract suggestions from the response text
+      const extractedSuggestions = extractSuggestedActivities(responseText);
       
       // Handle suggested activities, hotels, restaurants if provided
-      if (response.suggestions) {
-        response.suggestions.forEach(suggestion => {
+      if (extractedSuggestions.length > 0) {
+        extractedSuggestions.forEach((suggestion: SuggestedActivity) => {
           if (suggestion.type === 'activity') {
             onAddActivity(suggestion);
-          } else if (suggestion.type === 'hotel' || suggestion.type === 'accommodation') {
+          } else if (suggestion.type === 'hotel') {
             onAddHotel(suggestion);
           } else if (suggestion.type === 'restaurant') {
             onAddRestaurant(suggestion);
           }
         });
+      }
+      
+      // Set suggested actions from response
+      if (response.suggestedActions) {
+        setSuggestedActions(response.suggestedActions);
       }
     } catch (error) {
       const err = error as Error;
@@ -232,6 +261,121 @@ export function TripChatbot({
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  // Add the function to extract time from the AI response
+  const extractTimeFromActivity = (activityText: string): { startTime?: string; endTime?: string } => {
+    // Look for time patterns like "9:00 AM - 11:00 AM" or "2PM - 4:30PM" 
+    const timePattern = /(\d{1,2}(?::\d{2})?(?:\s*[AP]M)?)\s*(?:-|to)\s*(\d{1,2}(?::\d{2})?(?:\s*[AP]M)?)/i;
+    const match = activityText.match(timePattern);
+    
+    if (match && match.length >= 3) {
+      // Convert to 24-hour format for HTML time input
+      const formatTimeTo24 = (timeStr: string): string => {
+        let [time, modifier] = timeStr.split(/(?=[AP]M)/i);
+        if (!modifier) {
+          // If no AM/PM specified, assume based on hour
+          const hour = parseInt(time.split(':')[0], 10);
+          modifier = hour < 8 || hour === 12 ? 'PM' : 'AM';
+        }
+        
+        let [hours, minutes = '00'] = time.replace(/[^\d:]/g, '').split(':');
+        let hoursNum = parseInt(hours, 10);
+        
+        if (modifier.toUpperCase() === 'PM' && hoursNum < 12) {
+          hoursNum += 12;
+        } else if (modifier.toUpperCase() === 'AM' && hoursNum === 12) {
+          hoursNum = 0;
+        }
+        
+        return `${hoursNum.toString().padStart(2, '0')}:${minutes.padEnd(2, '0')}`;
+      };
+      
+      try {
+        return {
+          startTime: formatTimeTo24(match[1]),
+          endTime: formatTimeTo24(match[2])
+        };
+      } catch (e) {
+        console.error('Error parsing activity time:', e);
+        return {};
+      }
+    }
+    
+    return {};
+  };
+  
+  // Then update where you extract activities
+  const extractSuggestedActivities = (text: string): SuggestedActivity[] => {
+    const suggestions: SuggestedActivity[] = [];
+    
+    // Look for activity suggestions in a few formats
+    const patterns = [
+      /I suggest (.*?)(?:\n|$)/gi,
+      /You could visit (.*?)(?:\n|$)/gi,
+      /Try (.*?)(?:\n|$)/gi,
+      /How about (.*?)(?:\n|$)/gi,
+      /Consider (.*?)(?:\n|$)/gi,
+      // Add more patterns as needed
+    ];
+    
+    patterns.forEach(pattern => {
+      const matches = text.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1]) {
+          const activityText = match[1].trim();
+          const { startTime, endTime } = extractTimeFromActivity(activityText);
+          
+          // Determine the type based on keywords
+          const lowerText = activityText.toLowerCase();
+          let type: SuggestedActivity['type'] = 'activity';
+          
+          if (lowerText.includes('hotel') || lowerText.includes('stay') || lowerText.includes('accommodation')) {
+            type = 'hotel';
+          } else if (lowerText.includes('restaurant') || lowerText.includes('eat') || lowerText.includes('dining') || lowerText.includes('cafe')) {
+            type = 'restaurant';
+          }
+          
+          // Extract location if present (anything after "at" or "in")
+          let location = undefined;
+          const locationMatch = activityText.match(/(?:at|in)\s+(.+?)(?:\.|\(|$)/i);
+          if (locationMatch && locationMatch[1]) {
+            location = locationMatch[1].trim();
+          }
+          
+          // Basic description extraction
+          let title = activityText;
+          let description = '';
+          
+          if (activityText.includes(':')) {
+            [title, description] = activityText.split(':', 2).map(s => s.trim());
+          } else if (activityText.includes('-')) {
+            [title, description] = activityText.split('-', 2).map(s => s.trim());
+          } else if (activityText.includes('(')) {
+            title = activityText.split('(')[0].trim();
+            description = activityText.match(/\((.*?)\)/)?.[1] || '';
+          }
+          
+          // Limit title length
+          if (title.length > 50) {
+            description = description ? title.substring(50) + ' - ' + description : title.substring(50);
+            title = title.substring(0, 50) + '...';
+          }
+          
+          suggestions.push({
+            type,
+            title,
+            description,
+            location,
+            isPetFriendly: true, // Assume pet-friendly by default for the assistant's suggestions
+            startTime,
+            endTime
+          });
+        }
+      }
+    });
+    
+    return suggestions;
   };
   
   return (

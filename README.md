@@ -19,8 +19,8 @@ The trip creation process follows a specific user journey:
 
 2. **Trip Modal Stepper:** Clicking the button opens a 4-step wizard modal:
    - **Step 1: Location & Dates** - Destination, origin, travel dates, and additional cities
-   - **Step 2: Pet Details** - Pet type (dog, cat, bird, etc.) and size (small, medium, large)
-   - **Step 3: Preferences** - Number of travelers, trip type, budget, and interests
+   - **Step 2: Pet Details** - "Who's Going" section (adults, children, pets counters with service animal link), pet type (dog, cat, bird, etc.) and size (small, medium, large)
+   - **Step 3: Preferences** - Budget, accommodation types, and pet-friendly interests/activities
    - **Step 4: Review** - Final verification of all entered information
 
 3. **Data Persistence:** All entered information is automatically saved to `localStorage` as users progress, ensuring that:
@@ -65,6 +65,51 @@ User Input → TripModalStepper → localStorage → Trip Object → Itinerary V
 ```
 
 The system is designed to maximize data preservation, providing a seamless user experience even if the user needs to complete the planning process across multiple sessions.
+
+### Trip Preferences
+
+The preferences step collects important information about the travelers and their preferences:
+
+#### Who's Going
+
+This section captures information about all travelers in the group:
+
+- **Adults** - Number of adult travelers (minimum 1)
+- **Children** - Number of children (can be 0)
+- **Pets** - Number of pets (minimum 1 since it's a pet travel app)
+
+This information helps in generating appropriate recommendations for accommodations and activities that can accommodate the entire travel party.
+
+#### Budget Selection
+
+Users can select from three budget tiers:
+
+- **Budget** - Economical options
+- **Moderate** - Mid-range comfort
+- **Luxury** - Premium experience
+
+The budget selection influences the types of accommodations and activities recommended in the itinerary.
+
+#### Accommodation Types
+
+Users can select multiple accommodation types:
+
+- Hotels
+- Homes
+- Apartments
+- Hostels
+
+This helps in filtering and suggesting appropriate places to stay during the trip.
+
+#### Interests & Activities
+
+This section offers a comprehensive set of options including:
+
+- **General trip types:** Relaxation, Adventure, Cultural, Family
+- **Standard activities:** Parks, Hiking, Beaches, Restaurants, Sightseeing, etc.
+- **Pet-friendly options:** Dog Parks, Pet Trails, Pet Beaches, Pet Cafes, Pet Dining, Pet Swimming, Pet Spas, etc.
+
+Selected interests help tailor the AI-generated itinerary to match the user's preferences and include appropriate pet-friendly activities.
 
 ### City Autocomplete with Mapbox
 
@@ -134,26 +179,25 @@ A dedicated debug page is available at `/debug/map-api` which provides:
 - [ ] Test the API connection on your production environment
 - [ ] Monitor usage to stay within free tier limits or upgrade as needed
 
-#### Implementation Details
+### Debugging Features
 
-The city autocomplete component (`components/trip/CityAutocomplete.tsx`) handles:
+The trip creation module includes built-in debugging features for development:
 
-1. Real-time suggestions as you type
-2. Graceful fallback for API failures
-3. Error handling with helpful messages
-4. Proper handling of URL restriction issues
+#### Console Debugging
 
-```tsx
-// Example of the city autocomplete component usage
-<CityAutocomplete 
-  id="primaryDestination"
-  label="Where are you going?"
-  placeholder="e.g., Paris, France"
-  value={tripData.primaryDestination}
-  onChange={(value) => updateTripData('primaryDestination', value)}
-  required
-/>
-```
+When running in the development environment, the `TripModalStepper` component automatically logs trip data to the console whenever it changes:
+
+- Full trip data object (with dates properly serialized)
+- Organized sections for Location & Dates, Pet Details, and Preferences
+- Traveler counts (adults, children, pets)
+- Selected accommodations and interests
+
+This helps developers ensure data integrity and proper formatting before the data is used by the AI model and APIs for itinerary creation.
+
+To access the debug logs:
+1. Open your browser's developer tools console
+2. Interact with the trip creation form
+3. View the organized logs under the "Trip Data Debug" group
 
 ### Live Trip Preview
 
@@ -165,6 +209,82 @@ As users enter trip details, a real-time preview panel shows what the trip will 
 - Travel preferences
 
 The preview panel helps users visualize their trip as they build it and confirms their entries are being captured correctly.
+
+### Enhanced Itinerary View
+
+The trip planning experience includes a robust, interactive itinerary component:
+
+#### Timeline-Based Organization
+
+The itinerary is organized as a vertical timeline with the following features:
+
+- **Day-by-Day View**: Each day of the trip is shown as a timeline item
+- **Expandable Days**: Click on a day to focus on it and reveal editing options
+- **Time-Based Grouping**: Activities within each day are organized into:
+  - Morning activities (before 12 PM)
+  - Afternoon activities (12 PM - 6 PM)
+  - Evening activities (after 6 PM)
+
+#### Activity Management
+
+Users can fully manage their itinerary activities:
+
+- **Add Activities**: Create new activities, restaurants, hotels, or transportation
+- **Edit Existing**: Modify any aspect of an activity including time, location, and details
+- **Delete Items**: Remove activities that are no longer needed
+- **Time Scheduling**: Set specific start and end times for each activity
+
+#### Pet-Friendly Focus
+
+The itinerary maintains the app's pet-friendly focus:
+
+- **Pet-Friendly Indicator**: Clear visual markers for pet-friendly activities
+- **Toggle Option**: Easily mark/unmark activities as pet-friendly during creation or editing
+- **Filtering**: (Future feature) Filter to show only pet-friendly activities
+
+#### Activity Details
+
+Each activity in the itinerary can include rich information:
+
+- Type (hotel, restaurant, activity, transportation, vet services)
+- Title and description
+- Location details
+- Time window (start and end times)
+- Pet-friendly status
+- Optional booking URL (for hotels and restaurants)
+- Optional price information
+
+#### Intuitive UI
+
+The interface is designed for easy interaction:
+
+- Collapsible day sections to focus on specific parts of the trip
+- Visual icons to distinguish activity types
+- Edit and delete controls visible only when needed
+- Inline add buttons for quick activity creation
+
+### Service Animals Information
+
+A dedicated service animals page (`/service-animals`) provides comprehensive information for travelers with service animals:
+
+#### Key Content Areas
+
+- **Legal Rights and Protections**: Overview of service animal laws and regulations
+- **Service vs. Emotional Support Animals**: Important distinctions for travelers
+- **Transportation Considerations**: Specific guidance for air, train, and road travel
+- **Accommodation Tips**: Best practices for staying in hotels and rentals with service animals
+- **Essential Packing List**: Important items to bring when traveling with service animals
+
+#### Accessibility Focus
+
+The service animals page is designed with accessibility in mind:
+
+- Clear, structured content for easy navigation
+- High-contrast text for readability
+- Compatible with screen readers
+- Descriptive link text and ARIA labels
+
+Users can access this page via a link in the pet details section of the trip creation form, specifically in the "Who's Going?" section after the pets counter.
 
 ### Error Handling and Fallbacks
 
@@ -238,6 +358,42 @@ Planned enhancements for the chatbot include:
 2. **Location Maps**: Integrate maps for suggested destinations
 3. **User Preferences**: Store and recall user preferences
 4. **Multi-modal Support**: Add image upload capability for pet photos
+
+Planned enhancements for the itinerary and trip planning features include:
+
+1. **Interactive Map View**: Visualize the entire itinerary on a map with activity pins
+2. **Activity Recommendations**: AI-powered suggestions based on pet type, destination, and preferences 
+3. **Drag-and-Drop Scheduling**: Easier rearrangement of activities within and across days
+4. **Shared Itineraries**: Allow collaboration between multiple travelers on a single itinerary
+5. **Weather Integration**: Display forecasted weather for each day of the trip
+6. **Export Options**: Generate PDF, email, or calendar exports of the itinerary
+7. **Transportation Planning**: Add detailed transit options between activities
+8. **Reservation Management**: Direct integration with booking services for hotels and activities
+9. **Expense Tracking**: Monitor and categorize trip expenses
+10. **Offline Access**: Support for viewing itineraries without internet connection
+
+## Known Issues & Bugs
+
+The following issues are currently known and scheduled to be fixed:
+
+1. **MiniMap Component**: Fixed import error in ItineraryView component (originally using default import instead of named import)
+
+2. **TypeScript Errors**: Fixed several TypeScript errors to ensure proper build:
+   - Added proper type definitions in the TripChatbot component
+   - Created missing UI components: Textarea and Switch
+   - Fixed type compatibility issues between TripFormData and TripData
+
+3. **Build Issues on Vercel**:
+   - When pushing to Vercel, there might be build errors related to TypeScript's strict type checking
+   - As a temporary solution, a `next.config.js` file has been configured to ignore TypeScript and ESLint errors during the build process
+   - Long-term solution will involve properly addressing all TypeScript errors
+
+4. **Upcoming Tasks**:
+   - [ ] Add proper error handling for Mapbox API failures
+   - [ ] Implement activity filtering by pet-friendliness
+   - [ ] Fix time format parsing in certain browsers
+   - [ ] Add proper responsiveness for the itinerary view on mobile devices
+   - [ ] Enhance the UI for the service animals page with visual indicators
 
 ## Development
 

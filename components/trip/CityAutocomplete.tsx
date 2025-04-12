@@ -33,6 +33,7 @@ type CityAutocompleteProps = {
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  className?: string;
 };
 
 const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
@@ -42,6 +43,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   onChange,
   id,
   required = false,
+  className = ''
 }) => {
   const [suggestions, setSuggestions] = useState<GeocoderResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -241,7 +243,9 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   if (!apiAvailable) {
     return (
       <div className="space-y-2">
-        <Label htmlFor={id}>{label}{required && <span className="text-red-500">*</span>}</Label>
+        <Label htmlFor={id} className={required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''}>
+          {label}
+        </Label>
         <Input
           id={id}
           value={inputValue}
@@ -251,6 +255,7 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
           }}
           placeholder={placeholder}
           required={required}
+          className={className}
         />
         <div className="flex justify-between items-start">
           <div className="text-xs text-amber-600 flex items-start">
@@ -277,15 +282,20 @@ const CityAutocomplete: React.FC<CityAutocompleteProps> = ({
   
   return (
     <div className="relative space-y-2" ref={wrapperRef}>
-      <Label htmlFor={id}>{label}{required && <span className="text-red-500">*</span>}</Label>
+      <Label htmlFor={id} className={required ? 'after:content-["*"] after:ml-0.5 after:text-red-500' : ''}>
+        {label}
+      </Label>
       <div className="relative">
         <Input
           id={id}
+          type="text"
+          placeholder={placeholder}
           value={inputValue}
           onChange={handleInputChange}
-          onFocus={() => inputValue.length >= 2 && !error && setShowSuggestions(true)}
-          placeholder={placeholder}
-          className={`pr-8 ${isLoading ? 'bg-gray-50' : ''}`}
+          onFocus={() => setShowSuggestions(!!suggestions.length)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          autoComplete="off"
+          className={`pr-8 ${isLoading ? 'bg-gray-50' : ''} ${className}`}
           required={required}
           ref={inputRef}
         />

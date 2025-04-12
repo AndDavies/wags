@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar-rac';
-import { DateRangePicker } from '@/components/trip/DateRangePicker';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -24,10 +24,36 @@ import {
   Luggage,
   AlertTriangle,
   Car,
-  Plane
+  Plane,
+  Hotel,
+  Home,
+  Building,
+  Tent,
+  DollarSign,
+  Palmtree,
+  Mountain,
+  Utensils,
+  Camera,
+  Umbrella,
+  Music,
+  Coffee,
+  Wine,
+  Landmark,
+  ShoppingBag,
+  ArrowRight,
+  Baby,
+  UserCircle2,
+  Trees,
+  Footprints,
+  Flower,
+  Waves,
+  Leaf,
+  Sun,
+  PlaneTakeoff,
+  PlaneLanding
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addDays } from 'date-fns';
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -51,11 +77,11 @@ type TripData = {
   
   // Step 3: Preferences
   numPeople: number;
-  tripType: string;
+  numChildren: number;
+  numPets: number;
   budget: 'budget' | 'moderate' | 'luxury' | '';
   accommodationType: string[];
   interests: string[];
-  additionalInfo: string;
 };
 
 const initialTripData: TripData = {
@@ -71,11 +97,11 @@ const initialTripData: TripData = {
   temperament: '',
   petServices: [],
   numPeople: 1,
-  tripType: '',
+  numChildren: 0,
+  numPets: 1,
   budget: '',
   accommodationType: [],
   interests: [],
-  additionalInfo: '',
 };
 
 type TripModalStepperProps = {
@@ -158,7 +184,7 @@ export function TripModalStepper({
       case 2:
         return tripData.petType && tripData.petSize;
       case 3:
-        return tripData.numPeople > 0 && tripData.tripType && tripData.budget;
+        return tripData.numPeople > 0 && tripData.budget;
       case 4:
         return true;
       default:
@@ -166,11 +192,48 @@ export function TripModalStepper({
     }
   };
 
+  // Debug function to log trip data
+  const logTripData = (data: TripData) => {
+    console.group('Trip Data Debug');
+    console.log('Trip Data:', JSON.parse(JSON.stringify(data)));
+    console.log('Location & Dates:', {
+      destination: data.primaryDestination,
+      origin: data.origin,
+      dates: data.startDate && data.endDate 
+        ? `${format(data.startDate, 'MMM d, yyyy')} - ${format(data.endDate, 'MMM d, yyyy')} (${differenceInDays(data.endDate, data.startDate) + 1} days)` 
+        : 'Not set',
+      additionalCities: data.additionalCities
+    });
+    console.log('Pet Details:', {
+      type: data.petType,
+      size: data.petSize,
+      breed: data.petBreed
+    });
+    console.log('Preferences:', {
+      travelers: {
+        adults: data.numPeople,
+        children: data.numChildren,
+        pets: data.numPets
+      },
+      budget: data.budget,
+      accommodationType: data.accommodationType,
+      interests: data.interests
+    });
+    console.groupEnd();
+  };
+
+  // Log trip data whenever it changes (for development only)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      logTripData(tripData);
+    }
+  }, [tripData]);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) onClose();
     }}>
-      <DialogContent className="max-w-6xl mx-auto flex flex-col md:flex-row p-0 gap-0">
+      <DialogContent className="max-w-4xl mx-auto flex flex-col md:flex-row p-0 gap-0">
         {/* Left side: Image and trip preview */}
         <div className="w-full md:w-2/5 bg-primary/10 p-6 rounded-l-lg relative overflow-hidden">
           <div 
@@ -202,66 +265,126 @@ export function TripModalStepper({
               </div>
               
               {/* Date Preview */}
-              {(tripData.startDate || tripData.endDate) && (
-                <div>
-                  <div className="flex gap-2 items-center">
-                    <CalendarIcon className="h-5 w-5 text-primary" />
-                    <h4 className="font-medium">Dates</h4>
-                  </div>
-                  <p className="pl-7 mt-1">
-                    {tripData.startDate && tripData.endDate ? (
-                      <>
-                        {format(tripData.startDate, 'MMM d')} - {format(tripData.endDate, 'MMM d, yyyy')}
-                        <span className="text-sm text-gray-600 block">
-                          {differenceInDays(tripData.endDate, tripData.startDate) + 1} days
-                        </span>
-                      </>
-                    ) : (
-                      'Select your travel dates'
-                    )}
-                  </p>
+              <div>
+                <div className="flex gap-2 items-center">
+                  <CalendarIcon className="h-5 w-5 text-primary" />
+                  <h4 className="font-medium">Dates</h4>
                 </div>
-              )}
-              
-              {/* Pet Preview */}
-              {tripData.petType && (
-                <div>
-                  <div className="flex gap-2 items-center">
-                    <Dog className="h-5 w-5 text-primary" />
-                    <h4 className="font-medium">Pet</h4>
-                  </div>
-                  <p className="pl-7 mt-1">
-                    {tripData.petType} {tripData.petBreed && `(${tripData.petBreed})`}
-                    {tripData.petSize && (
-                      <span className="block text-sm text-gray-600">
-                        {tripData.petSize === 'small' ? 'Small (up to 20 lbs)' :
-                         tripData.petSize === 'medium' ? 'Medium (20-60 lbs)' :
-                         tripData.petSize === 'large' ? 'Large (over 60 lbs)' :
-                         tripData.petSize}
+                <p className="pl-7 mt-1">
+                  {tripData.startDate && tripData.endDate ? (
+                    <>
+                      {format(tripData.startDate, 'MMM d')} - {format(tripData.endDate, 'MMM d, yyyy')}
+                      <span className="text-sm text-gray-600 ml-2">
+                        ({differenceInDays(tripData.endDate, tripData.startDate) + 1} days)
                       </span>
-                    )}
-                  </p>
+                    </>
+                  ) : (
+                    'When will you travel?'
+                  )}
+                </p>
+              </div>
+              
+              {/* Pet Details Preview */}
+              <div>
+                <div className="flex gap-2 items-center">
+                  <PawPrint className="h-5 w-5 text-primary" />
+                  <h4 className="font-medium">Pet Details</h4>
                 </div>
-              )}
+                <div className="pl-7 mt-1">
+                  {tripData.petType ? (
+                    <div className="flex items-center gap-1">
+                      {tripData.petType === 'dog' && <Dog className="h-4 w-4 text-primary" />}
+                      {tripData.petType === 'cat' && <Cat className="h-4 w-4 text-primary" />}
+                      {tripData.petType === 'bird' && <Bird className="h-4 w-4 text-primary" />}
+                      {tripData.petType === 'rabbit' && <Rabbit className="h-4 w-4 text-primary" />}
+                      {tripData.petType === 'other' && <HelpCircle className="h-4 w-4 text-primary" />}
+                      <span className="capitalize">{tripData.petType}</span>
+                      {tripData.petSize && (
+                        <span className="text-gray-600">
+                          {' • '}
+                          {tripData.petSize === 'small' ? 'Small (up to 20 lbs)' : 
+                           tripData.petSize === 'medium' ? 'Medium (20-60 lbs)' : 
+                           'Large (over 60 lbs)'}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    'What pet will join you?'
+                  )}
+                </div>
+              </div>
               
               {/* Preferences Preview */}
-              {(tripData.numPeople > 1 || tripData.tripType || tripData.interests.length > 0) && (
+              {(tripData.budget || tripData.accommodationType.length > 0 || tripData.interests.length > 0) && (
                 <div>
                   <div className="flex gap-2 items-center">
                     <Users className="h-5 w-5 text-primary" />
                     <h4 className="font-medium">Preferences</h4>
                   </div>
-                  <div className="pl-7 mt-1">
-                    {tripData.numPeople > 1 && (
-                      <p>{tripData.numPeople} travelers</p>
+                  <div className="pl-7 mt-1 space-y-1.5">
+                    {tripData.budget && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-gray-600">Budget:</span>
+                        <div className="flex">
+                          {tripData.budget === 'budget' && <DollarSign className="h-3 w-3 text-primary" />}
+                          {tripData.budget === 'moderate' && (
+                            <>
+                              <DollarSign className="h-3 w-3 text-primary" />
+                              <DollarSign className="h-3 w-3 text-primary" />
+                            </>
+                          )}
+                          {tripData.budget === 'luxury' && (
+                            <>
+                              <DollarSign className="h-3 w-3 text-primary" />
+                              <DollarSign className="h-3 w-3 text-primary" />
+                              <DollarSign className="h-3 w-3 text-primary" />
+                            </>
+                          )}
+                        </div>
+                      </div>
                     )}
-                    {tripData.tripType && (
-                      <p className="text-sm text-gray-600">{tripData.tripType} trip</p>
+                    
+                    {tripData.accommodationType.length > 0 && (
+                      <div>
+                        <span className="text-sm text-gray-600">Accommodation:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {tripData.accommodationType.map(type => (
+                            <span key={type} className="inline-flex items-center text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                              {type === 'hotel' && <Hotel className="h-3 w-3 mr-1" />}
+                              {type === 'home' && <Home className="h-3 w-3 mr-1" />}
+                              {type === 'apartment' && <Building className="h-3 w-3 mr-1" />}
+                              {type === 'hostel' && <Tent className="h-3 w-3 mr-1" />}
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
+                    
                     {tripData.interests.length > 0 && (
-                      <p className="text-sm text-gray-600">
-                        Interests: {tripData.interests.join(', ')}
-                      </p>
+                      <div>
+                        <span className="text-sm text-gray-600">Interests:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {tripData.interests.slice(0, 3).map(interest => (
+                            <span key={interest} className="inline-flex items-center text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                              {interest === 'parks' && <Palmtree className="h-3 w-3 mr-1" />}
+                              {interest === 'hiking' && <Mountain className="h-3 w-3 mr-1" />}
+                              {interest === 'beaches' && <Umbrella className="h-3 w-3 mr-1" />}
+                              {interest === 'restaurants' && <Utensils className="h-3 w-3 mr-1" />}
+                              {interest === 'sightseeing' && <Camera className="h-3 w-3 mr-1" />}
+                              {interest === 'nightlife' && <Music className="h-3 w-3 mr-1" />}
+                              {interest === 'coffee' && <Coffee className="h-3 w-3 mr-1" />}
+                              {interest === 'wine' && <Wine className="h-3 w-3 mr-1" />}
+                              {interest === 'culture' && <Landmark className="h-3 w-3 mr-1" />}
+                              {interest === 'shopping' && <ShoppingBag className="h-3 w-3 mr-1" />}
+                              {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                            </span>
+                          ))}
+                          {tripData.interests.length > 3 && (
+                            <span className="text-xs text-gray-500">+{tripData.interests.length - 3} more</span>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -335,43 +458,138 @@ export function TripModalStepper({
           {/* Step 1: Location & Dates */}
           {step === 1 && (
             <div className="space-y-6">
-              <CityAutocomplete 
-                id="primaryDestination"
-                label="Where are you going?"
-                placeholder="e.g., Paris, France"
-                value={tripData.primaryDestination}
-                onChange={(value) => updateTripData('primaryDestination', value)}
-                required
-              />
-              
-              <CityAutocomplete 
-                id="origin"
-                label="Where are you coming from?"
-                placeholder="e.g., San Francisco, CA"
-                value={tripData.origin}
-                onChange={(value) => updateTripData('origin', value)}
-              />
-              
-              <div>
-                <Label>When are you traveling?</Label>
-                <div className="mt-2">
-                  <DateRangePicker
-                    from={tripData.startDate}
-                    to={tripData.endDate}
-                    onFromChange={(date) => updateTripData('startDate', date)}
-                    onToChange={(date) => updateTripData('endDate', date)}
+              {/* Flight-style location inputs */}
+              <div className="bg-white rounded-lg border p-4">
+                <div className="space-y-4">
+                <div className="relative">
+                  <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                    <PlaneTakeoff className="h-5 w-5 text-primary" />
+                  </div>
+                  <CityAutocomplete 
+                    id="origin"
+                    label="Where are you flying from?"
+                    placeholder="e.g., Ottawa (YOW)"
+                    value={tripData.origin}
+                    onChange={(value) => updateTripData('origin', value)}
+                    className="pl-10"
                   />
+                </div>
+                  
+                  <div className="relative">
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10">
+                      <PlaneLanding className="h-5 w-5 text-primary" />
+                    </div>
+                    <CityAutocomplete 
+                      id="primaryDestination"
+                      label="Where are you going?"
+                      placeholder="e.g., Paris (CDG)"
+                      value={tripData.primaryDestination}
+                      onChange={(value) => updateTripData('primaryDestination', value)}
+                      required
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
               </div>
               
-              <div>
-                <Label>Any additional cities you plan to visit?</Label>
+              {/* Calendar as a popover */}
+              <div className="bg-white rounded-lg border p-4">
+  <Label htmlFor="travel-dates" className="text-base font-medium block mb-2">
+    When are you traveling?
+  </Label>
+  <Popover>
+  <PopoverTrigger asChild>
+  <Button
+    id="travel-dates"
+    variant="outline"
+    className={`w-full justify-start text-left font-normal h-12 transition-colors text-foreground hover:text-foreground focus:text-foreground hover:bg-gray-50 focus:ring-2 focus:ring-primary/50 ${
+      !tripData.startDate && !tripData.endDate ? "text-muted-foreground hover:text-muted-foreground" : ""
+    }`}
+  >
+    <CalendarIcon className="mr-3 h-5 w-5 flex-shrink-0 text-foreground" />
+    <div className="flex-1 truncate">
+      {tripData.startDate && tripData.endDate ? (
+        <span className="flex items-center gap-2">
+          <span className="text-sm">
+            {format(tripData.startDate, "MMM d, yyyy")} –{" "}
+            {format(tripData.endDate, "MMM d, yyyy")}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            ({differenceInDays(tripData.endDate, tripData.startDate) + 1}{" "}
+            {differenceInDays(tripData.endDate, tripData.startDate) + 1 === 1
+              ? "day"
+              : "days"}
+            )
+          </span>
+        </span>
+      ) : (
+        <span className="text-sm">Select travel dates</span>
+      )}
+    </div>
+  </Button>
+</PopoverTrigger>
+    <PopoverContent
+      className="w-auto p-3 bg-white rounded-lg shadow-lg"
+      align="start"
+    >
+      <Calendar
+        mode="range"
+        selected={{
+          from: tripData.startDate || undefined,
+          to: tripData.endDate || undefined,
+        }}
+        onSelect={(range: DateRange | undefined) => {
+          if (range?.from) {
+            updateTripData("startDate", range.from);
+          }
+          if (range?.to) {
+            updateTripData("endDate", range.to);
+          }
+        }}
+        numberOfMonths={2}
+        defaultMonth={new Date()}
+        showOutsideDays={false}
+        pagedNavigation
+        className="border-none"
+        classNames={{
+          months: "flex gap-4 sm:gap-8",
+          month:
+            "relative first-of-type:before:hidden before:absolute max-sm:before:inset-x-2 max-sm:before:h-px max-sm:before:-top-2 sm:before:inset-y-2 sm:before:w-px before:bg-border sm:before:-left-4",
+          day_selected:
+            "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90",
+          range_middle:
+            "bg-primary/20 hover:bg-primary/30 focus:bg-primary/30 aria-selected:bg-primary/20",
+          nav_button:
+            "h-8 w-8 bg-transparent hover:bg-gray-100 rounded-full flex items-center justify-center",
+          caption_dropdowns: "flex gap-2",
+          dropdown: "rounded-md border p-2 bg-white",
+        }}
+      />
+      <div
+        className="text-xs text-muted-foreground text-center mt-2"
+        role="region"
+        aria-live="polite"
+      >
+        {tripData.startDate && tripData.endDate
+          ? `Selected: ${format(tripData.startDate, "MMM d, yyyy")} to ${format(
+              tripData.endDate,
+              "MMM d, yyyy"
+            )}`
+          : "Select a date range"}
+      </div>
+    </PopoverContent>
+  </Popover>
+</div>
+              
+              <div className="bg-white rounded-lg border p-4">
+                <Label className="text-base font-medium mb-2 block">Any additional cities you plan to visit?</Label>
                 <Input 
                   placeholder="e.g., Lyon, Bordeaux (separate with commas)"
                   value={tripData.additionalCities.join(', ')}
                   onChange={(e) => updateTripData('additionalCities', 
                     e.target.value.split(',').map(city => city.trim()).filter(Boolean)
                   )}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -380,6 +598,93 @@ export function TripModalStepper({
           {/* Step 2: Pet Details */}
           {step === 2 && (
             <div className="space-y-6">
+              {/* Who's Going Section */}
+              <div className="bg-white rounded-lg border p-4">
+                <Label className="text-lg mb-3 block">Who's Going?</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex flex-col items-center p-3 border rounded-lg">
+                    <UserCircle2 className="h-8 w-8 mb-2 text-primary" />
+                    <Label htmlFor="numPeople" className="mb-1 text-sm text-center">Adults</Label>
+                    <div className="flex items-center">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateTripData('numPeople', Math.max(1, tripData.numPeople - 1))}
+                      >
+                        -
+                      </Button>
+                      <span className="mx-3 text-lg font-medium">{tripData.numPeople}</span>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateTripData('numPeople', tripData.numPeople + 1)}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center p-3 border rounded-lg">
+                    <Baby className="h-8 w-8 mb-2 text-primary" />
+                    <Label htmlFor="numChildren" className="mb-1 text-sm text-center">Children</Label>
+                    <div className="flex items-center">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateTripData('numChildren', Math.max(0, tripData.numChildren - 1))}
+                      >
+                        -
+                      </Button>
+                      <span className="mx-3 text-lg font-medium">{tripData.numChildren}</span>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateTripData('numChildren', tripData.numChildren + 1)}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center p-3 border rounded-lg">
+                    <PawPrint className="h-8 w-8 mb-2 text-primary" />
+                    <Label htmlFor="numPets" className="mb-1 text-sm text-center">Pets</Label>
+                    <div className="flex items-center">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateTripData('numPets', Math.max(1, tripData.numPets - 1))}
+                      >
+                        -
+                      </Button>
+                      <span className="mx-3 text-lg font-medium">{tripData.numPets}</span>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateTripData('numPets', tripData.numPets + 1)}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 text-center">
+                  <a href="/service-animals" className="text-primary hover:underline text-sm">Bringing a service animal?</a>
+                </div>
+              </div>
+
               <div>
                 <Label className="text-lg mb-3 block">Type of Pet</Label>
                 <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mt-2">
@@ -479,125 +784,177 @@ export function TripModalStepper({
           {/* Step 3: Preferences */}
           {step === 3 && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="numPeople">Number of People</Label>
-                  <Input 
-                    id="numPeople"
-                    type="number"
-                    min={1}
-                    value={tripData.numPeople}
-                    onChange={(e) => updateTripData('numPeople', parseInt(e.target.value))}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="tripType">Trip Type</Label>
-                  <Select 
-                    value={tripData.tripType}
-                    onValueChange={(value) => updateTripData('tripType', value)}
-                  >
-                    <SelectTrigger id="tripType">
-                      <SelectValue placeholder="Select trip type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="relaxation">Relaxation</SelectItem>
-                      <SelectItem value="adventure">Adventure</SelectItem>
-                      <SelectItem value="cultural">Cultural</SelectItem>
-                      <SelectItem value="family">Family</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
               <div>
-                <Label htmlFor="budget">Budget</Label>
-                <Select 
-                  value={tripData.budget}
-                  onValueChange={(value: 'budget' | 'moderate' | 'luxury' | '') => updateTripData('budget', value)}
-                >
-                  <SelectTrigger id="budget">
-                    <SelectValue placeholder="Select budget" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="budget">Budget</SelectItem>
-                    <SelectItem value="moderate">Moderate</SelectItem>
-                    <SelectItem value="luxury">Luxury</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-lg mb-3 block">Budget</Label>
+                <div className="grid grid-cols-3 gap-3 mt-2">
+                  {[
+                    { 
+                      value: 'budget', 
+                      label: 'Budget', 
+                      icon: DollarSign,
+                      description: 'Economical options' 
+                    },
+                    { 
+                      value: 'moderate', 
+                      label: 'Moderate', 
+                      icon: DollarSign,
+                      description: 'Mid-range comfort' 
+                    },
+                    { 
+                      value: 'luxury', 
+                      label: 'Luxury', 
+                      icon: DollarSign,
+                      description: 'Premium experience' 
+                    }
+                  ].map(budgetOption => {
+                    const Icon = budgetOption.icon;
+                    return (
+                      <button
+                        key={budgetOption.value}
+                        type="button"
+                        className={`flex flex-row items-center justify-start p-3 border-2 rounded-lg transition-all ${
+                          tripData.budget === budgetOption.value 
+                            ? 'border-primary text-primary bg-primary/5' 
+                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        }`}
+                        onClick={() => updateTripData('budget', budgetOption.value)}
+                      >
+                        <div className={`mr-3 flex ${
+                          tripData.budget === budgetOption.value 
+                            ? 'text-primary' 
+                            : 'text-gray-500'
+                        }`}>
+                          {budgetOption.value === 'budget' && <DollarSign className="h-5 w-5" />}
+                          {budgetOption.value === 'moderate' && (
+                            <>
+                              <DollarSign className="h-5 w-5" />
+                              <DollarSign className="h-5 w-5" />
+                            </>
+                          )}
+                          {budgetOption.value === 'luxury' && (
+                            <>
+                              <DollarSign className="h-5 w-5" />
+                              <DollarSign className="h-5 w-5" />
+                              <DollarSign className="h-5 w-5" />
+                            </>
+                          )}
+                        </div>
+                        <div className="text-left">
+                          <span className="font-medium block">{budgetOption.label}</span>
+                          <p className="text-xs text-gray-500">{budgetOption.description}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               
               <div>
                 <Label className="block mb-2">Accommodation Type</Label>
-                <div className="flex flex-wrap gap-2">
-                  {['hotel', 'home', 'apartment', 'hostel'].map(type => (
-                    <button
-                      key={type}
-                      type="button"
-                      className={`px-3 py-1.5 rounded-full border text-sm ${
-                        tripData.accommodationType.includes(type) 
-                          ? 'bg-primary text-white border-primary' 
-                          : 'bg-white text-gray-700 border-gray-300'
-                      }`}
-                      onClick={() => {
-                        if (tripData.accommodationType.includes(type)) {
-                          updateTripData('accommodationType', 
-                            tripData.accommodationType.filter(t => t !== type)
-                          );
-                        } else {
-                          updateTripData('accommodationType', 
-                            [...tripData.accommodationType, type]
-                          );
-                        }
-                      }}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { value: 'hotel', label: 'Hotel', icon: Hotel },
+                    { value: 'home', label: 'Home', icon: Home },
+                    { value: 'apartment', label: 'Apartment', icon: Building },
+                    { value: 'hostel', label: 'Hostel', icon: Tent }
+                  ].map(type => {
+                    const Icon = type.icon;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        className={`flex flex-row items-center p-2 border-2 rounded-lg transition-all ${
+                          tripData.accommodationType.includes(type.value) 
+                            ? 'border-primary text-primary bg-primary/5' 
+                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        }`}
+                        onClick={() => {
+                          if (tripData.accommodationType.includes(type.value)) {
+                            updateTripData('accommodationType', 
+                              tripData.accommodationType.filter(t => t !== type.value)
+                            );
+                          } else {
+                            updateTripData('accommodationType', 
+                              [...tripData.accommodationType, type.value]
+                            );
+                          }
+                        }}
+                      >
+                        <Icon className={`h-5 w-5 mr-2 ${
+                          tripData.accommodationType.includes(type.value) 
+                            ? 'text-primary' 
+                            : 'text-gray-500'
+                        }`} />
+                        <span className="font-medium text-sm">{type.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               
               <div>
-                <Label className="block mb-2">Interests</Label>
-                <div className="flex flex-wrap gap-2">
-                  {['parks', 'hiking', 'beaches', 'restaurants', 'sightseeing'].map(interest => (
-                    <button
-                      key={interest}
-                      type="button"
-                      className={`px-3 py-1.5 rounded-full border text-sm ${
-                        tripData.interests.includes(interest) 
-                          ? 'bg-primary text-white border-primary' 
-                          : 'bg-white text-gray-700 border-gray-300'
-                      }`}
-                      onClick={() => {
-                        if (tripData.interests.includes(interest)) {
-                          updateTripData('interests', 
-                            tripData.interests.filter(i => i !== interest)
-                          );
-                        } else {
-                          updateTripData('interests', 
-                            [...tripData.interests, interest]
-                          );
-                        }
-                      }}
-                    >
-                      {interest.charAt(0).toUpperCase() + interest.slice(1)}
-                    </button>
-                  ))}
+                <Label className="text-lg mb-3 block">Interests & Activities</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pb-2">
+                  {[
+                    // General interests
+                    { value: 'relaxation', label: 'Relaxation', icon: Flower },
+                    { value: 'adventure', label: 'Adventure', icon: Mountain },
+                    { value: 'cultural', label: 'Cultural', icon: Landmark },
+                    { value: 'family', label: 'Family', icon: Users },
+                    
+                    // Standard activities
+                    { value: 'parks', label: 'Parks', icon: Palmtree },
+                    { value: 'hiking', label: 'Hiking', icon: Footprints },
+                    { value: 'beaches', label: 'Beaches', icon: Umbrella },
+                    { value: 'restaurants', label: 'Restaurants', icon: Utensils },
+                    { value: 'sightseeing', label: 'Sightseeing', icon: Camera },
+                    { value: 'nightlife', label: 'Nightlife', icon: Music },
+                    { value: 'coffee', label: 'Coffee', icon: Coffee },
+                    { value: 'wine', label: 'Wine', icon: Wine },
+                    { value: 'shopping', label: 'Shopping', icon: ShoppingBag },
+                    
+                    // Pet-friendly activities
+                    { value: 'dog-parks', label: 'Dog Parks', icon: Trees },
+                    { value: 'pet-friendly-trails', label: 'Pet Trails', icon: Footprints },
+                    { value: 'pet-friendly-beaches', label: 'Pet Beaches', icon: Sun },
+                    { value: 'pet-friendly-cafes', label: 'Pet Cafes', icon: Coffee },
+                    { value: 'pet-friendly-restaurants', label: 'Pet Dining', icon: Utensils },
+                    { value: 'pet-swimming', label: 'Pet Swimming', icon: Waves },
+                    { value: 'pet-spas', label: 'Pet Spas', icon: Flower },
+                    { value: 'nature-exploration', label: 'Nature', icon: Leaf },
+                  ].map(interest => {
+                    const Icon = interest.icon;
+                    return (
+                      <button
+                        key={interest.value}
+                        type="button"
+                        className={`flex flex-row items-center p-2 border-2 rounded-lg transition-all ${
+                          tripData.interests.includes(interest.value) 
+                            ? 'border-primary text-primary bg-primary/5' 
+                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        }`}
+                        onClick={() => {
+                          if (tripData.interests.includes(interest.value)) {
+                            updateTripData('interests', 
+                              tripData.interests.filter(i => i !== interest.value)
+                            );
+                          } else {
+                            updateTripData('interests', 
+                              [...tripData.interests, interest.value]
+                            );
+                          }
+                        }}
+                      >
+                        <Icon className={`h-5 w-5 mr-2 ${
+                          tripData.interests.includes(interest.value) 
+                            ? 'text-primary' 
+                            : 'text-gray-500'
+                        }`} />
+                        <span className="font-medium text-sm">{interest.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="additionalInfo">Additional Information</Label>
-                <textarea 
-                  id="additionalInfo"
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  placeholder="Any specific needs or preferences"
-                  value={tripData.additionalInfo}
-                  onChange={(e) => updateTripData('additionalInfo', e.target.value)}
-                  rows={3}
-                />
               </div>
             </div>
           )}
@@ -606,19 +963,22 @@ export function TripModalStepper({
           {step === 4 && (
             <div className="space-y-6">
               <div className="bg-offwhite p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">Location & Dates</h3>
+                <h3 className="font-semibold mb-2 flex items-center">
+                  <MapPin className="h-4 w-4 mr-2 text-primary" />
+                  Location & Dates
+                </h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-600">Destination:</span> 
-                    <p>{tripData.primaryDestination}</p>
+                    <span className="text-gray-600 block">Destination:</span> 
+                    <p className="font-medium">{tripData.primaryDestination || 'Not specified'}</p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Origin:</span> 
-                    <p>{tripData.origin}</p>
+                    <span className="text-gray-600 block">Origin:</span> 
+                    <p className="font-medium">{tripData.origin || 'Not specified'}</p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Travel dates:</span> 
-                    <p>
+                    <span className="text-gray-600 block">Travel dates:</span> 
+                    <p className="font-medium">
                       {tripData.startDate && tripData.endDate ? 
                         `${format(tripData.startDate, 'MMM d, yyyy')} - ${format(tripData.endDate, 'MMM d, yyyy')}` : 
                         'Not specified'}
@@ -626,101 +986,193 @@ export function TripModalStepper({
                   </div>
                   {tripData.additionalCities.length > 0 && (
                     <div>
-                      <span className="text-gray-600">Additional cities:</span> 
-                      <p>{tripData.additionalCities.join(', ')}</p>
+                      <span className="text-gray-600 block">Additional cities:</span> 
+                      <p className="font-medium">{tripData.additionalCities.join(', ')}</p>
                     </div>
                   )}
                 </div>
               </div>
               
               <div className="bg-offwhite p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">Pet Details</h3>
+                <h3 className="font-semibold mb-2 flex items-center">
+                  <PawPrint className="h-4 w-4 mr-2 text-primary" />
+                  Pet Details
+                </h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-600">Pet type:</span> 
-                    <p className="capitalize">{tripData.petType}</p>
+                    <span className="text-gray-600 block">Pet type:</span> 
+                    <p className="capitalize font-medium flex items-center">
+                      {tripData.petType === 'dog' && <Dog className="h-4 w-4 mr-1 text-primary" />}
+                      {tripData.petType === 'cat' && <Cat className="h-4 w-4 mr-1 text-primary" />}
+                      {tripData.petType === 'bird' && <Bird className="h-4 w-4 mr-1 text-primary" />}
+                      {tripData.petType === 'rabbit' && <Rabbit className="h-4 w-4 mr-1 text-primary" />}
+                      {tripData.petType === 'other' && <HelpCircle className="h-4 w-4 mr-1 text-primary" />}
+                      {tripData.petType || 'Not specified'}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Size:</span> 
-                    <p>{
+                    <span className="text-gray-600 block">Size:</span> 
+                    <p className="font-medium">{
                       tripData.petSize === 'small' ? 'Small (up to 20 lbs)' :
                       tripData.petSize === 'medium' ? 'Medium (20-60 lbs)' :
                       tripData.petSize === 'large' ? 'Large (over 60 lbs)' :
-                      tripData.petSize
+                      tripData.petSize || 'Not specified'
                     }</p>
                   </div>
                   {tripData.petBreed && (
                     <div>
-                      <span className="text-gray-600">Breed:</span> 
-                      <p>{tripData.petBreed}</p>
+                      <span className="text-gray-600 block">Breed:</span> 
+                      <p className="font-medium">{tripData.petBreed}</p>
                     </div>
                   )}
                 </div>
               </div>
               
               <div className="bg-offwhite p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">Preferences</h3>
+                <h3 className="font-semibold mb-2 flex items-center">
+                  <Users className="h-4 w-4 mr-2 text-primary" />
+                  Preferences
+                </h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-600">People:</span> 
-                    <p>{tripData.numPeople}</p>
+                    <span className="text-gray-600 block">Who's going:</span> 
+                    <p className="font-medium flex flex-wrap gap-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
+                        <UserCircle2 className="h-3 w-3 mr-1" />
+                        {tripData.numPeople} {tripData.numPeople === 1 ? 'Adult' : 'Adults'}
+                      </span>
+                      {tripData.numChildren > 0 && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
+                          <Baby className="h-3 w-3 mr-1" />
+                          {tripData.numChildren} {tripData.numChildren === 1 ? 'Child' : 'Children'}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
+                        <PawPrint className="h-3 w-3 mr-1" />
+                        {tripData.numPets} {tripData.numPets === 1 ? 'Pet' : 'Pets'}
+                      </span>
+                    </p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Trip type:</span> 
-                    <p>{tripData.tripType}</p>
+                    <span className="text-gray-600 block">Budget:</span> 
+                    <p className="font-medium flex items-center">
+                      {tripData.budget === 'budget' && <DollarSign className="h-3 w-3 text-primary" />}
+                      {tripData.budget === 'moderate' && (
+                        <>
+                          <DollarSign className="h-3 w-3 text-primary" />
+                          <DollarSign className="h-3 w-3 text-primary" />
+                        </>
+                      )}
+                      {tripData.budget === 'luxury' && (
+                        <>
+                          <DollarSign className="h-3 w-3 text-primary" />
+                          <DollarSign className="h-3 w-3 text-primary" />
+                          <DollarSign className="h-3 w-3 text-primary" />
+                        </>
+                      )}
+                      <span className="ml-1 capitalize">{tripData.budget || 'Not specified'}</span>
+                    </p>
                   </div>
-                  <div>
-                    <span className="text-gray-600">Budget:</span> 
-                    <p>{tripData.budget}</p>
-                  </div>
-                  {tripData.accommodationType.length > 0 && (
-                    <div>
-                      <span className="text-gray-600">Accommodation:</span> 
-                      <p>{tripData.accommodationType.join(', ')}</p>
-                    </div>
-                  )}
-                  {tripData.interests.length > 0 && (
-                    <div>
-                      <span className="text-gray-600">Interests:</span> 
-                      <p>{tripData.interests.join(', ')}</p>
-                    </div>
-                  )}
                 </div>
                 
-                {tripData.additionalInfo && (
-                  <div className="mt-2">
-                    <span className="text-gray-600">Additional info:</span> 
-                    <p className="text-sm">{tripData.additionalInfo}</p>
+                {tripData.accommodationType.length > 0 && (
+                  <div className="mt-3">
+                    <span className="text-gray-600 block">Accommodation:</span> 
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {tripData.accommodationType.map(type => (
+                        <span key={type} className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
+                          {type === 'hotel' && <Hotel className="h-3 w-3 mr-1" />}
+                          {type === 'home' && <Home className="h-3 w-3 mr-1" />}
+                          {type === 'apartment' && <Building className="h-3 w-3 mr-1" />}
+                          {type === 'hostel' && <Tent className="h-3 w-3 mr-1" />}
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {tripData.interests.length > 0 && (
+                  <div className="mt-3">
+                    <span className="text-gray-600 block">Interests:</span> 
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {tripData.interests.map(interest => (
+                        <span key={interest} className="inline-flex items-center px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
+                          {interest === 'parks' && <Palmtree className="h-3 w-3 mr-1" />}
+                          {interest === 'hiking' && <Footprints className="h-3 w-3 mr-1" />}
+                          {interest === 'beaches' && <Umbrella className="h-3 w-3 mr-1" />}
+                          {interest === 'restaurants' && <Utensils className="h-3 w-3 mr-1" />}
+                          {interest === 'sightseeing' && <Camera className="h-3 w-3 mr-1" />}
+                          {interest === 'nightlife' && <Music className="h-3 w-3 mr-1" />}
+                          {interest === 'coffee' && <Coffee className="h-3 w-3 mr-1" />}
+                          {interest === 'wine' && <Wine className="h-3 w-3 mr-1" />}
+                          {interest === 'culture' && <Landmark className="h-3 w-3 mr-1" />}
+                          {interest === 'shopping' && <ShoppingBag className="h-3 w-3 mr-1" />}
+                          {interest === 'dog-parks' && <Trees className="h-3 w-3 mr-1" />}
+                          {interest === 'pet-friendly-trails' && <Footprints className="h-3 w-3 mr-1" />}
+                          {interest === 'pet-friendly-beaches' && <Sun className="h-3 w-3 mr-1" />}
+                          {interest === 'pet-friendly-cafes' && <Coffee className="h-3 w-3 mr-1" />}
+                          {interest === 'pet-friendly-restaurants' && <Utensils className="h-3 w-3 mr-1" />}
+                          {interest === 'pet-swimming' && <Waves className="h-3 w-3 mr-1" />}
+                          {interest === 'pet-spas' && <Flower className="h-3 w-3 mr-1" />}
+                          {interest === 'nature-exploration' && <Leaf className="h-3 w-3 mr-1" />}
+                          {interest === 'relaxation' && <Flower className="h-3 w-3 mr-1" />}
+                          {interest === 'adventure' && <Mountain className="h-3 w-3 mr-1" />}
+                          {interest === 'cultural' && <Landmark className="h-3 w-3 mr-1" />}
+                          {interest === 'family' && <Users className="h-3 w-3 mr-1" />}
+                          {interest.charAt(0).toUpperCase() + interest.slice(1).replace(/-/g, ' ')}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           )}
           
-          <div className="flex justify-between mt-6">
-            <Button 
-              variant="outline" 
-              onClick={step === 1 ? onClose : handleBack}
-            >
-              {step === 1 ? 'Cancel' : (
-                <div className="flex items-center">
-                  <ChevronLeft size={16} />
+          {/* Navigation Buttons */}
+          <div className="flex flex-col space-y-3 md:space-y-0 md:flex-row items-center justify-between mt-8">
+            <div>
+              {step > 1 && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleBack}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
                   <span>Back</span>
-                </div>
+                </Button>
               )}
-            </Button>
+            </div>
             
-            <Button 
-              onClick={handleNext}
-              disabled={!canProceed()}
-            >
-              {step < 4 ? (
-                <div className="flex items-center">
-                  <span>Next</span>
-                  <ChevronRight size={16} />
-                </div>
-              ) : 'Create Trip'}
-            </Button>
+            <div className="flex space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={onClose}
+                className="text-gray-500"
+              >
+                Cancel
+              </Button>
+              
+              <Button 
+                variant="default" 
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className={`flex items-center gap-2 ${!canProceed() ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {step === 4 ? (
+                  <>
+                    <span>Create Trip</span>
+                    <Check className="h-4 w-4" />
+                  </>
+                ) : (
+                  <>
+                    <span>Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
