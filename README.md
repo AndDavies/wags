@@ -453,3 +453,50 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Testing AI Itinerary Generation
+
+Follow these steps to test the AI-powered itinerary generation feature:
+
+1. **Setup Environment**
+   - Ensure you have an OpenAI API key in your `.env.local` file:
+   ```
+   OPENAI_API_KEY="your-api-key-here"
+   ```
+
+2. **Start the Application**
+   ```bash
+   npm run dev
+   ```
+
+3. **Create a New Trip**
+   - Navigate to `http://localhost:3000/create-trip`
+   - Click "Create New Trip"
+   - Complete all required steps in the trip creation form:
+     - Enter destination and dates
+     - Select pet type and size
+     - Set preferences (budget, interests, etc.)
+   - Click "Create Trip" on the final confirmation screen
+
+4. **Observe Itinerary Generation**
+   - Watch for the loading state with the amber alert box stating "Creating Your Perfect Pet-Friendly Itinerary"
+   - The spinner indicates the AI is generating custom activities
+   - This process typically takes 30-60 seconds depending on server load
+
+5. **Verify Results**
+   - Once complete, the itinerary view will populate with AI-generated activities
+   - Each day should include morning, afternoon, and evening activities
+   - Activities should be pet-friendly and match your preferences
+   - Verify that restaurant recommendations are properly categorized
+
+6. **Test the Related Chatbot**
+   - Once the itinerary is generated, use the Travel Assistant chatbot
+   - Ask questions like "Can you suggest pet-friendly parks in [destination]?"
+   - The chatbot should provide contextual responses based on your trip details
+
+7. **Error State Testing**
+   - Test error handling by temporarily modifying your environment variable to an invalid API key
+   - Restart the server and create a trip
+   - Verify appropriate error messaging appears
+
+If all steps complete successfully, the itinerary generation feature is working properly.

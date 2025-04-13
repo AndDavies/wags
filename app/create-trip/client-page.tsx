@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Calendar, Hotel, Car, MapPin, Utensils, Map, AlertCircle, Trash2, Info } from 'lucide-react';
+import { PlusCircle, Calendar, Hotel, Car, MapPin, Utensils, Map, AlertCircle, Trash2, Info, Loader2 } from 'lucide-react';
 import { Timeline, TimelineContent, TimelineDate, TimelineHeader, TimelineIndicator, TimelineItem, TimelineSeparator, TimelineTitle } from '@/components/ui/timeline';
 import { createClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
@@ -11,6 +11,7 @@ import { Trip, TripActivity, TripDay } from '@/lib/trip-service';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import ItineraryView from '@/components/trip/ItineraryView';
+import { ItineraryGenerator } from '@/lib/itinerary-generator';
 
 // Dynamically import components that might cause hydration issues
 const TripModalStepper = dynamic(
@@ -47,6 +48,7 @@ export default function TripBuilderClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [resumedFromStorage, setResumedFromStorage] = useState(false);
@@ -127,18 +129,53 @@ export default function TripBuilderClient() {
           tripType: (tripData as any).tripType || '',
           interests: interests,
           accommodationType: accommodationType
-        }
+        },
+        // Add numPeople and numChildren to the trip for AI generation
+        numPeople: tripData.numPeople,
+        numChildren: tripData.numChildren,
+        additionalCities: tripData.additionalCities
       };
       
       setTrip(newTrip);
       if (closeModal) {
         setIsModalOpen(false);
       }
+
+      // After creating the trip, generate an itinerary
+      if (closeModal) {
+        await generateItinerary(newTrip);
+      }
     } catch (err) {
       console.error('Error creating trip:', err);
       setError('Failed to create trip. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Function to generate an itinerary for the trip
+  const generateItinerary = async (tripToUse: Trip) => {
+    if (!tripToUse) return;
+
+    setIsGeneratingItinerary(true);
+    setError(null);
+
+    try {
+      const result = await ItineraryGenerator.generateItinerary(tripToUse);
+      
+      // Update the trip with the generated itinerary
+      setTrip(prev => {
+        if (!prev) return tripToUse;
+        return {
+          ...prev,
+          days: result.days
+        };
+      });
+    } catch (err: any) {
+      console.error('Error generating itinerary:', err);
+      setError(`Failed to generate itinerary: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsGeneratingItinerary(false);
     }
   };
   
@@ -263,23 +300,31 @@ export default function TripBuilderClient() {
                 size="sm"
                 onClick={startNewTrip}
                 className="text-gray-500"
+                disabled={isLoading || isGeneratingItinerary}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Start New Trip
               </Button>
             )}
-            <Button variant="outline" disabled={!trip || isLoading}>
+            <Button variant="outline" disabled={!trip || isLoading || isGeneratingItinerary}>
               Export PDF
             </Button>
-            <Button variant="outline" disabled={!trip || isLoading}>
+            <Button variant="outline" disabled={!trip || isLoading || isGeneratingItinerary}>
               Share
             </Button>
             <Button 
               onClick={trip ? saveTrip : () => setIsModalOpen(true)}
               className="bg-primary text-white hover:bg-primary/90"
-              disabled={isLoading}
+              disabled={isLoading || isGeneratingItinerary}
             >
-              {isLoading ? 'Processing...' : (trip ? 'Save Trip' : 'Create Trip')}
+              {isLoading || isGeneratingItinerary ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {isGeneratingItinerary ? 'Generating Itinerary...' : 'Processing...'}
+                </>
+              ) : (
+                trip ? 'Save Trip' : 'Create Trip'
+              )}
             </Button>
           </div>
         </div>
@@ -302,6 +347,17 @@ export default function TripBuilderClient() {
           </AlertDescription>
         </Alert>
       )}
+
+      {isGeneratingItinerary && (
+        <Alert className="mt-4 bg-amber-50 border-amber-200">
+          <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />
+          <AlertTitle className="text-amber-700">Creating Your Perfect Pet-Friendly Itinerary</AlertTitle>
+          <AlertDescription className="text-amber-600">
+            Our AI is crafting a personalized itinerary for you and your pet. This may take a minute or two as we're designing the perfect 
+            pet-friendly activities, restaurants, and accommodations based on your preferences.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {!trip ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 p-8">
@@ -315,10 +371,19 @@ export default function TripBuilderClient() {
               onClick={() => setIsModalOpen(true)}
               className="bg-primary text-white hover:bg-primary/90 px-6 py-3"
               size="lg"
-              disabled={isLoading}
+              disabled={isLoading || isGeneratingItinerary}
             >
-              <PlusCircle className="mr-2 h-5 w-5" />
-              Create New Trip
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Create New Trip
+                </>
+              )}
             </Button>
           </div>
           

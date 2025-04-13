@@ -50,6 +50,13 @@ export type Trip = {
   }[];
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  
+  // Additional properties for AI itinerary generation
+  numPeople?: number;
+  numChildren?: number;
+  numPets?: number;
+  additionalCities?: string[];
+  origin?: string;
 };
 
 // Trip creation data from the modal stepper
