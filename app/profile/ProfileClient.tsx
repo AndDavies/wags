@@ -119,14 +119,14 @@ export default function ProfileClient({ userId, initialPets, initialTrips }: Pro
                 !showArchived && (
                   <div className="flex flex-col items-center justify-center py-6 text-center">
                     <p className="text-offblack/70 mb-4">
-                      No current trips. Start planning your next adventure!
+                      No current trips. Trip creation is currently unavailable.
                     </p>
                     <Button
                       variant="outline"
                       className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
-                      asChild
+                      disabled
                     >
-                      <a href="/create-trip">Plan a Trip</a>
+                      Trip Planning Coming Soon
                     </Button>
                   </div>
                 )
@@ -149,14 +149,14 @@ export default function ProfileClient({ userId, initialPets, initialTrips }: Pro
           ) : (
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <p className="text-offblack/70 mb-4">
-                No trips yet. Start planning your next adventure!
+                No trips yet. Trip creation is currently unavailable.
               </p>
               <Button
                 variant="outline"
                 className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
-                asChild
+                disabled
               >
-                <a href="/create-trip">Plan a Trip</a>
+                Trip Planning Coming Soon
               </Button>
             </div>
           )}

@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+# Cursor Rules for Wags and Wanders Project
+
+1. Provide detailed, developer-focused documentation for all code.
+   - Include a comment block at the top of each file or function explaining its purpose, inputs, outputs, and dependencies.
+   - Document expected behavior of components, API routes, and utility functions.
+   - Add inline comments for non-trivial logic.
+   - Use JSDoc format for TypeScript functions and components.
+
+2. Ensure all UI components are accessible (WCAG 2.1 Level AA).
+   - Add aria-label and role attributes to interactive elements.
+   - Ensure keyboard navigation (e.g., tab through inputs, Enter to submit).
+   - Provide sufficient color contrast (e.g., 4.5:1 ratio for text).
+   - Include alt text for images.
+
+3. Style the UI for the `/create-trip` route with an OriginUI-inspired design using bold, modern fonts, Tailwind CSS, and a minimalist layout.
+   - Use bold, modern sans-serif fonts: Primary font “Inter” (weights 700 for headings, 400 for body text, tight letter spacing with `tracking-tight`), fallback to “system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif”. Font sizes: `text-4xl` for main headings, `text-2xl` for subheadings, `text-base` for body text, `text-sm` for secondary text.
+   - Color scheme: Black (`text-black`) for headings, dark gray (`text-gray-700`) for body text, teal (`#00CED1`, `bg-teal-500`, `hover:bg-teal-600`) for buttons/links, mustard (`#FFC107`, `bg-mustard-500`, `hover:bg-mustard-600`) for secondary buttons, white (`bg-white`) for main areas, light gray (`bg-gray-50`) for secondary sections, red (`bg-red-100 text-red-700`) for errors.
+   - Layout: Minimalist, single-column, centered (`max-w-2xl mx-auto` on desktop, `max-w-[90vw] mx-auto` on mobile), consistent padding (`p-4` or `p-6`), margins (`my-4`, `mb-6`), subtle shadows (`shadow`, `hover:shadow-md`), rounded corners (`rounded-lg`).
+   - Components: Buttons (`bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium`, secondary `bg-mustard-500 hover:bg-mustard-600`), cards (`border border-teal-200 rounded-lg p-4 bg-white shadow hover:shadow-md`), modals (`bg-white rounded-lg shadow-lg p-6 max-w-2xl max-h-[90vh] overflow-y-auto`), inputs (`w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500`).
+   - Responsive: Desktop single-column centered, mobile adjusts to `max-w-[90vw]`, stacks elements vertically, wraps navigation.
+   - Implementation: Import “Inter” font via Google Fonts in `app/layout.tsx` with `Inter({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-inter' })`, apply Tailwind CSS classes consistently.
+
+4. Follow modern JavaScript/TypeScript best practices for all code.
+   - Use TypeScript with strict typing (strict: true in tsconfig.json).
+   - Structure code modularly: separate concerns into components, utilities, and API routes.
+   - Use functional components with hooks (e.g., useState, useEffect).
+   - Follow naming conventions: camelCase for variables/functions, PascalCase for components.
+   - Avoid hardcoding values; use constants or environment variables.
+   - Optimize performance: memoize expensive computations, debounce API calls, minimize re-renders.
+   - Ensure accessibility: add aria-label to interactive elements, ensure keyboard navigation.
+

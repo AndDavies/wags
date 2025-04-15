@@ -1,22 +1,22 @@
 import { createClient } from '@/lib/supabase-server';
-import { redirect } from 'next/navigation';
-import TripBuilderClient from './client-page';
+import TripBuilderClient from '@/components/trip/TripBuilderClient';
 
-export const metadata = {
-  title: 'Create a Trip | Wags & Wanders',
-  description: 'Plan your perfect pet-friendly trip with our interactive trip builder. Find pet-friendly destinations, accommodations, and activities.',
-};
-
-export default async function CreateTrip() {
+export default async function CreateTripPage() {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  // This will be the main trip builder page
-  return (
-    <div className="container mx-auto px-4 py-24">
-      <div className="flex flex-col space-y-6">
-        <TripBuilderClient />
-      </div>
-    </div>
-  );
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let draft = null;
+  if (user) {
+    const { data, error } = await supabase
+      .from('draft_itineraries')
+      .select('trip_data')
+      .eq('user_id', user.id)
+      .single();
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching draft:', error);
+    }
+    draft = data?.trip_data || null;
+  }
+
+  return <TripBuilderClient session={user ? { user } : null} initialDraft={draft} />;
 }

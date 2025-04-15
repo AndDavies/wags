@@ -127,25 +127,12 @@ export default function Navbar() {
                 {item.name}
               </NoPrefetchLink>
             ))}
+            {/* Add the Create Trip button */}
             <NoPrefetchLink
               href="/create-trip"
-              className="text-sm font-medium bg-[#249ab4] text-white hover:bg-[#FFA9DE] transition-colors px-4 py-2 rounded-full flex items-center gap-1 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              className="px-4 py-2 bg-[#30B8C4] text-white rounded-md text-sm font-medium hover:bg-[#249ab4] transition-colors"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <path d="M12 5v14M5 12h14"></path>
-              </svg>
-              Create a Trip
+              Create Trip
             </NoPrefetchLink>
             {isLoggedIn && user ? (
               <>
@@ -185,28 +172,15 @@ export default function Navbar() {
         {isOpen && (
           // Update the mobile menu to include the prominent CTA at the top
           <nav className="md:hidden flex flex-col items-center space-y-2 py-4 bg-white border-t border-gray-200">
+            {/* Add the Create Trip button at the top for mobile */}
             <NoPrefetchLink
               href="/create-trip"
               onClick={() => setIsOpen(false)}
-              className="text-lg font-medium bg-[#249ab4] text-white hover:bg-[#FFA9DE] transition-colors px-6 py-3 rounded-full flex items-center gap-2 shadow-md w-full max-w-xs justify-center mb-4"
+              className="px-4 py-2 bg-[#30B8C4] text-white rounded-md text-lg font-medium hover:bg-[#249ab4] transition-colors mb-2"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <path d="M12 5v14M5 12h14"></path>
-              </svg>
-              Create a Trip
+              Create Trip
             </NoPrefetchLink>
-
+            
             {navItems.map((item) => (
               <NoPrefetchLink
                 key={item.name}

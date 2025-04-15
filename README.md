@@ -1,6 +1,28 @@
 # Wags & Wanders - Pet Travel Planner
 
-Wags & Wanders is a pet travel planning platform that helps pet owners plan trips with their furry companions. This README documents the chatbot functionality.
+Wags & Wanders is a comprehensive pet travel planning platform that helps pet owners plan trips with their furry companions. This README documents the application features, implementation details, and development roadmap.
+
+## Project Overview
+
+### Tech Stack
+
+- **Frontend**: Next.js 15, React 18, TypeScript, TailwindCSS
+- **Styling**: Tailwind CSS with custom UI components
+- **State Management**: Custom React state hooks and localStorage persistence
+- **Maps & Location**: Mapbox GL JS for maps, Google Places API for location search
+- **Database**: Supabase (PostgreSQL) for data storage
+- **Authentication**: Supabase Auth with email/password and OAuth
+- **AI Integration**: OpenAI for itinerary generation and travel assistant
+- **Deployment**: Vercel
+
+### Key Features
+
+- **Trip Planning**: Step-by-step wizard for creating pet-friendly trips
+- **Interactive Itinerary**: Timeline-based view with day/time organization
+- **Location Maps**: Interactive maps showing trip locations and activities
+- **AI Travel Assistant**: Contextual chat for planning assistance
+- **Pet-Specific Features**: Special considerations for traveling with pets
+- **Data Persistence**: Auto-saving to prevent data loss
 
 ## Trip Creation Module
 
@@ -234,166 +256,249 @@ Users can fully manage their itinerary activities:
 - **Delete Items**: Remove activities that are no longer needed
 - **Time Scheduling**: Set specific start and end times for each activity
 
-#### Pet-Friendly Focus
+#### Map Integration with MiniMap
 
-The itinerary maintains the app's pet-friendly focus:
+The itinerary view includes an interactive map component for visualizing locations:
 
-- **Pet-Friendly Indicator**: Clear visual markers for pet-friendly activities
-- **Toggle Option**: Easily mark/unmark activities as pet-friendly during creation or editing
-- **Filtering**: (Future feature) Filter to show only pet-friendly activities
+- **Interactive Map**: Shows pins for all activities in the selected day
+- **Dynamic Updates**: Map updates as user selects different days or activities
+- **Location Geocoding**: Automatically converts location names to coordinates for mapping
+- **Custom Markers**: Visual indicators for different activity types
+- **Responsive Design**: Adapts to different screen sizes
 
-#### Activity Details
+The MiniMap component is implemented using Mapbox GL JS, providing:
+- Location visualization for trip destinations and activities
+- Interactive panning and zooming
+- Custom styling to match the application theme
+- Error handling for API connection issues
+- Automatic bounds adjustment to show all relevant locations
 
-Each activity in the itinerary can include rich information:
+## Authentication & Database Management
 
-- Type (hotel, restaurant, activity, transportation, vet services)
-- Title and description
-- Location details
-- Time window (start and end times)
-- Pet-friendly status
-- Optional booking URL (for hotels and restaurants)
-- Optional price information
+### Supabase Integration
 
-#### Intuitive UI
+Wags & Wanders uses [Supabase](https://supabase.com) as its backend service for authentication and database management. Supabase provides a PostgreSQL database with a RESTful API, along with user authentication, storage, and realtime subscriptions.
 
-The interface is designed for easy interaction:
+#### Authentication Flow
 
-- Collapsible day sections to focus on specific parts of the trip
-- Visual icons to distinguish activity types
-- Edit and delete controls visible only when needed
-- Inline add buttons for quick activity creation
+The application implements a comprehensive authentication system with the following features:
 
-### Service Animals Information
+1. **User Authentication Methods**:
+   - Email/Password authentication
+   - Google OAuth (single sign-on)
+   - Email verification through OTP (One-Time Password)
 
-A dedicated service animals page (`/service-animals`) provides comprehensive information for travelers with service animals:
+2. **Authentication Architecture**:
+   - Client-side authentication handled through `supabase-client.ts`
+   - Server-side authentication handled through `supabase-server.ts`
+   - Middleware protection for restricted routes
 
-#### Key Content Areas
+3. **Authentication Flow**:
+   - **Sign Up**: Users enter credentials via the form in `/app/signup/page.tsx`
+   - **Login**: Users sign in via `/app/login/page.tsx`
+   - **OAuth Flow**: Google authentication redirects users through `/app/auth/callback/page.tsx`
+   - **Session Management**: Auth tokens stored in cookies with 7-day expiration
+   - **Protected Routes**: Middleware checks user authentication status for paths like `/profile`
 
-- **Legal Rights and Protections**: Overview of service animal laws and regulations
-- **Service vs. Emotional Support Animals**: Important distinctions for travelers
-- **Transportation Considerations**: Specific guidance for air, train, and road travel
-- **Accommodation Tips**: Best practices for staying in hotels and rentals with service animals
-- **Essential Packing List**: Important items to bring when traveling with service animals
+4. **Cookie-Based Session Management**:
+   - Auth tokens stored in `auth-token` cookie
+   - Custom cookie management in server contexts via `createServerClient`
+   - Token refreshing handled automatically by Supabase
 
-#### Accessibility Focus
+#### Database Client Implementation
 
-The service animals page is designed with accessibility in mind:
+The application manages two types of Supabase clients to handle different contexts:
 
-- Clear, structured content for easy navigation
-- High-contrast text for readability
-- Compatible with screen readers
-- Descriptive link text and ARIA labels
+1. **Server-Side Client (`supabase-server.ts`)**:
+   ```typescript
+   // For server components and API routes
+   import { createServerClient } from '@supabase/ssr';
+   import { cookies } from 'next/headers';
 
-Users can access this page via a link in the pet details section of the trip creation form, specifically in the "Who's Going?" section after the pets counter.
+   export async function createClient() {
+     const cookieStore = await cookies();
+     return createServerClient(
+       process.env.NEXT_PUBLIC_SUPABASE_URL!,
+       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+       { cookies: { /* cookie management */ } }
+     );
+   }
+   ```
 
-### Error Handling and Fallbacks
+2. **Client-Side Client (`supabase-client.ts`)**:
+   ```typescript
+   // For client components
+   import { createBrowserClient } from '@supabase/ssr';
 
-The trip creation module implements robust error handling:
+   export function createClient() {
+     return createBrowserClient(
+       process.env.NEXT_PUBLIC_SUPABASE_URL!,
+       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+     );
+   }
+   ```
 
-- Components gracefully degrade when APIs are unavailable
-- Detailed error messages guide users to solutions
-- Troubleshooting links provide self-service options
-- Session storage prevents losing data on page refreshes
+#### Database Schema
 
-### Data Persistence
+The application utilizes several key tables:
 
-Trip creation data is automatically saved to the browser's localStorage, ensuring that:
-- Users don't lose their progress if they accidentally close the modal
-- Data persists between sessions until explicitly cleared
-- A "Start New Trip" button allows users to reset the form when needed
+1. **User Authentication Tables** (managed by Supabase Auth):
+   - `auth.users`: Core user accounts
+   - `auth.sessions`: User sessions
 
-## Chatbot Implementation
+2. **Application Tables**:
+   - `itineraries`: Stores user trip plans
+   - `checklists`: Trip preparation checklists
+   - `documents`: Stored files related to trips
+   - `conversations`: Chat conversation history
+   - `pet_policies`, `airlines`, `hotels`: Reference data for travel planning
 
-The Wags & Wanders chatbot is built with the following technologies:
+3. **Database Security**:
+   - Row-Level Security (RLS) policies ensure users can only access their own data
+   - Policies defined for each table controlling select, insert, update, and delete operations
 
-- **Frontend**: Next.js, React, TypeScript, and TailwindCSS
-- **AI Model**: Grok (grok-2-1212)
-- **Backend**: Next.js API routes, Supabase for data
+#### Environment Variables
 
-### Key Features
-
-- **Real-time Streaming**: Responses appear as they're generated for a smooth user experience
-- **Two-panel Layout**: Chat panel on the left, rich content panel on the right
-- **Contextual Suggestions**: Personalized recommendations based on the user's preferences
-- **Mobile-responsive Design**: Works well on all screen sizes
-
-### Implementation Details
-
-The chatbot consists of the following key components:
-
-1. **Chat Page (`app/chat/page.tsx`)**:
-   - Manages chat state including messages, input, and loading states
-   - Implements streaming UX for smooth response generation
-   - Connects to the chat API endpoint to process messages
-   - Handles cancellation of requests with AbortController
-
-2. **API Route (`app/api/chat/route.ts`)**:
-   - Receives and validates chat requests
-   - Connects to the Grok API
-   - Supports both streaming and non-streaming responses
-   - Handles errors gracefully
-
-3. **Chat Utilities (`lib/chat-utils.ts`)**:
-   - Contains helper functions for interacting with the Grok API
-   - Implements both streaming and non-streaming response handling
-   - Formats system prompts and handles error cases
-
-4. **Side Panel Component (`components/ui/side-panel.tsx`)**:
-   - Displays rich content related to chat suggestions
-   - Provides UI for destination details, images, and booking links
-
-### Environment Variables
-
-The following environment variables need to be set in `.env.local`:
+The following environment variables are required for Supabase integration:
 
 ```
-GROK_API_KEY=your_grok_api_key
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### Future Enhancements
+### Data Access Patterns
 
-Planned enhancements for the chatbot include:
+1. **Server-Side Data Access**:
+   - Server components fetch data directly using the server client
+   - Example: `const { data } = await supabase.from('itineraries').select('*')`
 
-1. **Structured Data Parsing**: Automatically detect and extract recommended destinations
-2. **Location Maps**: Integrate maps for suggested destinations
-3. **User Preferences**: Store and recall user preferences
-4. **Multi-modal Support**: Add image upload capability for pet photos
+2. **Client-Side Data Access**:
+   - Client components use the browser client
+   - Real-time subscriptions for live updates
+   - Optimistic UI updates for improved UX
 
-Planned enhancements for the itinerary and trip planning features include:
+3. **Authentication Checks**:
+   - Middleware intercepts requests to protected routes
+   - Session validation via `supabase.auth.getUser()`
+   - Redirection to login for unauthenticated users
 
-1. **Interactive Map View**: Visualize the entire itinerary on a map with activity pins
-2. **Activity Recommendations**: AI-powered suggestions based on pet type, destination, and preferences 
-3. **Drag-and-Drop Scheduling**: Easier rearrangement of activities within and across days
-4. **Shared Itineraries**: Allow collaboration between multiple travelers on a single itinerary
-5. **Weather Integration**: Display forecasted weather for each day of the trip
-6. **Export Options**: Generate PDF, email, or calendar exports of the itinerary
-7. **Transportation Planning**: Add detailed transit options between activities
-8. **Reservation Management**: Direct integration with booking services for hotels and activities
-9. **Expense Tracking**: Monitor and categorize trip expenses
-10. **Offline Access**: Support for viewing itineraries without internet connection
+4. **Deployment Considerations**:
+   - Domain-specific cookie configurations
+   - CORS settings for production environments
+   - Token refresh mechanisms
+
+## API Integrations
+
+### Mapbox Integration
+
+The application uses Mapbox GL JS for interactive maps and the Mapbox Geocoding API for location search:
+
+1. **MiniMap Component**:
+   - Shows location pins for activities and destinations
+   - Interactive zoom and pan controls
+   - Custom styling and markers
+
+2. **Location Geocoding**:
+   - Converts place names to coordinates for mapping
+   - Reverse geocoding for displaying location names
+
+3. **Environment Setup**:
+   - Required environment variable: `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`
+   - URL restrictions should be configured for security
+
+### Google Places API
+
+The application uses Google Places API for location search and autocomplete:
+
+1. **LocationDatesStep Component**:
+   - Autocomplete for cities when entering trip origin and destination
+   - Place details including coordinates and country information
+   - Required environment variable: `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY`
+
+### OpenAI Integration
+
+The AI features utilize OpenAI's API for natural language processing:
+
+1. **Travel Assistant**:
+   - Contextual chat interface for trip planning assistance
+   - Pet-specific travel knowledge and recommendations
+
+2. **Itinerary Generation**:
+   - AI-powered creation of personalized itineraries
+   - Required environment variable: `OPENAI_API_KEY`
+
+## Recent Updates
+
+The following features have been recently implemented:
+
+1. **MiniMap Component**: Added an interactive map to the ItineraryView
+   - Created a new `MiniMap.tsx` component using Mapbox GL
+   - Implemented location geocoding for converting place names to coordinates
+   - Added dynamic pin placement for activities
+   - Integrated with the day selector to update map locations
+
+2. **ItineraryView Component**: Created a comprehensive itinerary display
+   - Timeline-based organization of activities
+   - Time-based grouping (morning, afternoon, evening)
+   - Activity management UI (add, edit, delete)
+   - Integration with the MiniMap component
+
+3. **UI Components**: Developed custom UI components
+   - Button component with various style variants
+   - Dialog component for modal interactions
+   - Toast notifications for user feedback
+   - Timeline component for visualizing sequential data
 
 ## Known Issues & Bugs
 
 The following issues are currently known and scheduled to be fixed:
 
-1. **MiniMap Component**: Fixed import error in ItineraryView component (originally using default import instead of named import)
+1. **Google Places API**: Currently waiting for API enablement
+   - Temporary workaround needed for LocationDatesStep component
+   - Consider alternative geocoding services if API access is delayed
 
-2. **TypeScript Errors**: Fixed several TypeScript errors to ensure proper build:
-   - Added proper type definitions in the TripChatbot component
-   - Created missing UI components: Textarea and Switch
-   - Fixed type compatibility issues between TripFormData and TripData
+2. **TypeScript Errors**: Some type definitions need refinement
+   - Improve typing in LocationDatesStep and TripModalStepper
+   - Fix any TypeScript errors in the ItineraryView component
 
 3. **Build Issues on Vercel**:
-   - When pushing to Vercel, there might be build errors related to TypeScript's strict type checking
-   - As a temporary solution, a `next.config.js` file has been configured to ignore TypeScript and ESLint errors during the build process
-   - Long-term solution will involve properly addressing all TypeScript errors
+   - Resolve "use client" directive requirements for components using React hooks
+   - Address favicon.ico conflict error in build logs
 
-4. **Upcoming Tasks**:
-   - [ ] Add proper error handling for Mapbox API failures
-   - [ ] Implement activity filtering by pet-friendliness
-   - [ ] Fix time format parsing in certain browsers
-   - [ ] Add proper responsiveness for the itinerary view on mobile devices
-   - [ ] Enhance the UI for the service animals page with visual indicators
+## Next Steps
+
+### Immediate Tasks
+
+1. **Complete API Integration**:
+   - Finalize Google Places API integration for location search
+   - Implement proper error handling for API failures
+   - Add fallback mechanisms when APIs are unavailable
+
+2. **Enhance Itinerary View**:
+   - Complete the activity form for adding/editing activities
+   - Implement activity filtering by pet-friendliness
+   - Add time format standardization across browsers
+
+3. **Build Issues**:
+   - Resolve all TypeScript errors for clean builds
+   - Fix the "conflicting public file and page file" error for favicon.ico
+
+### Future Enhancements
+
+1. **Advanced Map Features**:
+   - Route visualization between activities
+   - Distance and travel time calculations
+   - Nearby pet-friendly locations discovery
+
+2. **User Experience Improvements**:
+   - Drag-and-drop scheduling for activities
+   - Offline support for viewing itineraries without internet
+   - Enhanced mobile responsiveness
+
+3. **AI Enhancements**:
+   - Improved itinerary generation with more personalization
+   - Proactive travel suggestions based on destination and pets
+   - Integration with external pet-friendly databases
 
 ## Development
 
@@ -405,16 +510,23 @@ The following issues are currently known and scheduled to be fixed:
    ```
 
 2. Set up environment variables:
-   Create a `.env.local` file with necessary API keys
+   Create a `.env.local` file with the following variables:
+   ```
+   NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
+   NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=your_google_api_key
+   OPENAI_API_KEY=your_openai_api_key
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
 3. Run the development server:
    ```
    npm run dev
    ```
 
-4. Access the chatbot at:
+4. Access the application at:
    ```
-   http://localhost:3000/chat
+   http://localhost:3000
    ```
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).

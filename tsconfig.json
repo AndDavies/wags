@@ -16,7 +16,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "jsxImportSource": "react", // Add this line
+    "jsxImportSource": "react",
     "incremental": true,
     "plugins": [
       {
@@ -26,18 +26,23 @@
     "paths": {
       "@/*": [
         "./*"
-      ]
+      ],
+      "@components/*": ["components/*"],
+      "@utils/*": ["utils/*"],
+      "@lib/*": ["lib/*"],
+      "@store/*": ["store/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "baseUrl": "."
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
-    "types/**/*.d.ts" // This line ensures that your declaration files in the types folder are picked up.
-    ,
-    ".next/types/**/*.ts"
-, "lib/blog.js"  ],
+    "types/**/*.d.ts",
+    ".next/types/**/*.ts",
+    "lib/blog.js"
+  ],
   "exclude": [
     "node_modules"
   ]
