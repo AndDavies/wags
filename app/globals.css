@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -10,7 +10,8 @@ html {
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: "Outfit", sans-serif;
+  color: #1e293b; /* text-gray-800 */
 }
 
 /* Custom scrollbar */
@@ -32,9 +33,36 @@ body {
   background: rgba(0, 0, 0, 0.2);
 }
 
+/* Global Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-outfit), sans-serif;
+  color: #1e293b; /* text-gray-800 */
+  letter-spacing: -0.025em; /* tracking-tight */
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.5em;
+}
+
+p {
+  color: #475569; /* text-gray-600 */
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+a {
+  color: #0ea5e9; /* text-sky-500 */
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  color: #0284c7; /* text-sky-600 */
+}
+
 /* Custom Typography Overrides */
 .prose p {
   margin-bottom: 1rem;
+  color: #475569; /* text-gray-600 */
 }
 
 .prose blockquote {
@@ -323,6 +351,55 @@ figcaption {
   }
   40%, 60% {
     transform: translateX(2px);
+  }
+}
+
+/* Component utility classes */
+@layer components {
+  /* Card styles */
+  .card {
+    @apply border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-all duration-300;
+  }
+  
+  /* Button styles */
+  .btn-primary {
+    @apply bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm hover:shadow transition-all duration-200 ease-in-out;
+  }
+  
+  .btn-secondary {
+    @apply bg-white border border-gray-300 hover:border-gray-400 text-gray-800 px-5 py-2.5 rounded-lg font-medium shadow-sm hover:shadow transition-all duration-200 ease-in-out;
+  }
+  
+  /* Heading styles */
+  .heading-1 {
+    @apply text-4xl md:text-5xl font-bold text-gray-800 tracking-tight font-outfit mb-4;
+  }
+  
+  .heading-2 {
+    @apply text-2xl md:text-3xl font-bold text-gray-800 tracking-tight font-outfit mb-3;
+  }
+  
+  .heading-3 {
+    @apply text-xl md:text-2xl font-bold text-gray-800 tracking-tight font-outfit mb-2;
+  }
+  
+  /* Text styles */
+  .text-body {
+    @apply text-base text-gray-600 leading-relaxed;
+  }
+  
+  .text-muted {
+    @apply text-sm text-gray-500;
+  }
+  
+  /* Interactive elements */
+  .interactive-element {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  /* Form elements */
+  .form-input {
+    @apply border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all duration-200;
   }
 }
 

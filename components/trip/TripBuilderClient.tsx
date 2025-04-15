@@ -81,7 +81,6 @@ export default function TripBuilderClient({
       setTripData({
         destination: predefinedTrip.destination,
         additionalCities: predefinedTrip.additionalCities || [],
-        tripType: predefinedTrip.tripType,
         budget: predefinedTrip.budget,
         accommodation: predefinedTrip.accommodation,
         interests: predefinedTrip.interests,
@@ -102,7 +101,7 @@ export default function TripBuilderClient({
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 pt-20 md:pt-24">
+    <div className="max-w-4xl mx-auto p-6 pt-20 md:pt-24">
       <Toast.Provider swipeDirection="right">
         <Toast.Root
           open={openToast}

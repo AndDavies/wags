@@ -48,7 +48,6 @@ interface TripData {
   children: number;
   pets: number;
   petDetails: { type: string; size: string }[];
-  tripType: string[];
   budget: string;
   accommodation: string;
   interests: string[];
@@ -125,7 +124,6 @@ export async function POST(request: NextRequest) {
       'startDate',
       'endDate',
       'adults',
-      'tripType',
       'budget',
       'accommodation',
       'interests',

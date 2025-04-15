@@ -73,6 +73,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/google.maps": "^3.58.1",
+    "@types/jest": "^29.5.14",
     "@types/mapbox__mapbox-gl-geocoder": "^5.0.0",
     "@types/md5": "^2.3.5",
     "@types/node": "^20",
