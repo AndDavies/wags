@@ -11,8 +11,9 @@ import Script from 'next/script';
 
 const outfit = Outfit({
   subsets: ['latin'],
-  weight: ['400', '700'],
+  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-outfit',
+  display: 'swap',
 });
 
 export const metadata = {
@@ -70,7 +71,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${outfit.variable} font-sans`}>
+    <html lang="en" className={`${outfit.variable} font-outfit`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Script
@@ -114,7 +115,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className="bg-gray-50 text-gray-800 min-h-screen flex flex-col"
+        className="bg-gray-50 text-gray-800 min-h-screen flex flex-col font-outfit"
         suppressHydrationWarning
       >
         <SpeedInsights />

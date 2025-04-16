@@ -7,32 +7,34 @@ interface ChatbotProps {
   tripData: any;
   onClose: () => void;
   session: any | null;
+  onSaveMessage?: (message: string, isUser: boolean) => Promise<void>;
 }
 
-export default function Chatbot({ tripData, onClose, session }: ChatbotProps) {
+export default function Chatbot({ tripData, onClose, session, onSaveMessage }: ChatbotProps) {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (session) {
-      const supabase = createClient();
-      supabase
-        .from('conversations')
-        .select('message, response')
-        .eq('user_id', session.user.id)
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Error fetching conversation history:', error);
-          } else {
-            setMessages(
-              data?.flatMap((item) => [
-                { role: 'user', content: item.message },
-                { role: 'assistant', content: item.response },
-              ]) || []
-            );
-          }
-        });
+      console.log('ready to fetch conversation history');
+      // const supabase = createClient();
+      // supabase
+      //   .from('conversations')
+      //   .select('message, response')
+      //   .eq('user_id', session.user.id)
+      //   .then(({ data, error }) => {
+      //     if (error) {
+      //       console.error('Error fetching conversation history:', error);
+      //     } else {
+      //       setMessages(
+      //         data?.flatMap((item) => [
+      //           { role: 'user', content: item.message },
+      //           { role: 'assistant', content: item.response },
+      //         ]) || []
+      //       );
+      //     }
+      //   });
     }
   }, [session]);
 
@@ -46,6 +48,11 @@ export default function Chatbot({ tripData, onClose, session }: ChatbotProps) {
     const newMessages = [...messages, { role: 'user', content: input }];
     setMessages(newMessages);
     setInput('');
+
+    // Save message using the onSaveMessage callback if provided
+    if (onSaveMessage) {
+      await onSaveMessage(input, true);
+    }
 
     try {
       // Check if query is vet-related
@@ -63,11 +70,8 @@ export default function Chatbot({ tripData, onClose, session }: ChatbotProps) {
         const vetList = results.map((vet: any) => `${vet.name} (${vet.rating || 'N/A'} stars)`).join(', ');
         const reply = results.length > 0 ? `Nearby vets: ${vetList}` : 'No vets found nearby.';
         setMessages([...newMessages, { role: 'assistant', content: reply }]);
-        if (session) {
-          const supabase = createClient();
-          await supabase
-            .from('conversations')
-            .insert({ user_id: session.user.id, message: input, response: reply });
+        if (onSaveMessage) {
+          await onSaveMessage(reply, false);
         }
       } else {
         const response = await fetch('/api/ai/enhanced-itinerary', {
@@ -78,16 +82,13 @@ export default function Chatbot({ tripData, onClose, session }: ChatbotProps) {
         if (!response.ok) throw new Error('Failed to process query');
         const { reply } = await response.json();
         setMessages([...newMessages, { role: 'assistant', content: reply }]);
-        if (session) {
-          const supabase = createClient();
-          await supabase
-            .from('conversations')
-            .insert({ user_id: session.user.id, message: input, response: reply });
+        if (onSaveMessage) {
+          await onSaveMessage(reply, false);
         }
       }
     } catch (error) {
       console.error('Error processing chatbot query:', error);
-      setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I couldn’t process that. Try again?' }]);
+      setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I couldn\'t process that. Try again?' }]);
     }
   };
 

@@ -80,11 +80,24 @@ export default function TripBuilderClient({
     if (predefinedTrip) {
       setTripData({
         destination: predefinedTrip.destination,
+        origin: undefined,
+        originCountry: undefined,
+        destinationCountry: undefined,
         additionalCities: predefinedTrip.additionalCities || [],
         budget: predefinedTrip.budget,
         accommodation: predefinedTrip.accommodation,
         interests: predefinedTrip.interests,
-        duration: predefinedTrip.duration,
+        startDate: undefined,
+        endDate: undefined,
+        adults: 1,
+        children: 0,
+        pets: 0,
+        petDetails: [],
+        additionalInfo: `Based on predefined trip: ${predefinedTrip.title}`,
+        itinerary: undefined,
+        policyRequirements: undefined,
+        generalPreparation: undefined,
+        draftId: undefined,
       });
     }
     setShowForm(true);
@@ -101,7 +114,7 @@ export default function TripBuilderClient({
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 pt-20 md:pt-24">
+    <div className="p-6 px-8 pt-20 md:pt-24">
       <Toast.Provider swipeDirection="right">
         <Toast.Root
           open={openToast}

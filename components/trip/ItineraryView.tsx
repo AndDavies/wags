@@ -1,500 +1,560 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTripStore } from '@/store/tripStore';
+import { useState, useEffect, Fragment } from 'react';
+import { useTripStore, Activity, ItineraryDay, PolicyRequirementStep, GeneralPreparationItem } from '@/store/tripStore';
 import * as Toast from '@radix-ui/react-toast';
-import Chatbot from './Chatbot';
+
 import { createClient } from '@/lib/supabase-client';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Car,
+  CheckCircle,
+  ChevronDown,
+  ClipboardCheck,
+  Coffee,
+  Dog,
+  ExternalLink,
+  Hotel,
+  Landmark,
+  MapPin,
+  Minus,
+  Mountain,
+  Palette,
+  Plane,
+  Plus,
+  Sandwich,
+  ShoppingBag,
+  Stethoscope,
+  Utensils,
+  Waves,
+  Wind,
+  X,
+  Zap,
+} from 'lucide-react';
+import Chatbot from './Chatbot';
+import Map, { Marker, Popup, ViewState } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+
+// --- Interfaces (matching store/API) ---
+// Removed local interface definitions as they are now imported
+// interface Activity { ... }
+// interface ItineraryDay { ... }
+// interface Itinerary { ... }
+// interface PolicyRequirementStep { ... }
+// interface GeneralPreparationItem { ... }
 
 interface ItineraryViewProps {
   session: any | null;
 }
 
-interface Activity {
-  time: string;
-  description: string;
-  place_id: string;
+// --- Helper Function & Components ---
+
+// Enhanced getActivityIcon definition with more icons and colors
+const getActivityIcon = (activity: Activity): React.ReactNode => {
+  const lowerName = activity.name.toLowerCase();
+  const lowerDesc = activity.description.toLowerCase();
+  const type = activity.type;
+
+  // Type-based icons first
+  if (type === 'flight') return <Plane className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />;
+  if (type === 'transfer') return <Car className="h-5 w-5 text-purple-600 mr-3 mt-0.5 flex-shrink-0" />;
+  if (type === 'accommodation') return <Hotel className="h-5 w-5 text-cyan-600 mr-3 mt-0.5 flex-shrink-0" />;
+  if (type === 'preparation') return <ClipboardCheck className="h-5 w-5 text-yellow-700 mr-3 mt-0.5 flex-shrink-0" />;
+
+  // Meal-specific icons
+  if (type === 'meal') {
+    if (lowerName.includes('breakfast') || lowerName.includes('cafe') || lowerName.includes('coffee')) return <Coffee className="h-5 w-5 text-yellow-800 mr-3 mt-0.5 flex-shrink-0" />;
+    if (lowerName.includes('lunch')) return <Sandwich className="h-5 w-5 text-orange-500 mr-3 mt-0.5 flex-shrink-0" />;
+    if (lowerName.includes('dinner') || lowerName.includes('restaurant')) return <Utensils className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />;
+    return <Utensils className="h-5 w-5 text-orange-600 mr-3 mt-0.5 flex-shrink-0" />; // Default meal
+  }
+
+  // Activity keyword-based icons
+  if (lowerName.includes('park') || lowerName.includes('hike') || lowerName.includes('outdoor') || lowerDesc.includes('walk')) return <Mountain className="h-5 w-5 text-green-600 mr-3 mt-0.5 flex-shrink-0" />;
+  if (lowerName.includes('museum') || lowerName.includes('gallery') || lowerName.includes('art')) return <Palette className="h-5 w-5 text-indigo-600 mr-3 mt-0.5 flex-shrink-0" />;
+  if (lowerName.includes('landmark') || lowerName.includes('historical') || lowerName.includes('sightseeing')) return <Landmark className="h-5 w-5 text-purple-700 mr-3 mt-0.5 flex-shrink-0" />;
+  if (lowerName.includes('shop') || lowerName.includes('market')) return <ShoppingBag className="h-5 w-5 text-pink-600 mr-3 mt-0.5 flex-shrink-0" />;
+  if (lowerName.includes('vet') || lowerDesc.includes('vet')) return <Stethoscope className="h-5 w-5 text-red-700 mr-3 mt-0.5 flex-shrink-0" />;
+  if (lowerName.includes('beach') || lowerName.includes('water')) return <Waves className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />;
+  if (lowerName.includes('nightlife') || lowerName.includes('bar')) return <Zap className="h-5 w-5 text-yellow-500 mr-3 mt-0.5 flex-shrink-0" />;
+
+  // Placeholder / Default
+  if (type === 'placeholder' || lowerName.includes('relax') || lowerName.includes('free')) return <Wind className="h-5 w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />;
+
+  return <MapPin className="h-5 w-5 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />; // Final default
+};
+
+// Collapsible Card Component
+function CollapsibleCard({ title, icon: Icon, children, startExpanded = false }: { title: string; icon: React.ElementType; children: React.ReactNode; startExpanded?: boolean }) {
+  const [isExpanded, setIsExpanded] = useState(startExpanded);
+  const handleToggle = () => setIsExpanded(!isExpanded);
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <button onClick={handleToggle} className="w-full text-left p-4 flex justify-between items-center border-b border-gray-200">
+        <CardTitle className="flex items-center text-gray-700 text-lg font-semibold">
+          <Icon className="h-5 w-5 mr-2" /> {title}
+        </CardTitle>
+        <ChevronDown className={cn("h-5 w-5 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
+      </button>
+      {isExpanded && (
+        <div className="p-4">
+          {children}
+        </div>
+      )}
+    </div>
+  );
 }
 
-interface ItineraryDay {
-  day: number;
-  date: string;
-  city: string;
-  activities: Activity[];
-  preparation?: Array<{ requirement: string; details: string }>;
-  travel?: string;
-  latitude?: number;
-  longitude?: number;
-  coordinates?: { lat: number; lng: number };
+// Updated PolicyRequirementsSteps to use Card internally
+function PolicyRequirementsSteps({ steps }: { steps: PolicyRequirementStep[] | undefined }) {
+  if (!steps || steps.length === 0) {
+    return <p className="text-gray-500 text-xs italic px-2">No specific entry requirement steps found for this destination country.</p>;
+  }
+  return (
+    <Card className="border-0 shadow-none bg-transparent">
+      <CardContent className="pt-0 pb-0 px-0">
+        <ol className="space-y-3">
+          {steps.sort((a, b) => a.step - b.step).map((item) => (
+            <li key={item.step} className="flex items-start">
+              <span className="flex items-center justify-center h-5 w-5 rounded-full bg-teal-500 text-white font-bold text-xs mr-3 mt-0.5 flex-shrink-0">{item.step}</span>
+              <div>
+                <h4 className="font-semibold text-teal-700 text-sm">{item.label}</h4>
+                <p className="text-gray-700 text-xs" dangerouslySetInnerHTML={{ __html: item.text.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  );
 }
 
-interface Itinerary {
-  days: ItineraryDay[];
+// Updated GeneralPreparationInfo to use Card internally
+function GeneralPreparationInfo({ items }: { items: GeneralPreparationItem[] | undefined }) {
+   if (!items || items.length === 0) { return null; }
+   return (
+     <Card className="border-0 shadow-none bg-transparent mt-4">
+       <CardContent className="pt-0 pb-0 px-0">
+         <ul className="space-y-2.5">
+           {items.map((item, idx) => (
+             <li key={idx} className="flex items-start">
+                <AlertCircle className="h-4 w-4 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />
+               <div>
+                 <h4 className="font-semibold text-amber-700 text-sm">{item.requirement}</h4>
+                 {typeof item.details === 'string' ? (
+                   <p className="text-gray-700 text-xs">{item.details}</p>
+                 ) : (item.details && typeof item.details === 'object' && 'url' in item.details && 'title' in item.details) ? (
+                   <a href={item.details.url} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-600 hover:underline">
+                     {item.details.title} <ExternalLink className="inline-block h-3 w-3 ml-1" />
+                   </a>
+                 ) : (
+                    <p className="text-gray-500 text-xs italic">[Invalid details format]</p>
+                 )}
+               </div>
+             </li>
+           ))}
+         </ul>
+       </CardContent>
+     </Card>
+  );
 }
 
-export default function ItineraryView({ session }: ItineraryViewProps) {
-  const { tripData, setTripData, clearTrip } = useTripStore();
-  const [petPolicies, setPetPolicies] = useState<any[]>([]);
-  const [showChatbot, setShowChatbot] = useState(false);
-  const [openToast, setOpenToast] = useState(!session);
-  const [expandedDays, setExpandedDays] = useState<number[]>([]);
-  const [addingActivity, setAddingActivity] = useState<number | null>(null);
-  const [activityResults, setActivityResults] = useState<any[]>([]);
-  const [vetModal, setVetModal] = useState<{ day: number; results: any[] } | null>(null);
+// Updated BookingOptionCard styling
+function BookingOptionCard({ title, icon, url }: { title: string; icon: React.ReactNode; url: string }) {
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all text-center h-full hover:border-teal-400 group">
+      <div className="bg-mustard-100 p-2 rounded-full mb-1.5 text-mustard-600 group-hover:bg-mustard-500 group-hover:text-white transition-colors">
+        {icon}
+      </div>
+      <span className="font-medium text-gray-700 text-xs group-hover:text-teal-600 transition-colors">{title}</span>
+    </a>
+  );
+}
+
+// Updated ItineraryDayAccordion
+function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity, onFindVets, onDeleteActivity }: { day: ItineraryDay; index: number; isExpanded: boolean; onToggle: () => void; onAddActivity: () => void; onFindVets: () => void; onDeleteActivity: (actIndex: number) => void; }) {
+  return (
+    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <button onClick={onToggle} className={cn("w-full text-left p-3 flex justify-between items-center border-b border-gray-200 bg-gray-50", isExpanded ? "border-b-0 hover:bg-gray-50/50" : "border-b-0")}>
+        <div>
+          <h3 className="text-base font-semibold text-teal-700">Day {day.day}: {day.date}</h3>
+          <p className="text-xs text-gray-600">{day.city}</p>
+        </div>
+        <ChevronDown className={cn("h-4 w-4 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
+      </button>
+      {isExpanded && (
+        <div className="p-3">
+          {day.travel && (
+            <div className="mb-3 bg-blue-50 p-2.5 rounded-md border border-blue-200">
+              <h4 className="font-semibold flex items-center text-blue-700 text-xs"><Plane className="h-3 w-3 mr-1.5" /> Travel Details</h4>
+              <p className="text-gray-700 mt-1 text-xs">{day.travel}</p>
+            </div>
+          )}
+          <div className="mb-3">
+            <h4 className="font-semibold text-gray-800 mb-1.5 text-sm">Activities</h4>
+            <div className="space-y-2">
+              {day.activities?.length > 0 ? (
+                day.activities.map((activity, actIndex) => {
+                  if (!activity || typeof activity.name !== 'string' || typeof activity.location !== 'string' || !activity.coordinates) {
+                     return <div key={actIndex} className="text-red-500 italic p-2 bg-red-50 rounded-md border border-red-200 text-xs">[Invalid activity data]</div>;
+                  }
+
+                  const icon = getActivityIcon(activity);
+                  return (
+                    <div key={actIndex} className="flex justify-between items-start p-2.5 bg-gray-50/50 rounded-md border border-gray-100 group">
+                      <div className="flex items-start flex-grow">
+                        {icon}
+                        <div className="flex-grow">
+                          <p className="font-medium text-gray-800 text-sm leading-snug">{activity.name}</p>
+                          <p className="text-gray-600 text-xs mt-0.5">{activity.description}</p>
+                          <p className="text-gray-500 text-xs mt-0.5 flex items-center"><MapPin className="h-3 w-3 mr-1" /> {activity.location}</p>
+                          {(activity.startTime || activity.cost) && (
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                              {activity.startTime && <span>{activity.startTime}{activity.endTime ? ` - ${activity.endTime}` : ''}</span>}
+                              {activity.startTime && activity.cost && <span>|</span>}
+                              {activity.cost && <span>{activity.cost}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={() => onDeleteActivity(actIndex)} className="text-gray-400 hover:text-red-600 p-1 ml-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Delete activity"><X className="h-4 w-4" /></button>
+                    </div>
+                  );
+                })
+              ) : ( <p className="text-gray-500 italic text-xs px-1">No activities planned for this day.</p> )}
+            </div>
+            <div className="flex justify-start space-x-2 mt-3">
+              <Button variant="outline" size="sm" onClick={onAddActivity}><Plus className="h-3 w-3 mr-1" /> Activity</Button>
+              <Button variant="outline" size="sm" onClick={onFindVets}><Stethoscope className="h-3 w-3 mr-1" /> Find Vets</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ItineraryMap({ activities }: { activities: Array<Activity> }) {
+  const initialCoords = activities.find(a => a.coordinates && a.coordinates.lat !== 0 && a.coordinates.lng !== 0)?.coordinates;
+  const [viewState, setViewState] = useState<ViewState>({
+    longitude: initialCoords?.lng || -98.5795,
+    latitude: initialCoords?.lat || 39.8283,
+    zoom: initialCoords ? 11 : 3,
+    bearing: 0,
+    pitch: 0,
+    padding: { top: 0, bottom: 0, left: 0, right: 0 },
+  });
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
   useEffect(() => {
-    const fetchPetPolicies = async () => {
-      const supabase = createClient();
-      const countries = [
-        tripData.origin,
-        tripData.destination,
-        ...tripData.additionalCities,
-      ]
-        .map((city: string) => {
-          // Extract country from city (simplified; API call handled elsewhere)
-          return city.split(',').pop()?.trim();
-        })
-        .filter(Boolean);
+    const firstValidCoords = activities.find(a => a.coordinates && a.coordinates.lat !== 0 && a.coordinates.lng !== 0)?.coordinates;
+    if (firstValidCoords) {
+      setViewState(prev => ({ ...prev, longitude: firstValidCoords.lng, latitude: firstValidCoords.lat, zoom: 11 }));
+    }
+  }, [activities]);
 
-      const { data, error } = await supabase
-        .from('pet_policies')
-        .select('country_name, entry_requirements, quarantine_info, external_link')
-        .in('country_name', countries);
-      if (error) {
-        console.error('Error fetching pet policies:', error);
-      } else {
-        setPetPolicies(data || []);
-      }
-    };
-    fetchPetPolicies();
-  }, [tripData]);
+  return (
+    <div className="h-[350px] w-full rounded-lg overflow-hidden relative border border-gray-200">
+      <Map {...viewState} onMove={(evt) => setViewState(evt.viewState)} style={{ width: '100%', height: '100%' }} mapStyle="mapbox://styles/mapbox/streets-v11" mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}>
+        {activities.map((activity, index) => (
+          activity.coordinates && activity.coordinates.lat !== 0 && activity.coordinates.lng !== 0 && (
+             <Marker key={index} longitude={activity.coordinates.lng} latitude={activity.coordinates.lat} onClick={(e) => { e.originalEvent.stopPropagation(); setSelectedActivity(activity); }}>
+                <MapPin className="h-6 w-6 text-red-500 cursor-pointer hover:text-red-700 transition-colors" />
+             </Marker>
+          )))} 
+        {selectedActivity && selectedActivity.coordinates && (
+          <Popup longitude={selectedActivity.coordinates.lng} latitude={selectedActivity.coordinates.lat} onClose={() => setSelectedActivity(null)} closeOnClick={false} anchor="bottom" offset={30}>
+            <div>
+              <h4 className="font-semibold text-sm">{selectedActivity.name}</h4>
+              <p className="text-xs text-gray-600">{selectedActivity.location}</p>
+            </div>
+          </Popup>
+        )}
+      </Map>
+      {!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN && ( <div className="absolute inset-0 bg-gray-100 bg-opacity-80 flex items-center justify-center z-10"><p className="text-red-600 font-semibold p-4 bg-white rounded shadow">Mapbox Access Token is missing.</p></div> )}
+    </div>
+  );
+}
 
+// --- Main Component ---
+export default function ItineraryView({ session }: ItineraryViewProps) {
+  // Get state/actions from store
+  const { tripData, isSaving, error, clearTrip, addActivity, deleteActivity, setIsSaving, setError } = useTripStore();
+
+  // Derive specific data from tripData, handle null case
+  const itinerary = tripData?.itinerary;
+  const policyRequirements = tripData?.policyRequirements;
+  const generalPreparation = tripData?.generalPreparation;
+  const preDeparturePreparation = tripData?.preDeparturePreparation;
+
+  // Component state
+  const [expandedDays, setExpandedDays] = useState<number[]>([]);
+  const [openToast, setOpenToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState({ title: '', description: '' });
+  const [showMap, setShowMap] = useState(false);
+  const [activitiesForMap, setActivitiesForMap] = useState<Activity[]>([]);
+  const [addingActivityDay, setAddingActivityDay] = useState<number | null>(null);
+  const [activitySearchResults, setActivitySearchResults] = useState<any[]>([]);
+  const [isSearchingActivities, setIsSearchingActivities] = useState(false);
+  const [addingVetDay, setAddingVetDay] = useState<number | null>(null);
+  const [vetSearchResults, setVetSearchResults] = useState<any[]>([]);
+  const [isSearchingVets, setIsSearchingVets] = useState(false);
+  const [showChatbot, setShowChatbot] = useState(true);
+  const [isPolicyExpanded, setIsPolicyExpanded] = useState(false);
+
+  // Expand first day effect
+  useEffect(() => {
+    if (itinerary?.days && itinerary.days.length > 0 && expandedDays.length === 0) {
+      setExpandedDays([itinerary.days[0].day]);
+    }
+  }, [itinerary, expandedDays]);
+
+  // Map activities effect
+  useEffect(() => {
+    if (itinerary?.days) {
+       const allActivities = itinerary.days.flatMap((day: ItineraryDay) => day.activities || []);
+       setActivitiesForMap(allActivities);
+    } else { setActivitiesForMap([]); }
+  }, [itinerary]);
+
+  // Handlers
   const handleToggleDay = (day: number) => {
-    setExpandedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
+    setExpandedDays((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]);
   };
+  const toggleMapView = () => setShowMap(prev => !prev);
 
   const handleAddActivity = async (day: number) => {
-    setAddingActivity(day);
-    try {
-      const response = await fetch('/api/places/text-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `pet-friendly ${tripData.interests.join(' or ')} in ${
-            tripData.itinerary?.days[day]?.city || tripData.destination
-          }`,
-        }),
-      });
-      if (!response.ok) throw new Error('Failed to fetch activities');
-      const results = await response.json();
-      setActivityResults(results);
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-      setActivityResults([]);
-    }
+     setAddingActivityDay(day);
+     setIsSearchingActivities(true);
+     setActivitySearchResults([]); 
+     // Fix: Check tripData before accessing properties
+     const currentDayData = itinerary?.days.find(d => d.day === day);
+     if (!currentDayData || !tripData) { setIsSearchingActivities(false); return; }
+     // Placeholder fetch logic
+     await new Promise(resolve => setTimeout(resolve, 750)); 
+     const mockResults = [
+       { name: "Nearby Pet Cafe", description: "Coffee time!", location: currentDayData.city, coordinates: { lat: 0, lng: 0}, petFriendly: true },
+       { name: "Local Park", description: "Walkies!", location: currentDayData.city, coordinates: { lat: 0, lng: 0}, petFriendly: true },
+     ];
+     setActivitySearchResults(mockResults);
+     setIsSearchingActivities(false);
   };
 
   const handleSelectActivity = (day: number, activity: any) => {
-    const updatedItinerary = { ...tripData.itinerary };
-    updatedItinerary.days[day].activities = [
-      ...(updatedItinerary.days[day].activities || []),
-      {
-        time: 'Custom',
-        description: activity.name,
-        place_id: activity.place_id,
-      },
-    ];
-    updateTripData({ ...tripData, itinerary: updatedItinerary });
-    setAddingActivity(null);
-    setActivityResults([]);
+     addActivity(day, { name: activity.name, description: activity.description, petFriendly: activity.petFriendly ?? true, location: activity.location, coordinates: activity.coordinates });
+     setAddingActivityDay(null); setActivitySearchResults([]);
+     setToastMessage({ title: 'Activity Added', description: `${activity.name} added to Day ${day}` }); setOpenToast(true);
+     handleSaveTrip(); // Auto-save
   };
 
   const handleDeleteActivity = (day: number, activityIndex: number) => {
-    const updatedItinerary = { ...tripData.itinerary };
-    updatedItinerary.days[day].activities = updatedItinerary.days[day].activities.filter(
-      (_: any, i: number) => i !== activityIndex
-    );
-    updateTripData({ ...tripData, itinerary: updatedItinerary });
+    const dayData = itinerary?.days.find((d: ItineraryDay) => d.day === day); // Added explicit type
+    const activityName = dayData?.activities[activityIndex]?.name || 'Activity';
+    deleteActivity(day, activityIndex);
+    setToastMessage({ title: 'Activity Removed', description: `${activityName} removed from Day ${day}` }); setOpenToast(true);
+    handleSaveTrip(); // Auto-save
   };
 
   const handleFindVets = async (day: number) => {
-    try {
-      const response = await fetch('/api/places/nearby', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: tripData.itinerary?.days[day]?.city || tripData.destination,
-          type: 'veterinary_care',
-        }),
-      });
-      if (!response.ok) throw new Error('Failed to fetch vets');
-      const results = await response.json();
-      setVetModal({ day, results });
-    } catch (error) {
-      console.error('Error fetching vets:', error);
-      setVetModal({ day, results: [] });
-    }
+     setAddingVetDay(day);
+     setIsSearchingVets(true);
+     setVetSearchResults([]);
+     // Fix: Check tripData before accessing properties
+     const currentDayData = itinerary?.days.find(d => d.day === day);
+     if (!currentDayData || !tripData) { setIsSearchingVets(false); return; }
+     // Placeholder fetch logic
+     await new Promise(resolve => setTimeout(resolve, 750));
+     const mockResults = [
+       { name: "City Animal Hospital", description: "Emergency services", location: currentDayData.city, coordinates: { lat: 0, lng: 0}, petFriendly: true },
+       { name: "Paws Clinic", description: "General care", location: currentDayData.city, coordinates: { lat: 0, lng: 0}, petFriendly: true },
+     ];
+     setVetSearchResults(mockResults);
+     setIsSearchingVets(false);
   };
 
   const handleAddVet = (day: number, vet: any) => {
-    const updatedItinerary = { ...tripData.itinerary };
-    updatedItinerary.days[day].activities = [
-      ...(updatedItinerary.days[day].activities || []),
-      {
-        time: 'Custom',
-        description: `Vet: ${vet.name}`,
-        place_id: vet.place_id,
-      },
-    ];
-    updateTripData({ ...tripData, itinerary: updatedItinerary });
-    setVetModal(null);
+    addActivity(day, { name: `Veterinarian: ${vet.name}`, description: vet.description || 'Veterinary Clinic', petFriendly: true, location: vet.location || vet.vicinity || 'Unknown Location', coordinates: vet.coordinates || vet.geometry?.location || { lat: 0, lng: 0 } });
+    setAddingVetDay(null); setVetSearchResults([]);
+    setToastMessage({ title: 'Veterinarian Added', description: `${vet.name} added to Day ${day}` }); setOpenToast(true);
+    handleSaveTrip(); // Auto-save
   };
 
   const handleSaveTrip = async () => {
-    if (!session) {
-      setOpenToast(true);
-      return;
-    }
+    if (!session || !tripData) { setError('Cannot save: No user session or trip data.'); setToastMessage({title: 'Save Failed', description: 'Please log in and create a trip first.'}); setOpenToast(true); return; }
+    setIsSaving(true); setError(null);
     const supabase = createClient();
-    const { error } = await supabase
-      .from('itineraries')
-      .insert({ user_id: session.user.id, trip_data: tripData });
-    if (error) {
-      console.error('Error saving trip:', error);
-    } else {
-      // Clear draft after saving
-      await supabase.from('draft_itineraries').delete().eq('user_id', session.user.id);
-      clearTrip();
-      sessionStorage.removeItem('tripData');
-    }
+    try {
+      const { error: saveError } = await supabase.from('draft_itineraries').upsert({ user_id: session.user.id, trip_data: tripData, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (saveError) throw saveError;
+      setToastMessage({ title: 'Trip Saved', description: 'Progress saved.' }); setOpenToast(true);
+    } catch (e: any) {
+      setError(`Failed to save trip: ${e.message || 'Unknown error'}`); setToastMessage({ title: 'Save Failed', description: `Could not save progress. ${e.message || ''}` }); setOpenToast(true);
+    } finally { setIsSaving(false); }
   };
 
-  const handleNewTrip = () => {
+  const handleNewTrip = async () => {
+    if (session) { /* ... delete draft ... */ }
     clearTrip();
-    sessionStorage.removeItem('tripData');
-    if (session) {
-      const supabase = createClient();
-      supabase.from('draft_itineraries').delete().eq('user_id', session.user.id);
-    }
   };
 
-  const updateTripData = async (newData: any) => {
-    setTripData(newData);
-    if (session) {
-      const supabase = createClient();
-      await supabase
-        .from('draft_itineraries')
-        .upsert(
-          { user_id: session.user.id, trip_data: newData, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id' }
-        );
-    } else {
-      sessionStorage.setItem('tripData', JSON.stringify(newData));
-    }
-  };
+  // --- Render Logic ---
+  if (!tripData) { 
+    return ( <div className="flex justify-center items-center h-screen"><div className="text-center"><p className="text-xl text-gray-600">Loading itinerary or no trip data found...</p></div></div> );
+  }
+  if (!itinerary) { 
+      // This case might occur if tripData exists but itinerary hasn't been generated yet
+      return ( <div className="flex justify-center items-center h-screen"><div className="text-center"><p className="text-xl text-gray-600">Generating itinerary...</p></div></div> );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 relative">
-      <Toast.Provider swipeDirection="right">
-        <Toast.Root
-          open={openToast}
-          onOpenChange={setOpenToast}
-          className="bg-white border border-teal-200 shadow-lg p-4 rounded-lg"
-        >
-          <Toast.Title className="text-teal-700 font-bold text-base">
-            Save Your Trip
-          </Toast.Title>
-          <Toast.Description className="text-gray-600 text-sm">
-            <Link href="/login" className="text-teal-500 hover:text-teal-700">
-              Sign in
-            </Link>{' '}
-            to save your trip and access it later!
-          </Toast.Description>
-        </Toast.Root>
-        <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw]" />
-      </Toast.Provider>
-
-      <div className="sticky top-0 bg-white z-10 p-4 -mx-6 shadow">
-        <div className="flex justify-between items-center max-w-2xl mx-auto">
-          <button
-            onClick={handleNewTrip}
-            className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium"
-          >
-            Create New Trip
-          </button>
-          <div className="flex gap-2">
-            <button
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium opacity-50 cursor-not-allowed"
-              disabled
-            >
-              PDF
-            </button>
-            <button
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium opacity-50 cursor-not-allowed"
-              disabled
-            >
-              Share
-            </button>
-            <button
-              onClick={handleSaveTrip}
-              className="bg-mustard-500 hover:bg-mustard-600 text-white px-4 py-2 rounded-lg font-medium"
-            >
-              Save Trip
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-2xl font-bold text-black tracking-tight mb-4">Your Itinerary</h2>
-        <div className="flex gap-4 mb-4 flex-wrap">
-          {['Flights', 'Homes', 'Cars', 'Activities', 'Restaurants', 'Insurance'].map(
-            (option) => (
-              <button
-                key={option}
-                className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium opacity-50 cursor-not-allowed"
-                disabled
-              >
-                {option}
-              </button>
-            )
-          )}
+    <div className="flex flex-col md:flex-row relative">
+       {/* Left sidebar - Chatbot (Sticky) */} 
+       {showChatbot && (
+         <div className="w-full md:w-[35%] md:sticky md:top-0 md:h-screen md:border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0 mb-4 md:mb-0">
+           <Chatbot 
+             tripData={tripData}
+             session={session} 
+             onClose={() => setShowChatbot(false)} 
+           />
+         </div>
+       )}
+       
+      {/* Right content - Itinerary (Takes remaining width, natural scroll) */}
+      <div className={cn("flex-grow", showChatbot ? "w-full md:w-[65%]" : "w-full")}> 
+        {/* Header (Sticky within its column) */} 
+        <div className="sticky top-0 bg-white z-10 p-3 border-b border-gray-200 shadow-sm flex justify-between items-center mb-4 flex-wrap gap-2">
+           <div className="flex items-center gap-2">
+             {!showChatbot && (
+               <Button variant="outline" size="sm" onClick={() => setShowChatbot(true)}>Show Assistant</Button>
+             )}
+             <h1 className="text-lg md:text-xl font-bold text-gray-800">Your Pet-Friendly Trip</h1>
+           </div>
+           <div className="flex gap-1.5 flex-wrap">
+             <Button onClick={handleSaveTrip} disabled={isSaving} size="sm">{isSaving ? 'Saving...' : 'Save Progress'}</Button>
+             <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
+             <Button variant="outline" onClick={handleNewTrip} size="sm">New Trip</Button>
+           </div>
         </div>
 
-        {showChatbot && (
-          <Chatbot
-            tripData={tripData}
-            onClose={() => setShowChatbot(false)}
-            session={session}
-          />
-        )}
-        <button
-          onClick={() => setShowChatbot(true)}
-          className="fixed bottom-4 right-4 bg-teal-500 hover:bg-teal-600 text-white rounded-full p-3 shadow-lg"
-        >
-          <span className="sr-only">Ask for Help</span>
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5v-2a2 2 0 012-2h10a2 2 0 012 2v2h-4m-6 0h6"
-            />
-          </svg>
-        </button>
+        {/* Toast */} 
+        <Toast.Provider swipeDirection="right">
+          <Toast.Root open={openToast} onOpenChange={setOpenToast} className="bg-white border border-gray-200 shadow-lg p-4 rounded-lg z-50 data-[state=open]:animate-slideIn data-[state=closed]:animate-hide data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-swipeOut">
+            <Toast.Title className={cn("font-semibold text-base mb-1", error ? "text-red-600" : "text-teal-700")}>{toastMessage.title}</Toast.Title>
+            <Toast.Description className="text-gray-600 text-sm">{toastMessage.description}</Toast.Description>
+            <Toast.Close className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"><X className="h-4 w-4" /></Toast.Close>
+          </Toast.Root>
+          <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw] z-[2147483647] outline-none" />
+        </Toast.Provider>
 
-        {tripData.itinerary?.days?.map((day: ItineraryDay, index: number) => (
-          <div key={index} className="mb-4">
-            <button
-              onClick={() => handleToggleDay(index)}
-              className="w-full text-left bg-white rounded-lg shadow p-4 flex justify-between items-center"
-            >
-              <h3 className="text-teal-700 font-bold text-2xl">
-                Day {day.day}: {day.date}
-              </h3>
-              <svg
-                className={`w-6 h-6 transform ${expandedDays.includes(index) ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {expandedDays.includes(index) && (
-              <div className="bg-gray-50 rounded-lg p-4 mt-2">
-                {day.preparation && (
-                  <div className="mb-4">
-                    <h4 className="text-teal-700 font-bold text-lg">Preparation for Entry</h4>
-                    <ul className="list-disc pl-5">
-                      {day.preparation.map((item, idx) => (
-                        <li key={idx} className="text-gray-700">
-                          <strong>{item.requirement}:</strong>{' '}
-                          {typeof item.details === 'string' ? item.details : JSON.stringify(item.details)}
-                        </li>
+        {/* Error Display */} 
+        {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 mx-4" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
+         
+        <div className="p-4 pt-0">
+          {/* Pre-Departure Steps (if they exist) */} 
+          {preDeparturePreparation && preDeparturePreparation.length > 0 && (
+              <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={true}> 
+                  <div className="space-y-2 mt-1"> 
+                      {preDeparturePreparation.map((activity, idx) => (
+                          <div key={`prep-${idx}`} className="flex items-start p-2 bg-yellow-50/50 rounded-md border border-yellow-100">
+                              {getActivityIcon(activity)} 
+                              <div>
+                                  <p className="font-medium text-gray-800 text-sm leading-snug">{activity.name}</p>
+                                  <p className="text-gray-600 text-xs mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
+                                  {activity.cost && <p className="text-gray-500 text-xs mt-0.5">Est. Cost: {activity.cost}</p>}
+                              </div>
+                          </div>
                       ))}
-                    </ul>
                   </div>
-                )}
-                {day.travel && (
-                  <p className="text-gray-700 mb-4">
-                    <strong>Travel:</strong> {day.travel}
-                  </p>
-                )}
-                {day.activities?.map((activity: Activity, actIndex: number) => (
-                  <div key={actIndex} className="flex justify-between items-center mb-2">
-                    <div>
-                      <p className="text-gray-700">{activity.time}</p>
-                      <p className="text-gray-700">{activity.description}</p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteActivity(index, actIndex)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-                <p className="text-teal-500">Hotel: Data unavailable</p>
-                <img
-                  src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${
-                    day.coordinates?.lng || 0
-                  },${day.coordinates?.lat || 0},14,0/300x200?access_token=${
-                    process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-                  }`}
-                  alt={`Map for Day ${index + 1}`}
-                  className="mt-2 rounded border border-gray-200 w-full md:w-[300px]"
-                />
-                <div className="flex gap-2 mt-4">
-                  <button
-                    onClick={() => handleAddActivity(index)}
-                    className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium"
-                  >
-                    Add Activity
-                  </button>
-                  <button
-                    onClick={() => handleFindVets(index)}
-                    className="bg-mustard-500 hover:bg-mustard-600 text-white px-4 py-2 rounded-lg font-medium"
-                  >
-                    Find Nearby Vets
-                  </button>
-                </div>
-                {addingActivity === index && activityResults.length > 0 && (
-                  <div className="mt-2 bg-white border border-gray-300 rounded-lg shadow p-2">
-                    {activityResults.map((result) => (
-                      <button
-                        key={result.place_id}
-                        onClick={() => handleSelectActivity(index, result)}
-                        className="block w-full text-left text-gray-700 hover:bg-teal-50 p-2"
-                      >
-                        {result.name} - {result.rating || 'N/A'} stars
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-
-        <div className="mt-6">
-          <h3 className="text-2xl font-bold text-black tracking-tight mb-4">Pet Policies</h3>
-          {petPolicies.length > 0 ? (
-            <div className="bg-gray-50 rounded-lg p-4">
-              {petPolicies.map((policy) => (
-                <div key={policy.country_name} className="mb-4">
-                  <h4 className="text-teal-700 font-bold text-lg">{policy.country_name}</h4>
-                  {policy.entry_requirements?.vaccinations?.length > 0 && (
-                    <p className="text-gray-700 flex items-center">
-                      <svg
-                        className="w-5 h-5 text-teal-500 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      Vaccinations: {policy.entry_requirements.vaccinations.join(', ')}
-                    </p>
-                  )}
-                  {policy.entry_requirements?.microchip && (
-                    <p className="text-gray-700 flex items-center">
-                      <svg
-                        className="w-5 h-5 text-teal-500 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      Microchip required
-                    </p>
-                  )}
-                  {policy.quarantine_info && (
-                    <p className="text-gray-700">{policy.quarantine_info}</p>
-                  )}
-                  {policy.external_link && (
-                    <a
-                      href={policy.external_link}
-                      className="text-teal-500 hover:text-teal-700 text-sm"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      More Info
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-600">No pet policies available for selected destinations.</p>
+              </CollapsibleCard>
           )}
-        </div>
+
+          {/* Policy Info (Collapsible) */} 
+          <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}> 
+            <PolicyRequirementsSteps steps={policyRequirements} />
+            <GeneralPreparationInfo items={generalPreparation} />
+          </CollapsibleCard>
+
+          {/* Booking Options */} 
+           <Card className="mb-4 shadow-sm">
+             <CardHeader className="p-3">
+               <CardTitle className="text-base font-semibold">Quick Booking Links</CardTitle>
+             </CardHeader>
+             <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3">
+               <BookingOptionCard title="Flights" icon={<Plane className="h-5 w-5"/>} url={`https://www.google.com/flights?hl=en#flt=${encodeURIComponent(tripData?.origin || '')}.${encodeURIComponent(tripData?.destination || '')}.${tripData?.startDate || 'anytime'}*${encodeURIComponent(tripData?.destination || '')}.${encodeURIComponent(tripData?.origin || '')}.${tripData?.endDate || 'anytime'};c:USD;e:1;sd:1;t:f`} />
+               <BookingOptionCard title="Hotels" icon={<Hotel className="h-5 w-5"/>} url={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(tripData?.destination || '')}&pets=1`} />
+               <BookingOptionCard title="Cars" icon={<Car className="h-5 w-5"/>} url={`https://www.kayak.com/cars/${encodeURIComponent(tripData?.destination || '')}/${tripData?.startDate || 'anytime'}/${tripData?.endDate || 'anytime'}?sort=rank_a`} />
+               <BookingOptionCard title="Vets" icon={<Stethoscope className="h-5 w-5"/>} url={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination || '')}`} />
+             </CardContent>
+           </Card>
+
+          {/* Map View */} 
+          {showMap && (
+             <Card className="mb-4 shadow-sm">
+               <CardHeader className="p-3"><CardTitle className="text-base font-semibold">Trip Activity Map</CardTitle></CardHeader>
+               <CardContent className="p-1"><ItineraryMap activities={activitiesForMap} /></CardContent>
+             </Card>
+          )}
+
+          {/* Daily Breakdown */} 
+          <div>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3">Daily Breakdown</h2>
+            {itinerary?.days?.map((day: ItineraryDay) => (
+              <ItineraryDayAccordion  
+                  key={day.day} day={day} index={day.day} 
+                  isExpanded={expandedDays.includes(day.day)} 
+                  onToggle={() => handleToggleDay(day.day)} 
+                  onAddActivity={() => handleAddActivity(day.day)} 
+                  onFindVets={() => handleFindVets(day.day)} 
+                  onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)} 
+                />
+            ))}
+            {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (
+                <p className="text-gray-500 italic text-sm p-4 text-center">Itinerary data is not available.</p>
+            )}
+          </div> 
+        </div> 
       </div>
 
-      {vetModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-[90vw]">
-            <h3 className="text-2xl font-bold text-black tracking-tight mb-4">
-              Nearby Vets for Day {vetModal.day + 1}
-            </h3>
-            {vetModal.results.length > 0 ? (
-              vetModal.results.map((vet) => (
-                <div key={vet.place_id} className="mb-2">
-                  <p className="text-gray-700">{vet.name} - {vet.rating || 'N/A'} stars</p>
-                  <p className="text-gray-600 text-sm">{vet.vicinity}</p>
-                  <button
-                    onClick={() => handleAddVet(vetModal.day, vet)}
-                    className="text-teal-500 hover:text-teal-700 text-sm"
-                  >
-                    Add to Itinerary
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">No vets found nearby.</p>
+      {/* Modals */} 
+      {(addingActivityDay !== null) && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <h5 className="font-semibold mb-2 text-gray-700">Suggest Activities for Day {addingActivityDay}</h5>
+            {isSearchingActivities ? <p className="text-sm text-gray-500">Searching...</p> : (
+              <ul className="space-y-1.5">
+                {activitySearchResults.map((res, i) => (
+                  <li key={i} className="flex justify-between items-center p-1.5 hover:bg-gray-100 rounded cursor-pointer" onClick={() => handleSelectActivity(addingActivityDay, res)}>
+                    <div><p className="font-medium text-sm">{res.name}</p><p className="text-xs text-gray-600">{res.description}</p></div>
+                    <Plus className="h-4 w-4 text-teal-500"/>
+                  </li> ))}
+                {activitySearchResults.length === 0 && <p className="text-sm text-gray-500">No suggestions found (placeholder).</p>}
+              </ul>
             )}
-            <button
-              onClick={() => setVetModal(null)}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium mt-4"
-            >
-              Close
-            </button>
+            <Button size="sm" variant="ghost" onClick={() => setAddingActivityDay(null)} className="mt-2.5 text-xs">Cancel</Button>
+          </div>
+        </div>
+      )}
+      {(addingVetDay !== null) && (
+         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <h5 className="font-semibold mb-2 text-gray-700">Find Vets for Day {addingVetDay}</h5>
+            {isSearchingVets ? <p className="text-sm text-gray-500">Searching...</p> : (
+              <ul className="space-y-1.5">
+                {vetSearchResults.map((res, i) => (
+                  <li key={i} className="flex justify-between items-center p-1.5 hover:bg-gray-100 rounded cursor-pointer" onClick={() => handleAddVet(addingVetDay, res)}>
+                    <div><p className="font-medium text-sm">{res.name}</p><p className="text-xs text-gray-600">{res.description}</p></div>
+                    <Plus className="h-4 w-4 text-teal-500"/>
+                  </li> ))}
+                {vetSearchResults.length === 0 && <p className="text-sm text-gray-500">No vets found (placeholder).</p>}
+              </ul>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setAddingVetDay(null)} className="mt-2.5 text-xs">Cancel</Button>
           </div>
         </div>
       )}

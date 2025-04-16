@@ -217,26 +217,26 @@ export default function TripCreationForm({
   const petDetailsRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState<FormData>(() => ({
-    origin: tripData.origin || '',
-    originCountry: tripData.originCountry || '',
-    destination: tripData.destination || '',
-    destinationCountry: tripData.destinationCountry || '',
-    additionalCities: tripData.additionalCities || [],
-    additionalCountries: tripData.additionalCountries || [],
-    startDate: tripData.startDate ? new Date(tripData.startDate) : null,
-    endDate: tripData.endDate ? new Date(tripData.endDate) : null,
-    adults: tripData.adults || 1,
-    children: tripData.children || 0,
-    pets: tripData.pets || 1, // Default to 1 pet
-    petDetails: tripData.petDetails?.map((p: { type?: string; size?: string } | null | undefined) => ({
+    origin: tripData?.origin || '',
+    originCountry: tripData?.originCountry || '',
+    destination: tripData?.destination || '',
+    destinationCountry: tripData?.destinationCountry || '',
+    additionalCities: tripData?.additionalCities || [],
+    additionalCountries: tripData?.additionalCountries || [],
+    startDate: tripData?.startDate ? new Date(tripData.startDate) : null,
+    endDate: tripData?.endDate ? new Date(tripData.endDate) : null,
+    adults: tripData?.adults || 1,
+    children: tripData?.children || 0,
+    pets: tripData?.pets || 1,
+    petDetails: tripData?.petDetails?.map((p: { type?: string; size?: string } | null | undefined) => ({
         type: p?.type || '',
         size: p?.size || ''
-    })) || [{ type: '', size: '' }], // Initialize with one pet detail
-    budget: tripData.budget || '',
-    accommodation: tripData.accommodation || '',
-    interests: tripData.interests || [],
-    additionalInfo: tripData.additionalInfo || '',
-    draftId: tripData.draftId || undefined,
+    })) || [{ type: '', size: '' }],
+    budget: tripData?.budget || '',
+    accommodation: tripData?.accommodation || '',
+    interests: tripData?.interests || [],
+    additionalInfo: tripData?.additionalInfo || '',
+    draftId: tripData?.draftId || undefined,
   }));
 
   // Initialize date input based on formData
@@ -489,32 +489,41 @@ export default function TripCreationForm({
       setToastOpen(true);
       return;
     }
-
+  
     setIsLoading(true);
     setErrors({});
-    const newTripData = { ...formData, itinerary: null };
 
-    setTripData(newTripData);
+    // Format dates before saving to store/API
+    const apiTripData = {
+      ...formData,
+      startDate: formData.startDate ? formData.startDate.toISOString().split('T')[0] : undefined,
+      endDate: formData.endDate ? formData.endDate.toISOString().split('T')[0] : undefined,
+      itinerary: null, // Explicitly set itinerary to null for initial submission
+    };
+
+    // Now set the formatted data in the store
+    setTripData(apiTripData as any); // Use 'as any' for now to bypass potential intermediate type issues, store handles final type.
 
     let draftIdToUpdate = formData.draftId;
-
+  
     try {
       if (session) {
         const supabase = createClient();
         const { data: upsertedDraft, error: upsertError } = await supabase
           .from('draft_itineraries')
-          .upsert({ id: draftIdToUpdate, user_id: session.user.id, trip_data: newTripData, updated_at: new Date().toISOString() })
+          .upsert({ id: draftIdToUpdate, user_id: session.user.id, trip_data: apiTripData, updated_at: new Date().toISOString() })
           .select('id').single();
         if (upsertError) throw new Error(`Failed to save draft: ${(upsertError as PostgrestError).message || 'Unknown error'}`);
         draftIdToUpdate = upsertedDraft.id;
         setFormData((prev) => ({ ...prev, draftId: draftIdToUpdate }));
-        setTripData({ ...newTripData, draftId: draftIdToUpdate });
+        setTripData({ ...apiTripData, draftId: draftIdToUpdate } as any); // Update store with draft ID
         setToastMessage('Draft saved successfully!');
         setToastOpen(true);
       } else {
-        sessionStorage.setItem('tripData', JSON.stringify(newTripData));
+        sessionStorage.setItem('tripData', JSON.stringify(apiTripData));
         draftIdToUpdate = undefined;
         setFormData((prev) => ({ ...prev, draftId: undefined }));
+        setTripData({ ...apiTripData, draftId: undefined } as any); // Ensure draftId is undefined in store for guests
         setToastMessage('Draft saved locally!');
         setToastOpen(true);
       }
@@ -526,20 +535,65 @@ export default function TripCreationForm({
       setIsLoading(false);
       return;
     }
-
+  
     try {
+      console.log("Submitting trip data to API:", apiTripData);
       const response = await fetch('/api/ai/enhanced-itinerary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newTripData, draftId: draftIdToUpdate }),
+        body: JSON.stringify(apiTripData),
       });
+  
+      console.log("API Response Status:", response.status);
+  
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response.' }));
-        throw new Error(errorData.error || `Failed to generate itinerary (Status: ${response.status})`);
+        let errorBody = 'Unknown error';
+        try {
+          errorBody = await response.text();
+          console.error("API Error Response Body:", errorBody);
+        } catch (textError) {
+          console.error("Could not read error response body:", textError);
+        }
+        throw new Error(`API Error (${response.status}): ${response.statusText}. Details: ${errorBody}`);
       }
-      const itinerary = await response.json();
-      const finalTripData = { ...newTripData, draftId: draftIdToUpdate, itinerary };
-      setTripData(finalTripData);
+  
+      let result: any;
+      try {
+        result = await response.json();
+        console.log("API Response JSON:", result);
+      } catch (parseError: any) {
+        console.error("Failed to parse API response JSON:", parseError);
+        throw new Error('Failed to parse itinerary response from server.');
+      }
+  
+      if (!result || typeof result !== 'object') {
+          throw new Error('Invalid response format received from server.');
+      }
+      
+      if (!result.itinerary || typeof result.itinerary !== 'object' || !Array.isArray(result.itinerary.days)) {
+        if (result.error && typeof result.error === 'string') { 
+           console.error('API returned an error message:', result.error);
+           throw new Error(`Itinerary generation failed: ${result.error}`);
+        } else {
+          console.error('Invalid itinerary structure received:', result.itinerary);
+          throw new Error('Generated itinerary data is missing or malformed.');
+        }
+      }
+  
+      console.log("Generated itinerary:", result.itinerary);
+  
+      // Assuming result has { itinerary, policyRequirements, generalPreparation }
+      const finalTripData = {
+        ...apiTripData,
+        itinerary: result.itinerary,
+        policyRequirements: result.policyRequirements, // Add these from response
+        generalPreparation: result.generalPreparation, // Add these from response
+        draftId: draftIdToUpdate, // Keep draftId
+      };
+
+      // Set final data (including itinerary etc.) in the store
+      setTripData(finalTripData as any);
+  
       if (session && draftIdToUpdate) {
         const supabase = createClient();
         const { error: updateError } = await supabase.from('draft_itineraries').update({ trip_data: finalTripData, updated_at: new Date().toISOString() }).eq('id', draftIdToUpdate);
@@ -547,14 +601,13 @@ export default function TripCreationForm({
       } else {
         sessionStorage.setItem('tripData', JSON.stringify(finalTripData));
       }
-      setToastMessage('Itinerary generated successfully!');
+      
+      setToastMessage("Itinerary generated successfully!");
       setToastOpen(true);
-      if (onClose) onClose();
-    } catch (error) {
-      console.error('[TripCreationForm] Error during itinerary generation/update:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while generating itinerary.';
-      setErrors({ general: errorMessage });
-      setToastMessage(errorMessage);
+    } catch (error: any) {
+      console.error("Error in handleSubmit:", error);
+      setErrors({ submit: error.message || 'An unexpected error occurred during itinerary generation.' });
+      setToastMessage(error.message || 'Failed to generate itinerary. Please try again.');
       setToastOpen(true);
     } finally {
       setIsLoading(false);
@@ -590,7 +643,7 @@ export default function TripCreationForm({
 
       {showSummary && getMissingFieldsCount() > 0 && (
         <div className="bg-teal-50 border border-teal-200 text-teal-700 px-4 py-3 rounded-lg mb-6">
-          Just {getMissingFieldsCount()} more thing{getMissingFieldsCount() !== 1 ? 's' : ''} before we fetch your pet’s travel rules.
+          Just {getMissingFieldsCount()} more thing{getMissingFieldsCount() !== 1 ? 's' : ''} before we fetch your pet's travel rules.
         </div>
       )}
 
@@ -639,7 +692,7 @@ export default function TripCreationForm({
                   </TooltipProvider>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-1">We’ll use this to check pet rules for your origin.</p>
+              <p className="text-sm text-gray-500 mt-1">We'll use this to check pet rules for your origin.</p>
               {errors.origin && validationState.interacted.has('origin') && (
                 <p className="text-sm text-red-600 mt-1">{errors.origin}</p>
               )}
@@ -675,7 +728,7 @@ export default function TripCreationForm({
                   </TooltipProvider>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-1">We’ll use this to check pet rules for your destination.</p>
+              <p className="text-sm text-gray-500 mt-1">We'll use this to check pet rules for your destination.</p>
               {errors.destination && validationState.interacted.has('destination') && (
                 <p className="text-sm text-red-600 mt-1">{errors.destination}</p>
               )}
@@ -843,7 +896,7 @@ export default function TripCreationForm({
               <p className="text-sm text-gray-500 mt-1">Choose your travel dates to plan your itinerary.</p>
               {(errors.startDate || errors.endDate || errors.dates) && (validationState.interacted.has('startDate') || validationState.interacted.has('endDate')) && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.startDate || errors.endDate || errors.dates || 'We couldn’t find that date—try MM/DD or pick from calendar.'}
+                  {errors.startDate || errors.endDate || errors.dates || 'We couldn\'t find that date—try MM/DD or pick from calendar.'}
                 </p>
               )}
             </div>
@@ -1157,7 +1210,7 @@ export default function TripCreationForm({
                   </TooltipProvider>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-1">We’ll ensure it’s pet-friendly.</p>
+              <p className="text-sm text-gray-500 mt-1">We'll ensure it's pet-friendly.</p>
               {errors.accommodation && validationState.interacted.has('accommodation') && (
                 <p className="text-sm text-red-600 mt-1">{errors.accommodation}</p>
               )}
@@ -1182,7 +1235,7 @@ export default function TripCreationForm({
                       />
                   ))}
               </div>
-              <p className="text-sm text-gray-500 mt-1">We’ll suggest activities based on your interests.</p>
+              <p className="text-sm text-gray-500 mt-1">We'll suggest activities based on your interests.</p>
             </div>
 
             <div>
