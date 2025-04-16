@@ -38,9 +38,8 @@ export interface GeneralPreparationItem {
   details: string | { url: string; title: string };
 }
 
-// Main data structure stored
-interface TripData {
-  // Original fields from form
+// Main data structure for the trip
+export interface TripData {
   origin?: string;
   originCountry?: string;
   destination?: string;
@@ -58,7 +57,6 @@ interface TripData {
   interests?: string[];
   additionalInfo?: string;
   draftId?: string;
-  // Added by API
   itinerary?: Itinerary;
   policyRequirements?: PolicyRequirementStep[];
   generalPreparation?: GeneralPreparationItem[];
@@ -66,7 +64,7 @@ interface TripData {
 }
 
 interface TripState {
-  tripData: TripData | null; // Store the structured data or null
+  tripData: TripData | null;
   isSaving: boolean;
   isLoading: boolean;
   error: string | null;
@@ -86,55 +84,55 @@ export const useTripStore = create<TripState>()(
       isSaving: false,
       isLoading: false,
       error: null,
-      setTripData: (data) => set({ tripData: data, isSaving: false, error: null }), // Reset status on new data
-      clearTrip: () => set({ tripData: null, isSaving: false, error: null }),
+      setTripData: (data) => set({ tripData: data, isSaving: false, isLoading: false, error: null }),
+      clearTrip: () => {
+        sessionStorage.removeItem('tripData');
+        set({ tripData: null, isSaving: false, isLoading: false, error: null });
+      },
       setIsSaving: (saving) => set({ isSaving: saving }),
       setIsLoading: (isLoading) => set({ isLoading: isLoading }),
-      setError: (error) => set({ error: error, isSaving: false }),
-
-      addActivity: (dayNumber, activity) => {
+      setError: (error) => set({ error: error, isSaving: false, isLoading: false }),
+      addActivity: (day, activity) => {
         const currentData = get().tripData;
         if (!currentData || !currentData.itinerary) return;
 
-        const updatedDays = currentData.itinerary.days.map(day => {
-          if (day.day === dayNumber) {
-            // Ensure activities array exists and add the new activity
-            const activities = [...(day.activities || []), activity];
-            return { ...day, activities };
+        const updatedDays = currentData.itinerary.days.map(dayItem => {
+          if (dayItem.day === day) {
+            const activities = [...(dayItem.activities || []), activity];
+            return { ...dayItem, activities };
           }
-          return day;
+          return dayItem;
         });
 
-        set({ 
-          tripData: { 
-            ...currentData, 
-            itinerary: { ...currentData.itinerary, days: updatedDays } 
+        set({
+          tripData: {
+            ...currentData,
+            itinerary: { ...currentData.itinerary, days: updatedDays }
           }
         });
       },
-
-      deleteActivity: (dayNumber, activityIndex) => {
-         const currentData = get().tripData;
+      deleteActivity: (day, activityIndex) => {
+        const currentData = get().tripData;
         if (!currentData || !currentData.itinerary) return;
 
-        const updatedDays = currentData.itinerary.days.map(day => {
-          if (day.day === dayNumber) {
-            const activities = (day.activities || []).filter((_: Activity, index: number) => index !== activityIndex);
-            return { ...day, activities };
+        const updatedDays = currentData.itinerary.days.map(dayItem => {
+          if (dayItem.day === day) {
+            const activities = (dayItem.activities || []).filter((_, index) => index !== activityIndex);
+            return { ...dayItem, activities };
           }
-          return day;
+          return dayItem;
         });
-        
-        set({ 
-          tripData: { 
-            ...currentData, 
-            itinerary: { ...currentData.itinerary, days: updatedDays } 
+
+        set({
+          tripData: {
+            ...currentData,
+            itinerary: { ...currentData.itinerary, days: updatedDays }
           }
         });
       },
     }),
     {
-      name: 'tripData', // Keep the same storage key
+      name: 'tripData',
       storage: createJSONStorage(() => sessionStorage),
     }
   )

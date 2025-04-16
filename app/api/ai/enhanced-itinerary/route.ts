@@ -290,139 +290,190 @@ export async function POST(request: NextRequest) {
         }
     };
 
-    // Fetch Destination Airport Coordinates (Best effort)
+    // --- Fetch Foundational Data ---
+    // Destination Airport Coords (Best effort)
     let destinationAirportCoords: { lat: number; lng: number } | null = null;
     const airportResults = await searchGooglePlaces(`${tripData.destination} airport`, 'airport');
-    if (airportResults.length > 0) {
+    if (airportResults.length > 0 && airportResults[0].geometry?.location) {
         destinationAirportCoords = airportResults[0].geometry.location;
         console.log('[EnhancedItinerary API] Found destination airport coordinates:', destinationAirportCoords);
     } else {
         console.warn('[EnhancedItinerary API] Could not find coordinates for destination airport.');
-        // Fallback: Geocode destination city (could add later if needed)
     }
-    
-    // Fetch Pet-Friendly Restaurants
-    const restaurantQuery = `pet friendly restaurants in ${tripData.destination}`;
-    const petFriendlyRestaurants = await searchGooglePlaces(restaurantQuery, 'restaurant');
 
-    // Fetch Accommodation based on user preference
-    let accommodationOptions: Place[] = [];
+    // Fetch Accommodation (Best effort)
     let recommendedAccommodation: Place | null = null;
+    let accommodationCoords = destinationAirportCoords; // Default to airport initially
     if (tripData.accommodation && tripData.accommodation !== 'Flexible') {
         const accommodationQuery = `pet friendly ${tripData.accommodation.toLowerCase()} in ${tripData.destination}`;
-        accommodationOptions = await searchGooglePlaces(accommodationQuery, 'lodging', destinationAirportCoords || undefined, 20000); // Wider radius from airport or city center
-        if (accommodationOptions.length > 0) {
-            // Basic selection: pick the first result for now.
-            // Future: Could use rating, price_level, or proximity to city center if geocoded.
+        // Bias search near airport first, or just general destination if no airport coords
+        const accommodationOptions = await searchGooglePlaces(accommodationQuery, 'lodging', destinationAirportCoords || undefined, 20000); 
+        if (accommodationOptions.length > 0 && accommodationOptions[0].geometry?.location) {
             recommendedAccommodation = accommodationOptions[0];
-            console.log(`[EnhancedItinerary API] Recommended accommodation: ${recommendedAccommodation.name}`);
+            accommodationCoords = recommendedAccommodation.geometry.location; // Update coords to hotel location
+            console.log(`[EnhancedItinerary API] Recommended accommodation: ${recommendedAccommodation.name} at`, accommodationCoords);
         } else {
-            console.warn(`[EnhancedItinerary API] No specific ${tripData.accommodation} found, will use generic check-in.`);
+            console.warn(`[EnhancedItinerary API] No specific ${tripData.accommodation} found near airport/destination.`);
+            // If no hotel found near airport, try geocoding destination center as fallback? (future enhancement)
         }
     } else {
-        console.log(`[EnhancedItinerary API] Accommodation preference is Flexible or not set, skipping specific search.`);
+        console.log(`[EnhancedItinerary API] Accommodation preference is Flexible or not set.`);
     }
-    const accommodationCoords = recommendedAccommodation?.geometry?.location || destinationAirportCoords || { lat: 0, lng: 0 }; // Use hotel, airport, or fallback coords
+    // Use accommodation coords if found, otherwise stick with airport coords, finally fallback to 0,0
+    const primaryLocationCoords = accommodationCoords || destinationAirportCoords || { lat: 0, lng: 0 }; 
     const accommodationName = recommendedAccommodation?.name || tripData.accommodation || "Your Accommodation";
+    console.log(`[EnhancedItinerary API] Primary location coordinates for searches set to:`, primaryLocationCoords);
 
-    // Fetch Activities based on Interests
+    // Fetch General Pet-Friendly Restaurants near primary location
+    const restaurantQuery = `pet friendly restaurant in ${tripData.destination}`;
+    const generalPetFriendlyRestaurants = await searchGooglePlaces(restaurantQuery, 'restaurant', primaryLocationCoords, 15000); // 15km radius around hotel/airport
+    console.log(`[EnhancedItinerary API] Found ${generalPetFriendlyRestaurants.length} general pet-friendly restaurants near primary location.`);
+
+    // --- Fetch Interest-Based Activities (Refined Queries) ---
     console.log('[EnhancedItinerary API] Fetching activities based on interests...');
     const interestBasedActivities: Activity[] = [];
-    const MAX_ACTIVITIES_PER_INTEREST = 5; // Limit results per interest
-    const activitiesPerDayGoal = 2; // Target non-meal activities per day
-    const totalActivitiesNeeded = Math.max(0, (tripDays - 1) * activitiesPerDayGoal); // Calculate total needed (min 0)
-    
-    // Map interests to Google Places API keywords (keep existing map)
-    const interestToQuery: { [key: string]: string } = {
-        Sightseeing: 'tourist_attraction', // Use specific types
-        'Outdoor Adventures': 'park hiking',
-        Sports: 'stadium sports_complex',
-        'Food Tours': 'restaurant cafe', // Already handled partly by restaurant search
-        Museums: 'museum art_gallery',
-        Shopping: 'shopping_mall market clothing_store',
-        'Spa and Wellness': 'spa',
-        'Local Experiences': 'tourist_attraction landmark', // Broader category
-        Photography: 'tourist_attraction park',
-        'Wildlife Viewing': 'zoo aquarium park',
-        'Water Activities': 'beach amusement_park', // Adjust as needed
-        Nightlife: 'bar night_club',
-        'Historical Sites': 'landmark historical_landmark',
-        'Cultural Events': 'performing_arts_theater museum', // Approximate
-        Other: 'point_of_interest', // Generic fallback
+    const MAX_ACTIVITIES_PER_INTEREST_TYPE = 3; // Limit results per specific query type
+    const activitiesPerDayGoal = 2;
+    const totalActivitiesNeeded = Math.max(0, (tripDays - 1) * activitiesPerDayGoal);
+
+    // Refined mapping of interests to specific Place Types/Keywords
+    // Keys are interests from your constants, values are arrays of queries/types
+    const interestToQueries: { [key: string]: { query?: string; type?: string }[] } = {
+        Sightseeing: [
+            { type: 'tourist_attraction' }, 
+            { type: 'landmark' }
+        ],
+        'Outdoor Adventures': [
+            { query: 'pet friendly hiking trail' }, 
+            { query: 'pet friendly park' }, 
+            { type: 'dog_park' },
+            { type: 'park' } // General fallback
+        ],
+        Sports: [
+            { type: 'stadium' }, 
+            { query: 'sports complex' } // Keyword search
+        ],
+        'Food Tours': [ // Note: Restaurants are fetched separately, focus on cafes/breweries etc.
+            { query: 'pet friendly cafe', type: 'cafe' },
+            { query: 'pet friendly brewery', type: 'bar' }, // Breweries often classified as bars
+        ],
+        Museums: [
+            { type: 'museum' }, 
+            { type: 'art_gallery' }
+        ],
+        Shopping: [
+            { type: 'shopping_mall' }, 
+            { query: 'pet friendly market', type: 'market' }, // May need adjustment
+            { query: 'pet friendly shops' }, // General keyword
+        ],
+        'Spa and Wellness': [
+            // Difficult for pets, maybe focus on relaxing outdoor spots?
+            { query: 'quiet park', type: 'park' }
+        ],
+        'Local Experiences': [
+             { query: 'pet friendly walking tour'}, // Keyword
+             { query: 'local market', type: 'market' },
+             { type: 'tourist_attraction' } // Broader
+        ],
+        Photography: [
+            { query: 'scenic viewpoint', type: 'point_of_interest' },
+            { type: 'park' }, 
+            { type: 'landmark' }
+        ],
+        'Wildlife Viewing': [
+            // Often not pet-friendly, maybe suggest specific reserves if known?
+            { query: 'nature reserve', type: 'park' }
+        ],
+        'Water Activities': [
+            { query: 'pet friendly beach', type: 'beach' },
+            { query: 'dog beach', type: 'beach' }
+        ],
+        Nightlife: [
+            { query: 'pet friendly bar', type: 'bar' }, 
+            { query: 'pet friendly pub', type: 'bar' }
+        ],
+        'Historical Sites': [
+            { type: 'historical_landmark' }, 
+            { query: 'historic site' }
+        ],
+        'Cultural Events': [
+            // Hard to find via Places API directly, focus on venues
+            { query: 'outdoor theater', type: 'performing_arts_theater' },
+        ],
+        Other: [{ type: 'point_of_interest' }],
     };
 
-    const fetchedPlaceIds = new Set<string>(); // Track fetched places to avoid duplicates
-
-    // Add restaurants to the set to avoid re-adding them as activities
-    petFriendlyRestaurants.forEach(p => fetchedPlaceIds.add(p.place_id));
+    const fetchedPlaceIds = new Set<string>();
+    generalPetFriendlyRestaurants.forEach(p => p.place_id && fetchedPlaceIds.add(p.place_id));
+    if (recommendedAccommodation?.place_id) fetchedPlaceIds.add(recommendedAccommodation.place_id);
 
     for (const interest of tripData.interests) {
-        const types = interestToQuery[interest]?.split(' ') || ['point_of_interest'];
+        const queries = interestToQueries[interest] || interestToQueries['Other'];
         let placesForInterest: Place[] = [];
 
-        for (const type of types) {
-            if (interestBasedActivities.length >= totalActivitiesNeeded + 5) break; // Stop fetching if we have enough potential activities
+        for (const { query: specificQuery, type } of queries) {
+             // Construct query text: prioritize specific query term, fall back to type
+            let queryText = specificQuery ? specificQuery.includes(tripData.destination) ? specificQuery : `${specificQuery} in ${tripData.destination}` : `${type?.replace(/_/g, ' ') || 'place'} in ${tripData.destination}`;
+            if (tripData.pets > 0 && !queryText.toLowerCase().includes('pet friendly') && !queryText.toLowerCase().includes('dog park')) {
+                queryText = `pet friendly ${queryText}`;
+            }
 
-            const query = tripData.pets > 0
-                ? `pet friendly ${type.replace(/_/g, ' ')} in ${tripData.destination}`
-                : `${type.replace(/_/g, ' ')} in ${tripData.destination}`;
-            
-            const results = await searchGooglePlaces(query, type);
+            // Use primary location coords (hotel/airport) for biasing
+            const results = await searchGooglePlaces(queryText, type, primaryLocationCoords, 15000); // 15km radius
             placesForInterest.push(...results);
-            if (placesForInterest.length >= MAX_ACTIVITIES_PER_INTEREST) break; // Limit per type within interest
+            // Limit per specific query type within the interest
+            if (placesForInterest.length >= MAX_ACTIVITIES_PER_INTEREST_TYPE) break; 
         }
         
-        console.log(`[EnhancedItinerary API] Found ${placesForInterest.length} potential places for interest '${interest}'`);
+        console.log(`[EnhancedItinerary API] Interest '${interest}': Found ${placesForInterest.length} potential places.`);
 
-        placesForInterest.slice(0, MAX_ACTIVITIES_PER_INTEREST).forEach((place: Place) => {
-            if (fetchedPlaceIds.has(place.place_id)) {
-                console.log(`[EnhancedItinerary API] Skipping duplicate place: ${place.name}`);
-                return; // Skip duplicates
+        placesForInterest.forEach((place: Place) => {
+            if (!place.place_id || fetchedPlaceIds.has(place.place_id)) {
+                // console.log(`[EnhancedItinerary API] Skipping duplicate or invalid place: ${place.name}`);
+                return; 
             }
             fetchedPlaceIds.add(place.place_id);
 
-            const explicitlySearchedPetFriendly = tripData.pets > 0; // Assume pet-friendly if pets > 0 for now
+            const explicitlySearchedPetFriendly = tripData.pets > 0; 
             let description = place.types ? place.types.map(t => t.replace(/_/g, ' ')).join(', ') : 'Attraction';
-            if (place.rating) {
-                description += ` (Rating: ${place.rating} / ${place.user_ratings_total || 0} reviews)`;
-            }
+            // Add rating if available
+            // if (place.rating) { description += ` (Rating: ${place.rating}${place.user_ratings_total ? ` / ${place.user_ratings_total} reviews` : ''})`; }
             
-            let estimatedCost: string | undefined = undefined;
-            // Simplified cost estimation based on type
-            const placeTypes = place.types || [];
-            if (placeTypes.includes('museum') || placeTypes.includes('tourist_attraction') || placeTypes.includes('amusement_park') || placeTypes.includes('zoo')) {
-                estimatedCost = "$20 - $50";
-            } else if (placeTypes.includes('park') || placeTypes.includes('landmark')) {
-                 estimatedCost = "Free - $20";
-            } // Restaurants handled separately
+            let estimatedCost = placePriceLevelToCost(place.price_level); // Use helper
+            // Refine cost estimate based on type if price level is missing
+            if (estimatedCost === placePriceLevelToCost(undefined)) { // Check if it used the default
+                 const placeTypes = place.types || [];
+                 if (placeTypes.includes('museum') || placeTypes.includes('tourist_attraction') || placeTypes.includes('amusement_park') || placeTypes.includes('zoo')) {
+                    estimatedCost = "$20 - $50";
+                 } else if (placeTypes.includes('park') || placeTypes.includes('landmark') || placeTypes.includes('hiking_area') || placeTypes.includes('natural_feature')) {
+                    estimatedCost = "Free - $20";
+                 } else if (placeTypes.includes('cafe') || placeTypes.includes('bar')) {
+                     estimatedCost = "$10 - $30";
+                 }
+            }
 
             interestBasedActivities.push({
                 name: place.name,
                 description: description,
-                petFriendly: explicitlySearchedPetFriendly, // Needs refinement later maybe via Place Details
-                location: place.formatted_address || tripData.destination,
+                petFriendly: explicitlySearchedPetFriendly, // Assumption based on query
+                location: place.vicinity || place.formatted_address || tripData.destination,
                 coordinates: place.geometry.location,
                 cost: estimatedCost,
-                type: 'activity' // Set type
+                type: 'activity' 
             });
         });
     }
-    console.log('[EnhancedItinerary API] Total interest-based activities fetched:', interestBasedActivities.length);
+    console.log('[EnhancedItinerary API] Total unique interest-based activities fetched:', interestBasedActivities.length);
 
-    // Combine and filter activities (replace previous proximity filter with simple deduplication already done)
-    // Ensure arrays are explicitly typed
-    let allActivities: Activity[] = [...interestBasedActivities]; // Start with interest-based
-    console.log('[EnhancedItinerary API] Total unique activities before filtering:', allActivities.length);
-    
-    // Simple shuffle to vary results slightly
-    allActivities.sort(() => Math.random() - 0.5);
+    // Shuffle activities to add variety before selection
+    interestBasedActivities.sort(() => Math.random() - 0.5);
 
-    // Select needed activities, ensuring we have enough variety potentially
-    let filteredActivities: Activity[] = allActivities.slice(0, totalActivitiesNeeded); // Take the required number
-    console.log('[EnhancedItinerary API] Selected activities for itinerary:', filteredActivities.length);
+    // Select activities needed for subsequent days
+    let filteredSubsequentActivities: Activity[] = interestBasedActivities.slice(0, totalActivitiesNeeded); 
+    console.log('[EnhancedItinerary API] Selected activities for subsequent days:', filteredSubsequentActivities.length);
 
-    // Convert restaurant Places to Activity type
-    const restaurantActivities: Activity[] = petFriendlyRestaurants.map(place => {
+    // Convert general restaurant Places to Activity type
+    const restaurantActivities: Activity[] = generalPetFriendlyRestaurants.map(place => {
          let description = place.types ? place.types.map(t => t.replace(/_/g, ' ')).join(', ') : 'Restaurant/Cafe';
          // Calculate approximate cost based on price level
          let cost = "$30 - $60"; // Default
@@ -446,18 +497,60 @@ export async function POST(request: NextRequest) {
             type: 'meal' as const // Explicitly cast string literal to type
         };
     });
+    console.log('[EnhancedItinerary API] Converted restaurants to activities:', restaurantActivities.length);
 
-    console.log('[EnhancedItinerary API] Found pet-friendly restaurants:', restaurantActivities.length);
-
-    // --- Step 4: Generate Structured Itinerary ---
-    console.log('[EnhancedItinerary API] Generating structured itinerary...');
+    // --- Step 4: Generate Structured Itinerary (with Improved Fallbacks) ---
+    console.log('[EnhancedItinerary API] Generating structured itinerary with improved fallbacks...');
     const itinerary: Itinerary = { days: [] };
     let currentDate = new Date(startDate);
     let currentDay = 1;
-    let remainingInterestActivities = [...filteredActivities]; // Use activities meant for Days 2+
-    let remainingRestaurantActivities = [...restaurantActivities]; // Use general restaurant list
+    let remainingInterestActivitiesPool = [...filteredSubsequentActivities]; // Pool for days 2+
+    let remainingRestaurantActivitiesPool = [...restaurantActivities]; // Pool for days 1+
+    const usedActivityPlaceIds = new Set<string>(); // Track used activities to avoid reuse across days
 
-    // --- Pre-Departure Preparation (If Pets > 0) ---
+    // Helper to get a unique activity from the pool
+    const getUniqueActivity = (pool: Activity[]): Activity | undefined => {
+        while (pool.length > 0) {
+            const activity = pool.shift();
+            // Check if location (acting as a proxy for place_id here) has been used
+            if (activity && !usedActivityPlaceIds.has(activity.location)) {
+                usedActivityPlaceIds.add(activity.location);
+                return activity;
+            }
+        }
+        return undefined;
+    };
+    
+    // Helper to get a unique restaurant from the pool
+    const getUniqueRestaurant = (pool: Activity[]): Activity | undefined => {
+         while (pool.length > 0) {
+            const restaurant = pool.shift();
+             // Check if location (acting as a proxy for place_id here) has been used
+            if (restaurant && !usedActivityPlaceIds.has(restaurant.location)) {
+                usedActivityPlaceIds.add(restaurant.location);
+                return restaurant;
+            }
+        }
+        return undefined;
+    };
+
+    // Helper to convert a Place to an Activity
+    const placeToActivity = (place: Place, type: Activity['type'] = 'activity'): Activity => {
+         let description = place.types ? place.types.map(t => t.replace(/_/g, ' ')).join(', ') : (type === 'meal' ? 'Restaurant/Cafe' : 'Attraction');
+         // Add rating if available
+         // if (place.rating) { description += ` (Rating: ${place.rating}${place.user_ratings_total ? ` / ${place.user_ratings_total} reviews` : ''})`; }
+         return {
+            name: place.name || (type === 'meal' ? 'Pet-Friendly Meal Spot' : 'Interesting Place'),
+            description: description,
+            petFriendly: true, // Assumed true for places fetched by pet-friendly queries
+            location: place.vicinity || place.formatted_address || tripData.destination,
+            coordinates: place.geometry?.location || { lat: 0, lng: 0 },
+            cost: placePriceLevelToCost(place.price_level), // Use helper
+            type: type
+        };
+    };
+
+    // --- Pre-Departure Preparation --- 
     const preDeparturePreparation: Activity[] = [];
     if (tripData.pets > 0) {
         console.log('[EnhancedItinerary API] Adding pre-departure preparations...');
@@ -526,130 +619,83 @@ export async function POST(request: NextRequest) {
     });
 
     // Hotel Check-in
-    // Attempt to find hotel coordinates (Best Effort - can be complex)
-    // For now, using destination city center as a placeholder if no better coords exist
-    // Future: Could add a Google Geocoding step here if accommodation name is reliable
-    const accommodationPlaceholderCoords = defaultCoords; // Simple fallback for now
-     day1Activities.push({
+    day1Activities.push({
       name: `Check-in: ${accommodationName}`,
       description: `Check into ${accommodationName}. Settle your pet in. Confirm pet policies and any designated relief areas with staff.`,
       petFriendly: true,
-      location: recommendedAccommodation?.vicinity || recommendedAccommodation?.formatted_address || tripData.destination, // Use specific location if available
-      coordinates: accommodationCoords, // Use fetched coords
-      startTime: "14:00", // Shifted later
+      location: recommendedAccommodation?.vicinity || accommodationName,
+      coordinates: primaryLocationCoords, // Use primary coords
+      startTime: "14:00",
       endTime: "14:30",
       cost: "Accommodation cost varies",
       type: 'accommodation'
     });
 
-    // Day 1 Lunch (Using airport-nearby options first)
-    let day1LunchPlace: Place | undefined = petFriendlyRestaurants.shift();
-    if (day1LunchPlace) {
-        console.log(`[EnhancedItinerary API] Using nearby restaurant for Day 1 lunch: ${day1LunchPlace.name}`);
-        day1Activities.push({
-            name: `Lunch: ${day1LunchPlace.name}`,
-            description: day1LunchPlace.types ? day1LunchPlace.types.map(t => t.replace(/_/g, ' ')).join(', ') : 'Restaurant/Cafe',
-            petFriendly: true, // Assumed from query
-            location: day1LunchPlace.vicinity || day1LunchPlace.formatted_address || tripData.destination,
-            coordinates: day1LunchPlace.geometry?.location || defaultCoords,
-            cost: placePriceLevelToCost(day1LunchPlace.price_level), // Helper function needed
-            startTime: "14:30",
-            endTime: "15:30",
-            type: 'meal'
-        });
-         // Remove this used restaurant from the general list if it exists there
-        remainingRestaurantActivities = remainingRestaurantActivities.filter(r => r.location !== (day1LunchPlace.vicinity || day1LunchPlace.formatted_address));
-    } else {
-        console.log('[EnhancedItinerary API] No specific Day 1 lunch option found, using placeholder.');
-        day1Activities.push({ name: "Lunch Near Accommodation", description: "Find a nearby pet-friendly cafe or restaurant.", petFriendly: true, location: accommodationName, coordinates: accommodationCoords, startTime: "14:30", endTime: "15:30", cost: "$30 - $60", type: 'meal' });
+    // Day 1 Lunch (Use nearby options or fallback search)
+    let day1LunchActivity = getUniqueRestaurant(remainingRestaurantActivitiesPool);
+    if (!day1LunchActivity) {
+        console.log('[EnhancedItinerary API] No restaurants left in pool for Day 1 lunch, searching nearby...');
+        const nearbyLunchOptions = await searchGooglePlaces(`pet friendly restaurant near ${accommodationName}`, 'restaurant', primaryLocationCoords, 5000);
+        if (nearbyLunchOptions.length > 0 && !usedActivityPlaceIds.has(nearbyLunchOptions[0].vicinity || nearbyLunchOptions[0].formatted_address)) {
+            day1LunchActivity = placeToActivity(nearbyLunchOptions[0], 'meal');
+            usedActivityPlaceIds.add(day1LunchActivity.location); // Mark as used
+        } else {
+           console.log('[EnhancedItinerary API] No nearby restaurant found, using placeholder.');
+            day1LunchActivity = { name: "Lunch Near Accommodation", description: "Find a nearby pet-friendly cafe or restaurant.", petFriendly: true, location: accommodationName, coordinates: primaryLocationCoords, startTime: "14:30", endTime: "15:30", cost: "$30 - $60", type: 'meal' };
+        }
     }
-
-     // Day 1 Afternoon Activity (Using airport-nearby park/relaxing place first)
-    let day1AfternoonPlace: Place | undefined = petFriendlyRestaurants.shift();
-    if (day1AfternoonPlace) {
-         console.log(`[EnhancedItinerary API] Using nearby place for Day 1 afternoon: ${day1AfternoonPlace.name}`);
-         day1Activities.push({
-            name: `Afternoon: ${day1AfternoonPlace.name}`,
-            description: `Relax or take a gentle walk at this nearby pet-friendly spot (${day1AfternoonPlace.types ? day1AfternoonPlace.types.map(t => t.replace(/_/g, ' ')).join(', ') : 'Place'}).`,
-            petFriendly: true, // Assumed from query or type (park)
-            location: day1AfternoonPlace.vicinity || day1AfternoonPlace.formatted_address || tripData.destination,
-            coordinates: day1AfternoonPlace.geometry?.location || defaultCoords,
-            cost: "Free - $20", // Parks usually free/low cost
-            startTime: "16:00",
-            endTime: "17:30", // Slightly shorter time
-            type: 'activity'
-        });
-         // Remove this used activity from the general list if it exists there
-         remainingInterestActivities = remainingInterestActivities.filter(a => a.location !== (day1AfternoonPlace.vicinity || day1AfternoonPlace.formatted_address));
-    } else {
-         console.log('[EnhancedItinerary API] No specific Day 1 afternoon option found, using placeholder.');
-        day1Activities.push({ name: "Relax or Local Walk", description: "Settle in or take a short walk around your accommodation area.", petFriendly: true, location: accommodationName, coordinates: accommodationCoords, startTime: "16:00", endTime: "17:30", cost: "Free", type: 'placeholder' });
+    day1Activities.push({ ...day1LunchActivity, name: `Lunch: ${day1LunchActivity.name}`, startTime: "14:30", endTime: "15:30" });
+    
+    // Day 1 Afternoon Activity (Use nearby park/relaxing place or fallback search)
+    let day1AfternoonActivity = getUniqueActivity(remainingInterestActivitiesPool);
+    if (!day1AfternoonActivity || !['park', 'hiking'].some(type => day1AfternoonActivity!.description.toLowerCase().includes(type))) {
+        console.log('[EnhancedItinerary API] No suitable activity in pool for Day 1 afternoon, searching nearby park...');
+         if(day1AfternoonActivity) remainingInterestActivitiesPool.unshift(day1AfternoonActivity); // Put back if not suitable
+        const nearbyParkOptions = await searchGooglePlaces(`pet friendly park near ${accommodationName}`, 'park', primaryLocationCoords, 5000);
+        if (nearbyParkOptions.length > 0 && !usedActivityPlaceIds.has(nearbyParkOptions[0].vicinity || nearbyParkOptions[0].formatted_address)) {
+            day1AfternoonActivity = placeToActivity(nearbyParkOptions[0], 'activity');
+            usedActivityPlaceIds.add(day1AfternoonActivity.location);
+        } else {
+            console.log('[EnhancedItinerary API] No nearby park found, using placeholder.');
+            day1AfternoonActivity = { name: "Relax or Local Walk", description: "Settle in or take a short walk around your accommodation area.", petFriendly: true, location: accommodationName, coordinates: primaryLocationCoords, startTime: "16:00", endTime: "17:30", cost: "Free", type: 'placeholder' };
+        }
     }
+    day1Activities.push({ ...day1AfternoonActivity, name: `Afternoon: ${day1AfternoonActivity.name}`, startTime: "16:00", endTime: "17:30" });
 
-    // Day 1 Dinner (Use general list)
-     let dinnerActivity: Activity | undefined = remainingRestaurantActivities.shift();
-     if (dinnerActivity) {
-        console.log(`[EnhancedItinerary API] Using general restaurant for Day 1 dinner: ${dinnerActivity.name}`);
-        day1Activities.push({
-            ...dinnerActivity,
-            name: `Dinner: ${dinnerActivity.name}`,
-            startTime: "19:00",
-            endTime: "20:30",
-             type: 'meal' // Ensure type is set
-        });
-    } else {
-         console.log('[EnhancedItinerary API] No remaining restaurants for Day 1 dinner, using placeholder.');
-        day1Activities.push({ name: "Dinner Near Accommodation", description: "Enjoy dinner at a pet-friendly restaurant near your accommodation.", petFriendly: true, location: accommodationName, coordinates: accommodationCoords, startTime: "19:00", endTime: "20:30", cost: "$40 - $100", type: 'meal' });
+    // Day 1 Dinner (Use pool or fallback search)
+    let day1DinnerActivity = getUniqueRestaurant(remainingRestaurantActivitiesPool);
+    if (!day1DinnerActivity) {
+        console.log('[EnhancedItinerary API] No restaurants left in pool for Day 1 dinner, searching nearby...');
+        const nearbyDinnerOptions = await searchGooglePlaces(`pet friendly restaurant near ${accommodationName}`, 'restaurant', primaryLocationCoords, 5000);
+         // Find one not already used for lunch
+        const dinnerOption = nearbyDinnerOptions.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
+        if (dinnerOption) {
+            day1DinnerActivity = placeToActivity(dinnerOption, 'meal');
+            usedActivityPlaceIds.add(day1DinnerActivity.location);
+        } else {
+            console.log('[EnhancedItinerary API] No unused nearby restaurant found, using placeholder.');
+            day1DinnerActivity = { name: "Dinner Near Accommodation", description: "Find a pet-friendly restaurant near your accommodation.", petFriendly: true, location: accommodationName, coordinates: primaryLocationCoords, startTime: "19:00", endTime: "20:30", cost: "$40 - $100", type: 'meal' };
+        }
     }
-
-    // Add Last Day Specific Activities if it's the final day and pets > 0
-    if (currentDay === tripDays && tripData.pets > 0) {
-        console.log(`[EnhancedItinerary API] Adding final day preparations for Day ${currentDay}...`);
-
-         // Prepend Vet Visit
-         day1Activities.unshift({
-           name: "Final Vet Check (Optional but Recommended)",
-           description: "If your trip exceeded ~10-14 days or required specific entry paperwork, consider a final vet visit for a health check/certificate for your return or onward travel. [Review Best Practices](/blog/best-practices)",
-           petFriendly: true,
-           location: tripData.destination,
-           coordinates: { lat: 0, lng: 0 }, // Placeholder
-           startTime: "09:00",
-           endTime: "10:00",
-           cost: "Varies ($50-$150+)",
-           type: 'preparation'
-         });
-
-         // Append Airport Transfer
-         day1Activities.push({
-           name: "Transfer to Departure Airport",
-           description: `Head to the airport for your departure. Arrange pet-friendly transport in advance. Check options like Uber Pet if available.`, // <-- Uber link placeholder
-           petFriendly: true,
-           location: tripData.destination,
-           coordinates: { lat: 0, lng: 0 }, // Placeholder - Ideally airport coords
-           startTime: "16:00", // Example - adjust based on flight
-           endTime: "17:00",
-           cost: "$50 - $100",
-           type: 'transfer'
-         });
-    }
+    day1Activities.push({ ...day1DinnerActivity, name: `Dinner: ${day1DinnerActivity.name}`, startTime: "19:00", endTime: "20:30" });
 
     itinerary.days.push({
       day: currentDay,
       date: currentDate.toISOString().split('T')[0],
       city: tripData.destination,
       activities: day1Activities,
-      travel: `Travel day from ${tripData.origin} to ${tripData.destination}.`
+      travel: `Travel day from ${tripData.origin || 'Origin'} to ${tripData.destination}.`
     });
 
-    // --- Subsequent Days ---
+    // --- Subsequent Days (with Fallback Searches) ---
     currentDay++;
     currentDate.setDate(currentDate.getDate() + 1);
-    let currentCity = tripData.destination; // Start with primary destination
+    let currentCity = tripData.destination;
+    let currentCoords = primaryLocationCoords;
 
-    console.log('[EnhancedItinerary API] Distributing remaining activities and meals...');
-    const activityDays = tripDays - 1; // Remaining days for activities
+    console.log('[EnhancedItinerary API] Distributing remaining activities with fallbacks...');
+    const activityDays = tripDays - 1; 
     
-    // Rough time slots for subsequent days
     const morningSlot = { start: "10:00", end: "13:00" };
     const afternoonSlot = { start: "15:00", end: "18:00" };
     const lunchSlot = { start: "13:00", end: "14:00" };
@@ -658,39 +704,67 @@ export async function POST(request: NextRequest) {
     while (currentDay <= tripDays) {
         const dailyActivities: Activity[] = [];
         
-        // Add Morning Activity
-        let morningAct = remainingInterestActivities.shift();
-        if (morningAct) {
-            dailyActivities.push({ ...morningAct, startTime: morningSlot.start, endTime: morningSlot.end, type: 'activity' });
-        } else {
-             dailyActivities.push({ name: `Morning Exploration in ${currentCity}`, description: 'Discover a local park, pet-friendly cafe, or interesting street near your accommodation.', petFriendly: true, location: currentCity, coordinates: { lat: 0, lng: 0 }, startTime: morningSlot.start, endTime: morningSlot.end, cost: "Free - $30", type: 'placeholder'});
+        // --- Morning Activity --- 
+        let morningAct = getUniqueActivity(remainingInterestActivitiesPool);
+        if (!morningAct) {
+            console.log(`[EnhancedItinerary API] No activities in pool for Day ${currentDay} morning, searching fallback...`);
+            const fallbackResults = await searchGooglePlaces(`pet friendly park or trail in ${currentCity}`, 'park', currentCoords, 10000);
+            const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
+            if (fallbackOption) {
+                morningAct = placeToActivity(fallbackOption, 'activity');
+                usedActivityPlaceIds.add(morningAct.location);
+            } else {
+                morningAct = { name: 'Morning Exploration', description: `Discover a local park or interesting street in ${currentCity}.`, petFriendly: true, location: currentCity, coordinates: currentCoords, cost: "Free", type: 'placeholder'};
+            }
         }
+        dailyActivities.push({ ...morningAct, startTime: morningSlot.start, endTime: morningSlot.end });
 
-        // Add Lunch
-        let lunchAct = remainingRestaurantActivities.shift();
-        if (lunchAct) {
-             dailyActivities.push({ ...lunchAct, name: `Lunch: ${lunchAct.name}`, startTime: lunchSlot.start, endTime: lunchSlot.end, type: 'meal' });
-        } else {
-             dailyActivities.push({ name: `Lunch in ${currentCity}`, description: 'Find a local pet-friendly cafe or casual restaurant for lunch.', petFriendly: true, location: currentCity, coordinates: { lat: 0, lng: 0 }, startTime: lunchSlot.start, endTime: lunchSlot.end, cost: "$30 - $60", type: 'meal'});
+        // --- Lunch --- 
+        let lunchAct = getUniqueRestaurant(remainingRestaurantActivitiesPool);
+        if (!lunchAct) {
+            console.log(`[EnhancedItinerary API] No restaurants in pool for Day ${currentDay} lunch, searching fallback...`);
+            const fallbackResults = await searchGooglePlaces(`pet friendly cafe or restaurant in ${currentCity}`, 'cafe', currentCoords, 5000);
+            const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
+            if (fallbackOption) {
+                lunchAct = placeToActivity(fallbackOption, 'meal');
+                usedActivityPlaceIds.add(lunchAct.location);
+            } else {
+                 lunchAct = { name: 'Lunch', description: `Find a local pet-friendly cafe or casual spot in ${currentCity}.`, petFriendly: true, location: currentCity, coordinates: currentCoords, cost: "$30 - $60", type: 'meal'};
+            }
         }
+         dailyActivities.push({ ...lunchAct, name: `Lunch: ${lunchAct.name}`, startTime: lunchSlot.start, endTime: lunchSlot.end });
 
-        // Add Afternoon Activity
-        let afternoonAct = remainingInterestActivities.shift();
-         if (afternoonAct) {
-            dailyActivities.push({ ...afternoonAct, startTime: afternoonSlot.start, endTime: afternoonSlot.end, type: 'activity' });
-        } else {
-             dailyActivities.push({ name: `Afternoon Relaxation in ${currentCity}`, description: 'Visit a pet-friendly shop, relax at your accommodation, or find a quiet spot.', petFriendly: true, location: currentCity, coordinates: { lat: 0, lng: 0 }, startTime: afternoonSlot.start, endTime: afternoonSlot.end, cost: "Free - $20", type: 'placeholder'});
+        // --- Afternoon Activity --- 
+        let afternoonAct = getUniqueActivity(remainingInterestActivitiesPool);
+         if (!afternoonAct) {
+            console.log(`[EnhancedItinerary API] No activities in pool for Day ${currentDay} afternoon, searching fallback...`);
+             const fallbackResults = await searchGooglePlaces(`pet friendly things to do in ${currentCity}`, 'point_of_interest', currentCoords, 10000);
+             const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
+            if (fallbackOption) {
+                afternoonAct = placeToActivity(fallbackOption, 'activity');
+                usedActivityPlaceIds.add(afternoonAct.location);
+            } else {
+                 afternoonAct = { name: 'Afternoon Relaxation', description: `Visit a pet-friendly shop or relax near your location in ${currentCity}.`, petFriendly: true, location: currentCity, coordinates: currentCoords, cost: "Free", type: 'placeholder'};
+            }
         }
+        dailyActivities.push({ ...afternoonAct, startTime: afternoonSlot.start, endTime: afternoonSlot.end });
 
-        // Add Dinner
-        let dinnerAct = remainingRestaurantActivities.shift();
-        if (dinnerAct) {
-             dailyActivities.push({ ...dinnerAct, name: `Dinner: ${dinnerAct.name}`, startTime: dinnerSlot.start, endTime: dinnerSlot.end, type: 'meal' });
-        } else {
-             dailyActivities.push({ name: `Dinner in ${currentCity}`, description: 'Explore the local dining scene and find a pet-friendly restaurant for dinner.', petFriendly: true, location: currentCity, coordinates: { lat: 0, lng: 0 }, startTime: dinnerSlot.start, endTime: dinnerSlot.end, cost: "$40 - $100", type: 'meal'});
+        // --- Dinner --- 
+        let dinnerAct = getUniqueRestaurant(remainingRestaurantActivitiesPool);
+        if (!dinnerAct) {
+            console.log(`[EnhancedItinerary API] No restaurants in pool for Day ${currentDay} dinner, searching fallback...`);
+             const fallbackResults = await searchGooglePlaces(`pet friendly restaurant in ${currentCity}`, 'restaurant', currentCoords, 10000);
+             const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
+            if (fallbackOption) {
+                dinnerAct = placeToActivity(fallbackOption, 'meal');
+                usedActivityPlaceIds.add(dinnerAct.location);
+            } else {
+                dinnerAct = { name: 'Dinner', description: `Explore the local dining scene for a pet-friendly restaurant in ${currentCity}.`, petFriendly: true, location: currentCity, coordinates: currentCoords, cost: "$40 - $100", type: 'meal'};
+            }
         }
+        dailyActivities.push({ ...dinnerAct, name: `Dinner: ${dinnerAct.name}`, startTime: dinnerSlot.start, endTime: dinnerSlot.end });
 
-        // Add Last Day Specific Activities if it's the final day and pets > 0
+        // Add Last Day Specific Activities if applicable
         if (currentDay === tripDays && tripData.pets > 0) {
             console.log(`[EnhancedItinerary API] Adding final day preparations for Day ${currentDay}...`);
 
@@ -721,35 +795,35 @@ export async function POST(request: NextRequest) {
              });
         }
 
-      console.log(`[EnhancedItinerary API] Adding Day ${currentDay} with ${dailyActivities.length} planned entries...`);
+        console.log(`[EnhancedItinerary API] Adding Day ${currentDay} with ${dailyActivities.length} activities...`);
+        itinerary.days.push({
+            day: currentDay,
+            date: currentDate.toISOString().split('T')[0],
+            city: currentCity,
+            activities: dailyActivities,
+        });
 
-      itinerary.days.push({
-        day: currentDay,
-        date: currentDate.toISOString().split('T')[0],
-        city: currentCity,
-        activities: dailyActivities, // Add the structured day
-      });
+        currentDay++;
+        currentDate.setDate(currentDate.getDate() + 1);
 
-      currentDay++;
-      currentDate.setDate(currentDate.getDate() + 1);
-
-      // Placeholder logic for switching city (needs refinement)
-      // TODO: Improve city switching logic based on trip duration and number of additional cities
-      if (tripData.additionalCities.length > 0 && activityDays > 1 && currentDay > Math.floor(tripDays / (tripData.additionalCities.length + 1)) + 1) {
-          if (currentCity === tripData.destination) { // Switch to first additional city
-              currentCity = tripData.additionalCities[0];
-               console.log(`[EnhancedItinerary API] Switched city focus to: ${currentCity}`);
-              // TODO: Refetch/filter activities for the new city? Reset remaining activity lists?
-               remainingInterestActivities = []; // Simple reset for now
-               remainingRestaurantActivities = []; // Simple reset
-          } // Add logic for switching to subsequent additional cities if needed
-      }
+        // Basic logic for switching city (can be improved)
+        // TODO: Implement better city switching and fetch/filter activities for new city
+        if (tripData.additionalCities && tripData.additionalCities.length > 0 && currentDay > Math.floor(tripDays / (tripData.additionalCities.length + 1)) + 1) {
+            // This logic needs refinement to handle multiple additional cities and refetching data
+            if (currentCity === tripData.destination && tripData.additionalCities[0]) {
+                currentCity = tripData.additionalCities[0];
+                console.log(`[EnhancedItinerary API] Switching city focus to: ${currentCity} (Data refetching TBD)`);
+                // Reset pools (simplistic - ideally refetch based on new city)
+                // remainingInterestActivitiesPool = []; 
+                // remainingRestaurantActivitiesPool = []; 
+                // Need to update currentCoords based on the new city (e.g., geocode)
+                 currentCoords = { lat: 0, lng: 0 }; // Placeholder
+            } 
+        }
     }
 
-
-    // --- Return Success Response ---
+    // --- Return Success Response --- 
     console.log('[EnhancedItinerary API] Successfully generated structured itinerary.');
-    // console.log('Final Itinerary:', JSON.stringify(itinerary, null, 2)); // Deep log if needed
     return NextResponse.json(
       {
         itinerary: itinerary,

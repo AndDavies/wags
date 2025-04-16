@@ -6,7 +6,7 @@ import {
   useCallback,
   useRef,
 } from 'react';
-import { useTripStore } from '@/store/tripStore';
+import { useTripStore, TripData } from '@/store/tripStore';
 import CityAutocomplete from './CityAutocomplete';
 import { createClient } from '@/lib/supabase-client';
 import { PostgrestError } from '@supabase/supabase-js';
@@ -132,6 +132,7 @@ const SelectableTag = ({
   icon?: React.ElementType;
 }) => (
   <Button
+    type="button"
     variant={isSelected ? 'default' : 'outline'}
     size="sm"
     onClick={() => onSelect(value)}
@@ -164,17 +165,18 @@ const SelectableIconButton = ({
   iconSize?: number;
 }) => (
   <Button
+    type="button"
     variant="outline"
     onClick={() => onSelect(value)}
     className={cn(
-      'flex flex-col items-center justify-center gap-2 p-4 h-16 border rounded-lg transition-colors duration-150 ease-in-out w-24',
+      'flex flex-col items-center justify-center gap-1 p-3 h-auto min-h-16 border rounded-lg transition-colors duration-150 ease-in-out',
       isSelected
         ? 'bg-teal-100 border-teal-500 text-teal-700 ring-2 ring-teal-500 ring-offset-1'
         : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400'
     )}
   >
-    <Icon className="h-8 w-8" size={iconSize} />
-    {label && <span className="text-sm font-medium mt-1 text-center break-words">{label}</span>} 
+    <Icon className="h-7 w-7" size={iconSize} />
+    {label && <span className="text-xs font-medium mt-1 text-center break-words max-w-full">{label}</span>} 
   </Button>
 );
 
@@ -232,8 +234,8 @@ export default function TripCreationForm({
         type: p?.type || '',
         size: p?.size || ''
     })) || [{ type: '', size: '' }],
-    budget: tripData?.budget || '',
-    accommodation: tripData?.accommodation || '',
+    budget: tripData?.budget || 'Moderate',
+    accommodation: tripData?.accommodation || 'Hotels',
     interests: tripData?.interests || [],
     additionalInfo: tripData?.additionalInfo || '',
     draftId: tripData?.draftId || undefined,
@@ -410,10 +412,12 @@ export default function TripCreationForm({
         if (formData.adults < 1) newErrors.adults = 'At least one adult is required.';
         break;
       case 'budget':
-        if (!formData.budget) newErrors.budget = 'Please select a budget.';
+        // Removed validation as it now has a default
+        // if (!formData.budget) newErrors.budget = 'Please select a budget.';
         break;
       case 'accommodation':
-        if (!formData.accommodation) newErrors.accommodation = 'Please select an accommodation type.';
+        // Removed validation as it now has a default
+        // if (!formData.accommodation) newErrors.accommodation = 'Please select an accommodation type.';
         break;
     }
 
@@ -435,8 +439,8 @@ export default function TripCreationForm({
       newErrors.dates = 'End date must be after start date.';
     }
     if (formData.adults < 1) newErrors.adults = 'At least one adult is required.';
-    if (!formData.budget) newErrors.budget = 'Please select a budget.';
-    if (!formData.accommodation) newErrors.accommodation = 'Please select an accommodation type.';
+    // Removed budget validation check
+    // if (!formData.budget) newErrors.budget = 'Please select a budget.';
 
     setErrors(newErrors);
 
@@ -447,24 +451,25 @@ export default function TripCreationForm({
       startDate: !!formData.startDate,
       endDate: !!formData.endDate,
       adults: formData.adults >= 1,
-      budget: !!formData.budget,
-      accommodation: !!formData.accommodation,
+      budget: true, // <-- Always true due to default
+      accommodation: true,
     }));
 
     // Auto-scroll to the first error
     if (Object.keys(newErrors).length > 0) {
-      const firstErrorKey = Object.keys(newErrors)[0];
-      let targetRef: HTMLDivElement | null = null;
-      if (firstErrorKey === 'origin') targetRef = originRef.current;
-      else if (firstErrorKey === 'destination') targetRef = destinationRef.current;
-      else if (firstErrorKey === 'startDate' || firstErrorKey === 'endDate' || firstErrorKey === 'dates') targetRef = datesRef.current;
-      else if (firstErrorKey === 'adults') targetRef = adultsRef.current;
-      else if (firstErrorKey === 'budget') targetRef = budgetRef.current;
-      else if (firstErrorKey === 'accommodation') targetRef = accommodationRef.current;
-      if (targetRef) {
-        targetRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
+       const firstErrorKey = Object.keys(newErrors)[0];
+       let targetRef: HTMLDivElement | null = null;
+       if (firstErrorKey === 'origin') targetRef = originRef.current;
+       else if (firstErrorKey === 'destination') targetRef = destinationRef.current;
+       else if (firstErrorKey === 'startDate' || firstErrorKey === 'endDate' || firstErrorKey === 'dates') targetRef = datesRef.current;
+       else if (firstErrorKey === 'adults') targetRef = adultsRef.current;
+       else if (firstErrorKey === 'budget') targetRef = budgetRef.current;
+       // Removed accommodation from scroll target logic
+       // else if (firstErrorKey === 'accommodation') targetRef = accommodationRef.current;
+       if (targetRef) {
+         targetRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+       }
+     }
 
     return Object.keys(newErrors).length === 0;
   }, [formData]);
@@ -477,7 +482,8 @@ export default function TripCreationForm({
     if (!formData.endDate) count++;
     if (formData.adults < 1) count++;
     if (!formData.budget) count++;
-    if (!formData.accommodation) count++;
+    // Removed accommodation from count logic
+    // if (!formData.accommodation) count++;
     return count;
   };
 
@@ -493,16 +499,22 @@ export default function TripCreationForm({
     setIsLoading(true);
     setErrors({});
 
-    // Format dates before saving to store/API
-    const apiTripData = {
+    // Prepare data for API/store, ensuring type safety
+    const finalFormData: Partial<TripData> = {
       ...formData,
       startDate: formData.startDate ? formData.startDate.toISOString().split('T')[0] : undefined,
       endDate: formData.endDate ? formData.endDate.toISOString().split('T')[0] : undefined,
-      itinerary: null, // Explicitly set itinerary to null for initial submission
+      // Explicitly set itinerary and policy fields to undefined or null
+      // if they shouldn't be part of the *initial* submission data
+      // but ensure they are optional in the TripData type
+      itinerary: undefined,
+      policyRequirements: undefined,
+      generalPreparation: undefined,
+      preDeparturePreparation: undefined,
     };
 
-    // Now set the formatted data in the store
-    setTripData(apiTripData as any); // Use 'as any' for now to bypass potential intermediate type issues, store handles final type.
+    // Set the data in the store (no `as any` needed if types match)
+    setTripData(finalFormData as TripData);
 
     let draftIdToUpdate = formData.draftId;
   
@@ -511,19 +523,19 @@ export default function TripCreationForm({
         const supabase = createClient();
         const { data: upsertedDraft, error: upsertError } = await supabase
           .from('draft_itineraries')
-          .upsert({ id: draftIdToUpdate, user_id: session.user.id, trip_data: apiTripData, updated_at: new Date().toISOString() })
+          .upsert({ id: draftIdToUpdate, user_id: session.user.id, trip_data: finalFormData, updated_at: new Date().toISOString() })
           .select('id').single();
         if (upsertError) throw new Error(`Failed to save draft: ${(upsertError as PostgrestError).message || 'Unknown error'}`);
         draftIdToUpdate = upsertedDraft.id;
         setFormData((prev) => ({ ...prev, draftId: draftIdToUpdate }));
-        setTripData({ ...apiTripData, draftId: draftIdToUpdate } as any); // Update store with draft ID
+        setTripData({ ...finalFormData, draftId: draftIdToUpdate } as TripData);
         setToastMessage('Draft saved successfully!');
         setToastOpen(true);
       } else {
-        sessionStorage.setItem('tripData', JSON.stringify(apiTripData));
+        sessionStorage.setItem('tripData', JSON.stringify(finalFormData));
         draftIdToUpdate = undefined;
         setFormData((prev) => ({ ...prev, draftId: undefined }));
-        setTripData({ ...apiTripData, draftId: undefined } as any); // Ensure draftId is undefined in store for guests
+        setTripData({ ...finalFormData, draftId: undefined } as TripData);
         setToastMessage('Draft saved locally!');
         setToastOpen(true);
       }
@@ -537,11 +549,11 @@ export default function TripCreationForm({
     }
   
     try {
-      console.log("Submitting trip data to API:", apiTripData);
+      console.log("Submitting trip data to API:", finalFormData);
       const response = await fetch('/api/ai/enhanced-itinerary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiTripData),
+        body: JSON.stringify(finalFormData),
       });
   
       console.log("API Response Status:", response.status);
@@ -582,28 +594,46 @@ export default function TripCreationForm({
   
       console.log("Generated itinerary:", result.itinerary);
   
-      // Assuming result has { itinerary, policyRequirements, generalPreparation }
-      const finalTripData = {
-        ...apiTripData,
+      // Assuming result has { itinerary, policyRequirements, generalPreparation, preDeparturePreparation }
+      const finalTripDataWithResults: TripData = {
+        // Ensure all fields from TripData are present or optional
+        origin: finalFormData.origin ?? '',
+        originCountry: finalFormData.originCountry ?? '',
+        destination: finalFormData.destination ?? '',
+        destinationCountry: finalFormData.destinationCountry ?? '',
+        additionalCities: finalFormData.additionalCities ?? [],
+        additionalCountries: finalFormData.additionalCountries ?? [],
+        startDate: finalFormData.startDate,
+        endDate: finalFormData.endDate,
+        adults: finalFormData.adults ?? 1,
+        children: finalFormData.children ?? 0,
+        pets: finalFormData.pets ?? 0,
+        petDetails: finalFormData.petDetails ?? [],
+        budget: finalFormData.budget ?? '',
+        accommodation: finalFormData.accommodation ?? 'Hotels',
+        interests: finalFormData.interests ?? [],
+        additionalInfo: finalFormData.additionalInfo ?? '',
         itinerary: result.itinerary,
-        policyRequirements: result.policyRequirements, // Add these from response
-        generalPreparation: result.generalPreparation, // Add these from response
+        policyRequirements: result.policyRequirements,
+        generalPreparation: result.generalPreparation,
+        preDeparturePreparation: result.preDeparturePreparation,
         draftId: draftIdToUpdate, // Keep draftId
       };
 
-      // Set final data (including itinerary etc.) in the store
-      setTripData(finalTripData as any);
+      // Set final data in the store (no `as any` needed)
+      setTripData(finalTripDataWithResults);
   
       if (session && draftIdToUpdate) {
         const supabase = createClient();
-        const { error: updateError } = await supabase.from('draft_itineraries').update({ trip_data: finalTripData, updated_at: new Date().toISOString() }).eq('id', draftIdToUpdate);
+        const { error: updateError } = await supabase.from('draft_itineraries').update({ trip_data: finalTripDataWithResults, updated_at: new Date().toISOString() }).eq('id', draftIdToUpdate);
         if (updateError) console.error('[TripCreationForm] Non-blocking: Error updating draft with itinerary:', updateError);
       } else {
-        sessionStorage.setItem('tripData', JSON.stringify(finalTripData));
+        sessionStorage.setItem('tripData', JSON.stringify(finalTripDataWithResults));
       }
       
       setToastMessage("Itinerary generated successfully!");
       setToastOpen(true);
+      if (onClose) onClose(); // Close form on success
     } catch (error: any) {
       console.error("Error in handleSubmit:", error);
       setErrors({ submit: error.message || 'An unexpected error occurred during itinerary generation.' });
@@ -662,7 +692,7 @@ export default function TripCreationForm({
         <div className="p-6 border border-gray-200 rounded-lg bg-white shadow-sm">
           <h2 className="text-2xl font-bold text-gray-800 tracking-tight mb-6 font-outfit">Location and Dates</h2>
           <div className="space-y-6">
-            <div ref={originRef} className={cn(errors.origin && "animate-shake", 'relative')}>
+            <div ref={originRef} className={'relative'}>
               <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
                 <MapPin className="h-5 w-5 text-teal-600" /> Traveling From
               </Label>
@@ -698,7 +728,7 @@ export default function TripCreationForm({
               )}
             </div>
 
-            <div ref={destinationRef} className={cn(errors.destination && "animate-shake", 'relative')}>
+            <div ref={destinationRef} className={'relative'}>
               <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
                 <MapPin className="h-5 w-5 text-teal-600" /> Primary Destination
               </Label>
@@ -780,7 +810,7 @@ export default function TripCreationForm({
               </Button>
             </div>
 
-            <div ref={datesRef} className={cn((errors.startDate || errors.endDate || errors.dates) && "animate-shake", 'relative')}>
+            <div ref={datesRef} className={'relative'}>
               <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
                 <CalendarDays className="h-5 w-5 text-teal-600" /> Trip Dates
               </Label>
@@ -907,7 +937,7 @@ export default function TripCreationForm({
         <div className="p-6 border border-gray-200 rounded-lg bg-white shadow-sm">
           <h2 className="text-2xl font-bold text-gray-800 tracking-tight mb-6 font-outfit">Travelers & Preferences</h2>
           <div className="space-y-6">
-            <div ref={adultsRef} className={cn(errors.adults && "animate-shake", 'relative')}>
+            <div ref={adultsRef} className={'relative'}>
               <Label className="text-base font-medium text-gray-700 mb-2 block">Number of Travelers</Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1 relative">
@@ -1087,11 +1117,11 @@ export default function TripCreationForm({
               </div>
             )}
 
-            <div ref={budgetRef} className={cn(errors.budget && "animate-shake", 'relative')}>
+            <div ref={budgetRef} className={'relative'}>
               <Label className="text-base font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-teal-600" /> Budget
               </Label>
-              <div className="relative flex flex-wrap gap-4">
+              <div className="relative flex flex-wrap gap-3">
                 {budgets.map((budget) => (
                   <SelectableIconButton
                     key={budget}
@@ -1100,12 +1130,11 @@ export default function TripCreationForm({
                     isSelected={formData.budget === budget}
                     onSelect={(value) => {
                       handleInputChange('budget', value);
-                      validateField('budget');
                     }}
                     icon={() => (
                       <DollarSign
                         className={cn(
-                          "h-8 w-8",
+                          "h-7 w-7",
                           budget === 'Budget' && "text-green-600",
                           budget === 'Moderate' && "text-yellow-600",
                           budget === 'Luxury' && "text-purple-600",
@@ -1114,106 +1143,38 @@ export default function TripCreationForm({
                     )}
                   />
                 ))}
-                {validationState.interacted.has('budget') && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute right-2 top-0">
-                          {formData.budget ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 text-amber-500" />
-                          )}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {formData.budget ? 'Looks good!' : 'Please select a budget.'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
               </div>
               <p className="text-sm text-gray-500 mt-1">Helps us suggest activities within your budget.</p>
-              {errors.budget && validationState.interacted.has('budget') && (
-                <p className="text-sm text-red-600 mt-1">{errors.budget}</p>
-              )}
             </div>
 
-            <div ref={accommodationRef} className={cn(errors.accommodation && "animate-shake", 'relative')}>
-              <Label htmlFor="accommodation" className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
+            <div ref={accommodationRef} className={'relative'}>
+              <Label className="text-base font-medium text-gray-700 mb-2 flex items-center gap-2">
                 <Hotel className="h-5 w-5 text-teal-600" /> Accommodation
               </Label>
-              <div className="relative">
-                <Select
-                  value={formData.accommodation}
-                  onValueChange={(value) => {
-                    handleInputChange('accommodation', value);
-                    validateField('accommodation');
-                  }}
-                >
-                  <SelectTrigger id="accommodation" className={cn(
-                    "w-full h-12 text-base",
-                    validationState.interacted.has('accommodation') && !validationState.accommodation && "border-amber-300",
-                    errors.accommodation && "border-red-500 focus:ring-red-500"
-                  )}>
-                      <SelectValue placeholder="Select accommodation type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      {accommodations.map((acc) => {
-                        let Icon;
-                        switch (acc) {
-                          case 'Hotels':
-                            Icon = Hotel;
-                            break;
-                          case 'Homes/Apartments':
-                            Icon = Home;
-                            break;
-                          case 'B&Bs':
-                            Icon = Bed;
-                            break;
-                          case 'Hostels':
-                            Icon = Tent;
-                            break;
-                          case 'Flexible':
-                            Icon = Search;
-                            break;
-                          default:
-                            Icon = Hotel;
-                        }
-                        return (
-                          <SelectItem key={acc} value={acc}>
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              {acc}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                  </SelectContent>
-                </Select>
-                {validationState.interacted.has('accommodation') && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                          {formData.accommodation ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 text-amber-500" />
-                          )}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {formData.accommodation ? 'Looks good!' : 'Please select an accommodation type.'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+              <div className="relative flex flex-wrap gap-3">
+                 {accommodations.map((acc) => {
+                    let IconComponent;
+                    switch (acc) {
+                      case 'Hotels': IconComponent = Hotel; break;
+                      case 'Homes/Apartments': IconComponent = Home; break;
+                      case 'B&Bs': IconComponent = Bed; break;
+                      case 'Hostels': IconComponent = Tent; break;
+                      case 'Flexible': IconComponent = Search; break;
+                      default: IconComponent = Hotel;
+                    }
+                    return (
+                      <SelectableIconButton
+                        key={acc}
+                        value={acc}
+                        label={acc}
+                        isSelected={formData.accommodation === acc}
+                        onSelect={(value) => handleInputChange('accommodation', value)}
+                        icon={IconComponent}
+                      />
+                    );
+                  })}
               </div>
               <p className="text-sm text-gray-500 mt-1">We'll ensure it's pet-friendly.</p>
-              {errors.accommodation && validationState.interacted.has('accommodation') && (
-                <p className="text-sm text-red-600 mt-1">{errors.accommodation}</p>
-              )}
             </div>
           </div>
         </div>

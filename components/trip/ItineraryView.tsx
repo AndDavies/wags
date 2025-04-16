@@ -179,6 +179,16 @@ function BookingOptionCard({ title, icon, url }: { title: string; icon: React.Re
 
 // Updated ItineraryDayAccordion
 function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity, onFindVets, onDeleteActivity }: { day: ItineraryDay; index: number; isExpanded: boolean; onToggle: () => void; onAddActivity: () => void; onFindVets: () => void; onDeleteActivity: (actIndex: number) => void; }) {
+  // Filter activities before rendering
+  const validActivities = (day.activities || []).filter((activity, actIndex) => {
+    const isValid = activity && typeof activity.name === 'string' && activity.name.trim() !== '' && typeof activity.location === 'string' && activity.location.trim() !== '' && activity.coordinates;
+    if (!isValid) {
+      console.warn(`[ItineraryView] Filtering out invalid activity at Day ${day.day}, Index ${actIndex}:`, activity);
+      // TODO: Consider non-blocking logging to Supabase/monitoring service here
+    }
+    return isValid;
+  });
+
   return (
     <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
       <button onClick={onToggle} className={cn("w-full text-left p-3 flex justify-between items-center border-b border-gray-200 bg-gray-50", isExpanded ? "border-b-0 hover:bg-gray-50/50" : "border-b-0")}>
@@ -199,12 +209,8 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
           <div className="mb-3">
             <h4 className="font-semibold text-gray-800 mb-1.5 text-sm">Activities</h4>
             <div className="space-y-2">
-              {day.activities?.length > 0 ? (
-                day.activities.map((activity, actIndex) => {
-                  if (!activity || typeof activity.name !== 'string' || typeof activity.location !== 'string' || !activity.coordinates) {
-                     return <div key={actIndex} className="text-red-500 italic p-2 bg-red-50 rounded-md border border-red-200 text-xs">[Invalid activity data]</div>;
-                  }
-
+              {validActivities.length > 0 ? (
+                validActivities.map((activity, actIndex) => {
                   const icon = getActivityIcon(activity);
                   return (
                     <div key={actIndex} className="flex justify-between items-start p-2.5 bg-gray-50/50 rounded-md border border-gray-100 group">
@@ -223,7 +229,17 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
                           )}
                         </div>
                       </div>
-                      <button onClick={() => onDeleteActivity(actIndex)} className="text-gray-400 hover:text-red-600 p-1 ml-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Delete activity"><X className="h-4 w-4" /></button>
+                      <button onClick={() => {
+                           const originalIndex = (day.activities || []).findIndex(a => a === activity); 
+                           if (originalIndex !== -1) {
+                              onDeleteActivity(originalIndex);
+                           } else {
+                               console.error("Could not find original index for deletion after filtering");
+                           }
+                       }}
+                       className="text-gray-400 hover:text-red-600 p-1 ml-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Delete activity">
+                         <X className="h-4 w-4" />
+                      </button>
                     </div>
                   );
                 })
