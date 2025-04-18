@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTripStore } from '@/store/tripStore';
+import { useTripStore, TripData } from '@/store/tripStore';
 import * as Toast from '@radix-ui/react-toast';
 import TripCreationForm from './TripCreationForm';
 import ItineraryView from './ItineraryView';
+import DraftPromptModal from './DraftPromptModal';
 import predefinedTrips from '@/data/predefined-trips';
 import { createClient } from '@/lib/supabase-client';
 import { cn } from '@/lib/utils';
@@ -19,20 +20,58 @@ export default function TripBuilderClient({
   const { tripData, setTripData, clearTrip } = useTripStore();
   const [openToast, setOpenToast] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(!!initialDraft);
 
   // Load draft from initialDraft (logged-in) or sessionStorage (guest)
   useEffect(() => {
+    console.log('TripBuilderClient Mounting. Session:', !!session, 'InitialDraft:', !!initialDraft);
+    let draftToLoad: TripData | null = null;
+
     if (initialDraft) {
-      setTripData(initialDraft);
-      setOpenToast(true);
+      console.log('Found initialDraft (logged-in user)');
+      draftToLoad = initialDraft;
     } else {
-      const guestDraft = sessionStorage.getItem('tripData');
-      if (guestDraft) {
-        setTripData(JSON.parse(guestDraft));
-        setOpenToast(true);
+      const guestDraftString = sessionStorage.getItem('tripData');
+      if (guestDraftString) {
+        try {
+          draftToLoad = JSON.parse(guestDraftString);
+          console.log('Found guest draft from sessionStorage');
+        } catch (e) {
+          console.error("Failed to parse guest draft from sessionStorage:", e);
+          sessionStorage.removeItem('tripData'); // Clear invalid data
+        }
+      } else {
+         console.log('No initialDraft or guest draft found.');
       }
     }
-  }, [initialDraft, setTripData]);
+
+    if (draftToLoad) {
+        console.log('Processing loaded draft:', draftToLoad);
+        setTripData(draftToLoad); // Set the data in the store
+
+        if (draftToLoad.itinerary && draftToLoad.itinerary.days && draftToLoad.itinerary.days.length > 0) {
+            // Draft exists AND has a generated itinerary
+            console.log('Draft contains itinerary, showing modal.');
+            setOpenToast(true); // Optional: Toast to indicate resumption
+            setShowModal(true);
+            setShowForm(false); // Ensure we don't show the form initially
+        } else {
+            // Draft exists BUT has no itinerary (incomplete generation?)
+            console.log('Draft exists but no itinerary, going to form.');
+            setShowModal(false); // Don't show the modal
+            setShowForm(true); // Go directly to the form to complete
+        }
+    } else {
+        // No draft exists
+        console.log('No draft to load, showing landing page.');
+        setShowModal(false);
+        setShowForm(false);
+    }
+
+    // Cleanup function (optional, if needed)
+    // return () => { console.log('TripBuilderClient Unmounting'); };
+
+  }, [initialDraft, setTripData]); // Dependencies: only run on initial load based on draft
 
   // Real-time draft updates for logged-in users
   useEffect(() => {
@@ -52,6 +91,7 @@ export default function TripBuilderClient({
             if (payload.new.trip_data) {
               setTripData(payload.new.trip_data);
               setOpenToast(true);
+              setShowModal(true);
             }
           }
         )
@@ -97,6 +137,7 @@ export default function TripBuilderClient({
         itinerary: undefined,
         policyRequirements: undefined,
         generalPreparation: undefined,
+        preDeparturePreparation: undefined,
         draftId: undefined,
       });
     }
@@ -111,6 +152,12 @@ export default function TripBuilderClient({
       supabase.from('draft_itineraries').delete().eq('user_id', session.user.id);
     }
     setShowForm(true);
+    setShowModal(false);
+  };
+
+  const handleViewItinerary = () => {
+    setShowForm(false);
+    setShowModal(false);
   };
 
   return (
@@ -119,6 +166,7 @@ export default function TripBuilderClient({
         <Toast.Root
           open={openToast}
           onOpenChange={setOpenToast}
+          duration={2000}
           className="bg-white border border-teal-200 shadow-md p-4 rounded-lg"
         >
           <Toast.Title className="text-teal-700 font-bold text-base">
@@ -131,8 +179,8 @@ export default function TripBuilderClient({
         <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw]" />
       </Toast.Provider>
 
-      {tripData?.itinerary ? (
-        <ItineraryView session={session} />
+      {tripData?.itinerary && !showForm ? (
+        <ItineraryView session={session} onBackToPlanning={() => setShowForm(true)} />
       ) : showForm ? (
         <TripCreationForm onClose={() => setShowForm(false)} session={session} />
       ) : (
@@ -149,7 +197,7 @@ export default function TripBuilderClient({
           >
             Create New Trip
           </button>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {predefinedTrips.map((trip) => (
               <div
@@ -172,6 +220,13 @@ export default function TripBuilderClient({
           </div>
         </div>
       )}
+
+      <DraftPromptModal
+        open={showModal}
+        onOpenChange={setShowModal}
+        onViewItinerary={handleViewItinerary}
+        onStartNewTrip={handleNewTrip}
+      />
     </div>
   );
 }

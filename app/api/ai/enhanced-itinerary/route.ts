@@ -8,11 +8,11 @@ import { createClient } from '@/lib/supabase-server';
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-console.log('[EnhancedItinerary API] OpenAI API Key (partial):', process.env.OPENAI_API_KEY?.slice(0, 5) + '...');
+//console.log('[EnhancedItinerary API] OpenAI API Key (partial):', process.env.OPENAI_API_KEY?.slice(0, 5) + '...');
 
 // Initialize Google Places API client (using Fetch for simplicity)
 const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-console.log('[EnhancedItinerary API] Google Places API Key (partial):', GOOGLE_PLACES_API_KEY?.slice(0, 5) + '...');
+//console.log('[EnhancedItinerary API] Google Places API Key (partial):', GOOGLE_PLACES_API_KEY?.slice(0, 5) + '...');
 const PLACES_API_BASE_URL = 'https://maps.googleapis.com/maps/api/place';
 
 // Haversine formula to calculate distance between two coordinates (in kilometers)
@@ -112,17 +112,17 @@ interface Itinerary {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[EnhancedItinerary API] Received POST request');
+  //console.log('[EnhancedItinerary API] Received POST request');
   let tripData: TripData;
 
   try {
     // --- Step 1: Parse and Validate Input --- 
-    console.log('[EnhancedItinerary API] Parsing request body...');
+   /// console.log('[EnhancedItinerary API] Parsing request body...');
     try {
       tripData = await request.json();
-      console.log('[EnhancedItinerary API] Request body parsed:', tripData);
+      //console.log('[EnhancedItinerary API] Request body parsed:', tripData);
     } catch (parseError) {
-      console.error('[EnhancedItinerary API] Failed to parse request JSON:', parseError);
+     // console.error('[EnhancedItinerary API] Failed to parse request JSON:', parseError);
       return NextResponse.json({ error: 'Invalid request body: Malformed JSON.' }, { status: 400 });
     }
 
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     const requiredFields = ['origin', 'originCountry', 'destination', 'destinationCountry', 'startDate', 'endDate', 'adults', 'budget', 'accommodation', 'interests'];
     const missingFields = requiredFields.filter(field => !(tripData as any)[field]);
     if (missingFields.length > 0) {
-      console.error('[EnhancedItinerary API] Validation failed:', missingFields);
+     // console.error('[EnhancedItinerary API] Validation failed:', missingFields);
       return NextResponse.json(
         { error: `Missing required fields: ${missingFields.join(', ')}` },
         { status: 400 }
@@ -145,13 +145,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate trip duration
-    console.log('[EnhancedItinerary API] Calculating trip duration...');
+   // console.log('[EnhancedItinerary API] Calculating trip duration...');
     const startDate = new Date(tripData.startDate);
     const endDate = new Date(tripData.endDate);
     const tripDays =
       Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     if (tripDays < 1) {
-      console.error('[EnhancedItinerary API] Invalid trip dates:', tripData.startDate, tripData.endDate);
+     // console.error('[EnhancedItinerary API] Invalid trip dates:', tripData.startDate, tripData.endDate);
       return NextResponse.json(
         { error: 'End date must be after start date' },
         { status: 400 }
@@ -171,15 +171,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (policyError) {
-      console.warn('[EnhancedItinerary API] Warning: Error querying pet_policies:', policyError);
+      //console.warn('[EnhancedItinerary API] Warning: Error querying pet_policies:', policyError);
     } else if (petPolicies) {
-      console.log('[EnhancedItinerary API] Fetched pet_policies data for:', tripData.destinationCountry);
+      //console.log('[EnhancedItinerary API] Fetched pet_policies data for:', tripData.destinationCountry);
     } else {
-      console.log('[EnhancedItinerary API] No specific pet policies found for:', tripData.destinationCountry);
+      //console.log('[EnhancedItinerary API] No specific pet policies found for:', tripData.destinationCountry);
     }
 
     // Format preparation requirements and extract structured entry requirements
-    console.log('[EnhancedItinerary API] Formatting preparation requirements...');
+    //console.log('[EnhancedItinerary API] Formatting preparation requirements...');
     const preparation: Array<{ requirement: string; details: string }> = [];
     let policyRequirements: Array<{ step: number; label: string; text: string }> = [];
 
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       const policy: PetPolicy = petPolicies;
 
       if (policy.entry_requirements && Array.isArray(policy.entry_requirements)) {
-        console.log('[EnhancedItinerary API] Extracting structured entry_requirements:', policy.entry_requirements.length, 'steps');
+        //console.log('[EnhancedItinerary API] Extracting structured entry_requirements:', policy.entry_requirements.length, 'steps');
         policyRequirements = policy.entry_requirements
           .filter((item: any) =>
               typeof item === 'object' && item !== null &&
@@ -201,19 +201,19 @@ export async function POST(request: NextRequest) {
               text: item.text,
           }))
           .sort((a, b) => a.step - b.step);
-          console.log('[EnhancedItinerary API] Parsed policyRequirements:', policyRequirements);
+          //console.log('[EnhancedItinerary API] Parsed policyRequirements:', policyRequirements);
       } else if (policy.entry_requirements) {
-        console.warn('[EnhancedItinerary API] entry_requirements field exists but is not a valid array:', typeof policy.entry_requirements);
+        //console.warn('[EnhancedItinerary API] entry_requirements field exists but is not a valid array:', typeof policy.entry_requirements);
         preparation.push({
              requirement: 'Entry Requirements Note',
              details: 'Could not parse specific entry requirement steps. Please refer to official sources.'
          });
       } else {
-         console.log('[EnhancedItinerary API] No entry_requirements field found in policy data.');
+         //console.log('[EnhancedItinerary API] No entry_requirements field found in policy data.');
       }
 
       if (policy.quarantine_info) {
-        console.log('[EnhancedItinerary API] Adding quarantine_info:', policy.quarantine_info);
+        //console.log('[EnhancedItinerary API] Adding quarantine_info:', policy.quarantine_info);
         preparation.push({
           requirement: 'Quarantine Info',
           details: policy.quarantine_info,
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (policy.additional_info) {
-        console.log('[EnhancedItinerary API] Parsing additional_info:', policy.additional_info);
+        //console.log('[EnhancedItinerary API] Parsing additional_info:', policy.additional_info);
         Object.entries(policy.additional_info).forEach(([key, value]) => {
           preparation.push({
             requirement: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -231,14 +231,14 @@ export async function POST(request: NextRequest) {
       }
 
       if (policy.external_link) {
-        console.log('[EnhancedItinerary API] Adding external_link:', policy.external_link);
+        //console.log('[EnhancedItinerary API] Adding external_link:', policy.external_link);
         preparation.push({
           requirement: 'More Information',
           details: `Official Resource: ${policy.external_link}`,
         });
       }
       if (policy.external_links) {
-        console.log('[EnhancedItinerary API] Parsing external_links:', policy.external_links);
+        //console.log('[EnhancedItinerary API] Parsing external_links:', policy.external_links);
         Object.entries(policy.external_links).forEach(([key, value]) => {
           preparation.push({
             requirement: `Additional Resource (${key})`,
@@ -247,14 +247,14 @@ export async function POST(request: NextRequest) {
         });
       }
     } else {
-      console.log('[EnhancedItinerary API] No pet policies found, adding fallback general message');
+      //console.log('[EnhancedItinerary API] No pet policies found, adding fallback general message');
       preparation.push({
         requirement: 'Check Requirements',
         details: `Please check the latest pet entry requirements for ${tripData.destinationCountry}.`,
       });
     }
-    console.log('[EnhancedItinerary API] General preparation requirements:', preparation);
-    console.log('[EnhancedItinerary API] Structured policy requirements:', policyRequirements);
+    //console.log('[EnhancedItinerary API] General preparation requirements:', preparation);
+    //console.log('[EnhancedItinerary API] Structured policy requirements:', policyRequirements);
 
     // --- Step 3: Fetch Richer Data from Google Places ---
 
@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
         location?: { lat: number; lng: number },
         radius?: number // Radius in meters
     ): Promise<Place[]> => {
-        console.log(`[EnhancedItinerary API] Querying Places: ${query} ${type ? `(Type: ${type})` : ''}${location ? ` near (${location.lat}, ${location.lng})` : ''}`);
+        //console.log(`[EnhancedItinerary API] Querying Places: ${query} ${type ? `(Type: ${type})` : ''}${location ? ` near (${location.lat}, ${location.lng})` : ''}`);
         let url = `${PLACES_API_BASE_URL}/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`;
         if (type) {
             url += `&type=${type}`;
@@ -273,19 +273,19 @@ export async function POST(request: NextRequest) {
         if (location && radius) {
              // Add location bias for more relevant local results
              url += `&location=${location.lat},${location.lng}&radius=${radius}`;
-             console.log(`[EnhancedItinerary API] Applying location bias: ${location.lat},${location.lng} with radius ${radius}m`);
+             //console.log(`[EnhancedItinerary API] Applying location bias: ${location.lat},${location.lng} with radius ${radius}m`);
         }
         try {
             const response = await fetch(url);
             const data = await response.json();
             if (!response.ok || data.status !== 'OK') {
-                console.warn(`[EnhancedItinerary API] Google Places API error for query "${query}": ${data.status} - ${data.error_message || response.statusText}`);
+                //console.warn(`[EnhancedItinerary API] Google Places API error for query "${query}": ${data.status} - ${data.error_message || response.statusText}`);
                 return [];
             }
-            console.log(`[EnhancedItinerary API] Places found for query "${query}": ${data.results?.length || 0}`);
+            //console.log(`[EnhancedItinerary API] Places found for query "${query}": ${data.results?.length || 0}`);
             return data.results || [];
         } catch (error) {
-            console.error(`[EnhancedItinerary API] Network error fetching places for query "${query}":`, error);
+            //console.error(`[EnhancedItinerary API] Network error fetching places for query "${query}":`, error);
             return [];
         }
     };
@@ -296,9 +296,9 @@ export async function POST(request: NextRequest) {
     const airportResults = await searchGooglePlaces(`${tripData.destination} airport`, 'airport');
     if (airportResults.length > 0 && airportResults[0].geometry?.location) {
         destinationAirportCoords = airportResults[0].geometry.location;
-        console.log('[EnhancedItinerary API] Found destination airport coordinates:', destinationAirportCoords);
+        //console.log('[EnhancedItinerary API] Found destination airport coordinates:', destinationAirportCoords);
     } else {
-        console.warn('[EnhancedItinerary API] Could not find coordinates for destination airport.');
+        //console.warn('[EnhancedItinerary API] Could not find coordinates for destination airport.');
     }
 
     // Fetch Accommodation (Best effort)
@@ -311,26 +311,26 @@ export async function POST(request: NextRequest) {
         if (accommodationOptions.length > 0 && accommodationOptions[0].geometry?.location) {
             recommendedAccommodation = accommodationOptions[0];
             accommodationCoords = recommendedAccommodation.geometry.location; // Update coords to hotel location
-            console.log(`[EnhancedItinerary API] Recommended accommodation: ${recommendedAccommodation.name} at`, accommodationCoords);
+            //console.log(`[EnhancedItinerary API] Recommended accommodation: ${recommendedAccommodation.name} at`, accommodationCoords);
         } else {
-            console.warn(`[EnhancedItinerary API] No specific ${tripData.accommodation} found near airport/destination.`);
+            //console.warn(`[EnhancedItinerary API] No specific ${tripData.accommodation} found near airport/destination.`);
             // If no hotel found near airport, try geocoding destination center as fallback? (future enhancement)
         }
     } else {
-        console.log(`[EnhancedItinerary API] Accommodation preference is Flexible or not set.`);
+        //console.log(`[EnhancedItinerary API] Accommodation preference is Flexible or not set.`);
     }
     // Use accommodation coords if found, otherwise stick with airport coords, finally fallback to 0,0
     const primaryLocationCoords = accommodationCoords || destinationAirportCoords || { lat: 0, lng: 0 }; 
     const accommodationName = recommendedAccommodation?.name || tripData.accommodation || "Your Accommodation";
-    console.log(`[EnhancedItinerary API] Primary location coordinates for searches set to:`, primaryLocationCoords);
+    //console.log(`[EnhancedItinerary API] Primary location coordinates for searches set to:`, primaryLocationCoords);
 
     // Fetch General Pet-Friendly Restaurants near primary location
     const restaurantQuery = `pet friendly restaurant in ${tripData.destination}`;
     const generalPetFriendlyRestaurants = await searchGooglePlaces(restaurantQuery, 'restaurant', primaryLocationCoords, 15000); // 15km radius around hotel/airport
-    console.log(`[EnhancedItinerary API] Found ${generalPetFriendlyRestaurants.length} general pet-friendly restaurants near primary location.`);
+    //console.log(`[EnhancedItinerary API] Found ${generalPetFriendlyRestaurants.length} general pet-friendly restaurants near primary location.`);
 
     // --- Fetch Interest-Based Activities (Refined Queries) ---
-    console.log('[EnhancedItinerary API] Fetching activities based on interests...');
+    //console.log('[EnhancedItinerary API] Fetching activities based on interests...');
     const interestBasedActivities: Activity[] = [];
     const MAX_ACTIVITIES_PER_INTEREST_TYPE = 3; // Limit results per specific query type
     const activitiesPerDayGoal = 2;
@@ -425,7 +425,7 @@ export async function POST(request: NextRequest) {
             if (placesForInterest.length >= MAX_ACTIVITIES_PER_INTEREST_TYPE) break; 
         }
         
-        console.log(`[EnhancedItinerary API] Interest '${interest}': Found ${placesForInterest.length} potential places.`);
+        //console.log(`[EnhancedItinerary API] Interest '${interest}': Found ${placesForInterest.length} potential places.`);
 
         placesForInterest.forEach((place: Place) => {
             if (!place.place_id || fetchedPlaceIds.has(place.place_id)) {
@@ -463,14 +463,14 @@ export async function POST(request: NextRequest) {
             });
         });
     }
-    console.log('[EnhancedItinerary API] Total unique interest-based activities fetched:', interestBasedActivities.length);
+    //console.log('[EnhancedItinerary API] Total unique interest-based activities fetched:', interestBasedActivities.length);
 
     // Shuffle activities to add variety before selection
     interestBasedActivities.sort(() => Math.random() - 0.5);
 
     // Select activities needed for subsequent days
     let filteredSubsequentActivities: Activity[] = interestBasedActivities.slice(0, totalActivitiesNeeded); 
-    console.log('[EnhancedItinerary API] Selected activities for subsequent days:', filteredSubsequentActivities.length);
+    //console.log('[EnhancedItinerary API] Selected activities for subsequent days:', filteredSubsequentActivities.length);
 
     // Convert general restaurant Places to Activity type
     const restaurantActivities: Activity[] = generalPetFriendlyRestaurants.map(place => {
@@ -497,10 +497,10 @@ export async function POST(request: NextRequest) {
             type: 'meal' as const // Explicitly cast string literal to type
         };
     });
-    console.log('[EnhancedItinerary API] Converted restaurants to activities:', restaurantActivities.length);
+    //console.log('[EnhancedItinerary API] Converted restaurants to activities:', restaurantActivities.length);
 
     // --- Step 4: Generate Structured Itinerary (with Improved Fallbacks) ---
-    console.log('[EnhancedItinerary API] Generating structured itinerary with improved fallbacks...');
+    //console.log('[EnhancedItinerary API] Generating structured itinerary with improved fallbacks...');
     const itinerary: Itinerary = { days: [] };
     let currentDate = new Date(startDate);
     let currentDay = 1;
@@ -553,7 +553,7 @@ export async function POST(request: NextRequest) {
     // --- Pre-Departure Preparation --- 
     const preDeparturePreparation: Activity[] = [];
     if (tripData.pets > 0) {
-        console.log('[EnhancedItinerary API] Adding pre-departure preparations...');
+        //console.log('[EnhancedItinerary API] Adding pre-departure preparations...');
         preDeparturePreparation.push({
             name: "Veterinarian Visit & Paperwork",
             description: "Schedule a vet appointment 1-2 weeks before departure. Obtain required vaccinations/treatments and a health certificate stating your pet is fit to travel. Ensure all documentation matches the destination country's requirements. [Review Best Practices](/blog/best-practices)",
@@ -575,7 +575,7 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Day 1: Arrival & Settling In (Refined) ---
-    console.log('[EnhancedItinerary API] Adding structured Day 1...');
+    //console.log('[EnhancedItinerary API] Adding structured Day 1...');
     const day1Activities: Activity[] = [];
     const defaultCoords = destinationAirportCoords || { lat: 0, lng: 0 }; // Use airport or fallback
 
@@ -634,13 +634,13 @@ export async function POST(request: NextRequest) {
     // Day 1 Lunch (Use nearby options or fallback search)
     let day1LunchActivity = getUniqueRestaurant(remainingRestaurantActivitiesPool);
     if (!day1LunchActivity) {
-        console.log('[EnhancedItinerary API] No restaurants left in pool for Day 1 lunch, searching nearby...');
+        //console.log('[EnhancedItinerary API] No restaurants left in pool for Day 1 lunch, searching nearby...');
         const nearbyLunchOptions = await searchGooglePlaces(`pet friendly restaurant near ${accommodationName}`, 'restaurant', primaryLocationCoords, 5000);
         if (nearbyLunchOptions.length > 0 && !usedActivityPlaceIds.has(nearbyLunchOptions[0].vicinity || nearbyLunchOptions[0].formatted_address)) {
             day1LunchActivity = placeToActivity(nearbyLunchOptions[0], 'meal');
             usedActivityPlaceIds.add(day1LunchActivity.location); // Mark as used
         } else {
-           console.log('[EnhancedItinerary API] No nearby restaurant found, using placeholder.');
+           //console.log('[EnhancedItinerary API] No nearby restaurant found, using placeholder.');
             day1LunchActivity = { name: "Lunch Near Accommodation", description: "Find a nearby pet-friendly cafe or restaurant.", petFriendly: true, location: accommodationName, coordinates: primaryLocationCoords, startTime: "14:30", endTime: "15:30", cost: "$30 - $60", type: 'meal' };
         }
     }
@@ -649,14 +649,14 @@ export async function POST(request: NextRequest) {
     // Day 1 Afternoon Activity (Use nearby park/relaxing place or fallback search)
     let day1AfternoonActivity = getUniqueActivity(remainingInterestActivitiesPool);
     if (!day1AfternoonActivity || !['park', 'hiking'].some(type => day1AfternoonActivity!.description.toLowerCase().includes(type))) {
-        console.log('[EnhancedItinerary API] No suitable activity in pool for Day 1 afternoon, searching nearby park...');
+        //console.log('[EnhancedItinerary API] No suitable activity in pool for Day 1 afternoon, searching nearby park...');
          if(day1AfternoonActivity) remainingInterestActivitiesPool.unshift(day1AfternoonActivity); // Put back if not suitable
         const nearbyParkOptions = await searchGooglePlaces(`pet friendly park near ${accommodationName}`, 'park', primaryLocationCoords, 5000);
         if (nearbyParkOptions.length > 0 && !usedActivityPlaceIds.has(nearbyParkOptions[0].vicinity || nearbyParkOptions[0].formatted_address)) {
             day1AfternoonActivity = placeToActivity(nearbyParkOptions[0], 'activity');
             usedActivityPlaceIds.add(day1AfternoonActivity.location);
         } else {
-            console.log('[EnhancedItinerary API] No nearby park found, using placeholder.');
+            //console.log('[EnhancedItinerary API] No nearby park found, using placeholder.');
             day1AfternoonActivity = { name: "Relax or Local Walk", description: "Settle in or take a short walk around your accommodation area.", petFriendly: true, location: accommodationName, coordinates: primaryLocationCoords, startTime: "16:00", endTime: "17:30", cost: "Free", type: 'placeholder' };
         }
     }
@@ -665,7 +665,7 @@ export async function POST(request: NextRequest) {
     // Day 1 Dinner (Use pool or fallback search)
     let day1DinnerActivity = getUniqueRestaurant(remainingRestaurantActivitiesPool);
     if (!day1DinnerActivity) {
-        console.log('[EnhancedItinerary API] No restaurants left in pool for Day 1 dinner, searching nearby...');
+        //console.log('[EnhancedItinerary API] No restaurants left in pool for Day 1 dinner, searching nearby...');
         const nearbyDinnerOptions = await searchGooglePlaces(`pet friendly restaurant near ${accommodationName}`, 'restaurant', primaryLocationCoords, 5000);
          // Find one not already used for lunch
         const dinnerOption = nearbyDinnerOptions.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
@@ -673,7 +673,7 @@ export async function POST(request: NextRequest) {
             day1DinnerActivity = placeToActivity(dinnerOption, 'meal');
             usedActivityPlaceIds.add(day1DinnerActivity.location);
         } else {
-            console.log('[EnhancedItinerary API] No unused nearby restaurant found, using placeholder.');
+            //console.log('[EnhancedItinerary API] No unused nearby restaurant found, using placeholder.');
             day1DinnerActivity = { name: "Dinner Near Accommodation", description: "Find a pet-friendly restaurant near your accommodation.", petFriendly: true, location: accommodationName, coordinates: primaryLocationCoords, startTime: "19:00", endTime: "20:30", cost: "$40 - $100", type: 'meal' };
         }
     }
@@ -693,7 +693,7 @@ export async function POST(request: NextRequest) {
     let currentCity = tripData.destination;
     let currentCoords = primaryLocationCoords;
 
-    console.log('[EnhancedItinerary API] Distributing remaining activities with fallbacks...');
+    //console.log('[EnhancedItinerary API] Distributing remaining activities with fallbacks...');
     const activityDays = tripDays - 1; 
     
     const morningSlot = { start: "10:00", end: "13:00" };
@@ -707,7 +707,7 @@ export async function POST(request: NextRequest) {
         // --- Morning Activity --- 
         let morningAct = getUniqueActivity(remainingInterestActivitiesPool);
         if (!morningAct) {
-            console.log(`[EnhancedItinerary API] No activities in pool for Day ${currentDay} morning, searching fallback...`);
+            //console.log(`[EnhancedItinerary API] No activities in pool for Day ${currentDay} morning, searching fallback...`);
             const fallbackResults = await searchGooglePlaces(`pet friendly park or trail in ${currentCity}`, 'park', currentCoords, 10000);
             const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
             if (fallbackOption) {
@@ -722,7 +722,7 @@ export async function POST(request: NextRequest) {
         // --- Lunch --- 
         let lunchAct = getUniqueRestaurant(remainingRestaurantActivitiesPool);
         if (!lunchAct) {
-            console.log(`[EnhancedItinerary API] No restaurants in pool for Day ${currentDay} lunch, searching fallback...`);
+            //console.log(`[EnhancedItinerary API] No restaurants in pool for Day ${currentDay} lunch, searching fallback...`);
             const fallbackResults = await searchGooglePlaces(`pet friendly cafe or restaurant in ${currentCity}`, 'cafe', currentCoords, 5000);
             const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
             if (fallbackOption) {
@@ -737,7 +737,7 @@ export async function POST(request: NextRequest) {
         // --- Afternoon Activity --- 
         let afternoonAct = getUniqueActivity(remainingInterestActivitiesPool);
          if (!afternoonAct) {
-            console.log(`[EnhancedItinerary API] No activities in pool for Day ${currentDay} afternoon, searching fallback...`);
+            //console.log(`[EnhancedItinerary API] No activities in pool for Day ${currentDay} afternoon, searching fallback...`);
              const fallbackResults = await searchGooglePlaces(`pet friendly things to do in ${currentCity}`, 'point_of_interest', currentCoords, 10000);
              const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
             if (fallbackOption) {
@@ -752,7 +752,7 @@ export async function POST(request: NextRequest) {
         // --- Dinner --- 
         let dinnerAct = getUniqueRestaurant(remainingRestaurantActivitiesPool);
         if (!dinnerAct) {
-            console.log(`[EnhancedItinerary API] No restaurants in pool for Day ${currentDay} dinner, searching fallback...`);
+            //console.log(`[EnhancedItinerary API] No restaurants in pool for Day ${currentDay} dinner, searching fallback...`);
              const fallbackResults = await searchGooglePlaces(`pet friendly restaurant in ${currentCity}`, 'restaurant', currentCoords, 10000);
              const fallbackOption = fallbackResults.find(p => !usedActivityPlaceIds.has(p.vicinity || p.formatted_address));
             if (fallbackOption) {
@@ -766,7 +766,7 @@ export async function POST(request: NextRequest) {
 
         // Add Last Day Specific Activities if applicable
         if (currentDay === tripDays && tripData.pets > 0) {
-            console.log(`[EnhancedItinerary API] Adding final day preparations for Day ${currentDay}...`);
+            //console.log(`[EnhancedItinerary API] Adding final day preparations for Day ${currentDay}...`);
 
              // Prepend Vet Visit
              dailyActivities.unshift({
@@ -795,7 +795,7 @@ export async function POST(request: NextRequest) {
              });
         }
 
-        console.log(`[EnhancedItinerary API] Adding Day ${currentDay} with ${dailyActivities.length} activities...`);
+        //console.log(`[EnhancedItinerary API] Adding Day ${currentDay} with ${dailyActivities.length} activities...`);
         itinerary.days.push({
             day: currentDay,
             date: currentDate.toISOString().split('T')[0],
@@ -812,7 +812,7 @@ export async function POST(request: NextRequest) {
             // This logic needs refinement to handle multiple additional cities and refetching data
             if (currentCity === tripData.destination && tripData.additionalCities[0]) {
                 currentCity = tripData.additionalCities[0];
-                console.log(`[EnhancedItinerary API] Switching city focus to: ${currentCity} (Data refetching TBD)`);
+                //console.log(`[EnhancedItinerary API] Switching city focus to: ${currentCity} (Data refetching TBD)`);
                 // Reset pools (simplistic - ideally refetch based on new city)
                 // remainingInterestActivitiesPool = []; 
                 // remainingRestaurantActivitiesPool = []; 
@@ -823,7 +823,7 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Return Success Response --- 
-    console.log('[EnhancedItinerary API] Successfully generated structured itinerary.');
+    //console.log('[EnhancedItinerary API] Successfully generated structured itinerary.');
     return NextResponse.json(
       {
         itinerary: itinerary,
@@ -835,7 +835,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('[EnhancedItinerary API] Internal Server Error:', error);
+    //console.error('[EnhancedItinerary API] Internal Server Error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An internal server error occurred during itinerary generation.' },
       { status: 500 }

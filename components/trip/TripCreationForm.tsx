@@ -625,15 +625,34 @@ export default function TripCreationForm({
   
       if (session && draftIdToUpdate) {
         const supabase = createClient();
-        const { error: updateError } = await supabase.from('draft_itineraries').update({ trip_data: finalTripDataWithResults, updated_at: new Date().toISOString() }).eq('id', draftIdToUpdate);
-        if (updateError) console.error('[TripCreationForm] Non-blocking: Error updating draft with itinerary:', updateError);
+        console.log('[TripCreationForm] Attempting final update to draft ID:', draftIdToUpdate, 'with data containing itinerary:', !!finalTripDataWithResults.itinerary);
+        const { error: updateError } = await supabase
+          .from('draft_itineraries')
+          .update({ trip_data: finalTripDataWithResults, updated_at: new Date().toISOString() })
+          .eq('id', draftIdToUpdate);
+        if (updateError) {
+          console.error('[TripCreationForm] CRITICAL: Failed to update draft with generated itinerary:', updateError);
+          // Optionally, inform the user the final save failed
+          setToastMessage("Itinerary generated, but failed to save final state. Please save manually if needed.");
+          setToastOpen(true); // Show a toast for the update failure
+        } else {
+          console.log('[TripCreationForm] Successfully updated draft with generated itinerary.');
+          // Existing success toast message (or modify if needed)
+          setToastMessage("Itinerary generated successfully!");
+          setToastOpen(true);
+        }
       } else {
+        // Guest user or no draftId - save to sessionStorage
+        console.log('[TripCreationForm] Saving final results to sessionStorage for guest user.');
         sessionStorage.setItem('tripData', JSON.stringify(finalTripDataWithResults));
+        setToastMessage("Itinerary generated successfully!");
+        setToastOpen(true);
       }
       
-      setToastMessage("Itinerary generated successfully!");
-      setToastOpen(true);
-      if (onClose) onClose(); // Close form on success
+      // Move onClose call outside the try block to ensure it always happens on logical success
+      // but potentially inside the if/else blocks if you only want it after successful save
+      if (onClose) onClose(); // Close form on success (API call succeeded)
+
     } catch (error: any) {
       console.error("Error in handleSubmit:", error);
       setErrors({ submit: error.message || 'An unexpected error occurred during itinerary generation.' });
