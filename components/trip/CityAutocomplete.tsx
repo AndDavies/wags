@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface CityAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
   onCountryChange?: (country: string) => void;
   placeholder?: string;
+  inputId?: string;
+  className?: string;
 }
 
 interface MapboxFeature {
@@ -17,7 +20,14 @@ interface MapboxFeature {
   context?: Array<{ id: string; text: string }>;
 }
 
-export default function CityAutocomplete({ value, onChange, onCountryChange, placeholder }: CityAutocompleteProps) {
+export default function CityAutocomplete({
+  value,
+  onChange,
+  onCountryChange,
+  placeholder,
+  inputId,
+  className,
+}: CityAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
@@ -141,13 +151,17 @@ export default function CityAutocomplete({ value, onChange, onCountryChange, pla
         </div>
       )}
       <input
+        id={inputId}
         ref={inputRef}
         type="text"
         value={value}
         onChange={handleInputChange}
         onBlur={handleBlur}
         placeholder={placeholder}
-        className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className={cn(
+          "w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
+          className
+        )}
       />
       {showSuggestions && suggestions.length > 0 && (
         <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">

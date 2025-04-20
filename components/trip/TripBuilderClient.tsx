@@ -23,55 +23,55 @@ export default function TripBuilderClient({
   const [showModal, setShowModal] = useState(!!initialDraft);
 
   // Load draft from initialDraft (logged-in) or sessionStorage (guest)
-  useEffect(() => {
-    console.log('TripBuilderClient Mounting. Session:', !!session, 'InitialDraft:', !!initialDraft);
-    let draftToLoad: TripData | null = null;
+  // useEffect(() => {
+  //   console.log('TripBuilderClient Mounting. Session:', !!session, 'InitialDraft:', !!initialDraft);
+  //   let draftToLoad: TripData | null = null;
 
-    if (initialDraft) {
-      console.log('Found initialDraft (logged-in user)');
-      draftToLoad = initialDraft;
-    } else {
-      const guestDraftString = sessionStorage.getItem('tripData');
-      if (guestDraftString) {
-        try {
-          draftToLoad = JSON.parse(guestDraftString);
-          console.log('Found guest draft from sessionStorage');
-        } catch (e) {
-          console.error("Failed to parse guest draft from sessionStorage:", e);
-          sessionStorage.removeItem('tripData'); // Clear invalid data
-        }
-      } else {
-         console.log('No initialDraft or guest draft found.');
-      }
-    }
+  //   if (initialDraft) {
+  //     console.log('Found initialDraft (logged-in user)');
+  //     draftToLoad = initialDraft;
+  //   } else {
+  //     const guestDraftString = sessionStorage.getItem('tripData');
+  //     if (guestDraftString) {
+  //       try {
+  //         draftToLoad = JSON.parse(guestDraftString);
+  //         console.log('Found guest draft from sessionStorage');
+  //       } catch (e) {
+  //         console.error("Failed to parse guest draft from sessionStorage:", e);
+  //         sessionStorage.removeItem('tripData'); // Clear invalid data
+  //       }
+  //     } else {
+  //        console.log('No initialDraft or guest draft found.');
+  //     }
+  //   }
 
-    if (draftToLoad) {
-        console.log('Processing loaded draft:', draftToLoad);
-        setTripData(draftToLoad); // Set the data in the store
+  //   if (draftToLoad) {
+  //       console.log('Processing loaded draft:', draftToLoad);
+  //       setTripData(draftToLoad); // Set the data in the store
 
-        if (draftToLoad.itinerary && draftToLoad.itinerary.days && draftToLoad.itinerary.days.length > 0) {
-            // Draft exists AND has a generated itinerary
-            console.log('Draft contains itinerary, showing modal.');
-            setOpenToast(true); // Optional: Toast to indicate resumption
-            setShowModal(true);
-            setShowForm(false); // Ensure we don't show the form initially
-        } else {
-            // Draft exists BUT has no itinerary (incomplete generation?)
-            console.log('Draft exists but no itinerary, going to form.');
-            setShowModal(false); // Don't show the modal
-            setShowForm(true); // Go directly to the form to complete
-        }
-    } else {
-        // No draft exists
-        console.log('No draft to load, showing landing page.');
-        setShowModal(false);
-        setShowForm(false);
-    }
+  //       if (draftToLoad.itinerary && draftToLoad.itinerary.days && draftToLoad.itinerary.days.length > 0) {
+  //           // Draft exists AND has a generated itinerary
+  //           console.log('Draft contains itinerary, showing modal.');
+  //           setOpenToast(true); // Optional: Toast to indicate resumption
+  //           setShowModal(true);
+  //           setShowForm(false); // Ensure we don't show the form initially
+  //       } else {
+  //           // Draft exists BUT has no itinerary (incomplete generation?)
+  //           console.log('Draft exists but no itinerary, going to form.');
+  //           setShowModal(false); // Don't show the modal
+  //           setShowForm(true); // Go directly to the form to complete
+  //       }
+  //   } else {
+  //       // No draft exists
+  //       console.log('No draft to load, showing landing page.');
+  //       setShowModal(false);
+  //       setShowForm(false);
+  //   }
 
-    // Cleanup function (optional, if needed)
-    // return () => { console.log('TripBuilderClient Unmounting'); };
+  //   // Cleanup function (optional, if needed)
+  //   // return () => { console.log('TripBuilderClient Unmounting'); };
 
-  }, [initialDraft, setTripData]); // Dependencies: only run on initial load based on draft
+  // }, [initialDraft, setTripData]); // Dependencies: only run on initial load based on draft
 
   // Real-time draft updates for logged-in users
   useEffect(() => {

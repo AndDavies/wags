@@ -63,6 +63,18 @@ import {
   Bed,
   Tent,
   Search,
+  Building,
+  CalendarRange,
+  PlaneTakeoff,
+  PlaneLanding,
+  MapPinned,
+  UserRound,
+  PawPrint,
+  HeartHandshake,
+  PiggyBank,
+  PencilLine,
+  Grip,
+  Ticket,
 } from 'lucide-react';
 
 // Constants
@@ -169,14 +181,14 @@ const SelectableIconButton = ({
     variant="outline"
     onClick={() => onSelect(value)}
     className={cn(
-      'flex flex-col items-center justify-center gap-1 p-3 h-auto min-h-16 border rounded-lg transition-colors duration-150 ease-in-out',
+      'flex flex-col items-center justify-center gap-1.5 p-3 h-auto min-h-[80px] min-w-[80px] border rounded-lg transition-colors duration-150 ease-in-out text-center',
       isSelected
         ? 'bg-teal-100 border-teal-500 text-teal-700 ring-2 ring-teal-500 ring-offset-1'
         : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400'
     )}
   >
-    <Icon className="h-7 w-7" size={iconSize} />
-    {label && <span className="text-xs font-medium mt-1 text-center break-words max-w-full">{label}</span>} 
+    <Icon className="h-8 w-8" size={iconSize} />
+    {label && <span className="text-sm font-medium mt-1 break-words max-w-full">{label}</span>} 
   </Button>
 );
 
@@ -663,6 +675,16 @@ export default function TripCreationForm({
     }
   };
 
+  // Helper to render validation errors
+  const renderError = (field: keyof FormData) => {
+    if (validationState.interacted.has(field) && !validationState[field as keyof Omit<ValidationState, 'interacted'>]) {
+      return (
+        <p className="text-sm text-red-600 mt-1">{errors[field]}</p>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 font-sans">
       <Toast.Provider swipeDirection="right">
@@ -707,247 +729,178 @@ export default function TripCreationForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Location and Dates Section */}
+        {/* Location and Dates Section - Revised Layout */}
         <div className="p-6 border border-gray-200 rounded-lg bg-white shadow-sm">
           <h2 className="text-2xl font-bold text-gray-800 tracking-tight mb-6 font-outfit">Location and Dates</h2>
-          <div className="space-y-6">
-            <div ref={originRef} className={'relative'}>
-              <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
-                <MapPin className="h-5 w-5 text-teal-600" /> Traveling From
-              </Label>
-              <div className="relative">
-                <CityAutocomplete
-                  value={formData.origin}
-                  onChange={(value) => handleInputChange('origin', value)}
-                  onCountryChange={(country) => handleInputChange('originCountry', country)}
-                  placeholder="Enter departure city"
-                />
-                {validationState.interacted.has('origin') && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                          {formData.origin ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 text-amber-500" />
-                          )}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {formData.origin ? 'Looks good!' : 'Please enter a departure city.'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+          {/* Grid for two columns on medium screens+ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+            {/* Column 1: Origin & Destination */}
+            <div className="space-y-6">
+              {/* Origin */}
+              <div ref={originRef} className={'relative'}>
+                <Label htmlFor='origin-input' className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
+                  <PlaneTakeoff className="h-5 w-5 text-teal-600" /> Traveling From
+                </Label>
+                <div className="relative flex items-center">
+                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+                   <CityAutocomplete
+                     inputId='origin-input'
+                     value={formData.origin}
+                     onChange={(value) => handleInputChange('origin', value)}
+                     onCountryChange={(country) => handleInputChange('originCountry', country)}
+                     placeholder="Enter departure city"
+                     className="pl-10 h-12"
+                   />
+                 </div>
+                 {renderError('origin')}
+                 <p className="text-sm text-gray-500 mt-1">We'll use this to check pet rules for your origin.</p>
               </div>
-              <p className="text-sm text-gray-500 mt-1">We'll use this to check pet rules for your origin.</p>
-              {errors.origin && validationState.interacted.has('origin') && (
-                <p className="text-sm text-red-600 mt-1">{errors.origin}</p>
-              )}
+
+              {/* Destination (Changed Label and Icon) */}
+              <div ref={destinationRef} className={'relative'}>
+                <Label htmlFor='destination-input' className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
+                  <PlaneLanding className="h-5 w-5 text-teal-600" /> Traveling To
+                </Label>
+                <div className="relative flex items-center">
+                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+                   <CityAutocomplete
+                     inputId='destination-input'
+                     value={formData.destination}
+                     onChange={(value) => handleInputChange('destination', value)}
+                     onCountryChange={(country) => handleInputChange('destinationCountry', country)}
+                     placeholder="Enter main destination city"
+                     className="pl-10 h-12"
+                   />
+                 </div>
+                {renderError('destination')}
+                <p className="text-sm text-gray-500 mt-1">We'll use this to check pet rules for your destination.</p>
+              </div>
             </div>
 
-            <div ref={destinationRef} className={'relative'}>
-              <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
-                <MapPin className="h-5 w-5 text-teal-600" /> Primary Destination
-              </Label>
-              <div className="relative">
-                <CityAutocomplete
-                  value={formData.destination}
-                  onChange={(value) => handleInputChange('destination', value)}
-                  onCountryChange={(country) => handleInputChange('destinationCountry', country)}
-                  placeholder="Enter main destination city"
-                />
-                {validationState.interacted.has('destination') && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                          {formData.destination ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 text-amber-500" />
-                          )}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {formData.destination ? 'Looks good!' : 'Please enter a destination city.'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+            {/* Column 2: Dates & Additional Destinations */}
+            <div className="space-y-6">
+              {/* Dates */}
+              <div ref={datesRef} className={'relative'}>
+                <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
+                  <CalendarDays className="h-5 w-5 text-teal-600" /> Trip Dates
+                </Label>
+                <div className="relative flex gap-4">
+                   {/* Start Date Input */}
+                   <div className="flex-1 relative">
+                     <Input
+                       value={dateInput.start}
+                       onChange={(e) => handleDateInputChange('start', e.target.value)}
+                       placeholder="Start date"
+                       className={cn(
+                         "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
+                         validationState.interacted.has('startDate') && !validationState.startDate && "border-amber-300"
+                       )}
+                     />
+                     {renderError('startDate')}
+                   </div>
+                   {/* End Date Input */}
+                   <div className="flex-1 relative">
+                     <Input
+                       value={dateInput.end}
+                       onChange={(e) => handleDateInputChange('end', e.target.value)}
+                       placeholder="End date"
+                       className={cn(
+                         "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
+                         validationState.interacted.has('endDate') && !validationState.endDate && "border-amber-300"
+                       )}
+                     />
+                     {renderError('endDate')}
+                   </div>
+                   {/* Calendar Popover */}
+                   <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                     <PopoverTrigger asChild>
+                       <Button
+                         variant="outline"
+                         className="h-12 w-12 p-0 flex-shrink-0"
+                       >
+                         <CalendarDays className="h-5 w-5" />
+                       </Button>
+                     </PopoverTrigger>
+                     <PopoverContent className="w-auto p-0" align="end">
+                       <Calendar
+                         initialFocus
+                         mode="range"
+                         defaultMonth={formData.startDate ?? new Date()}
+                         selected={{
+                           from: formData.startDate ?? undefined,
+                           to: formData.endDate ?? undefined,
+                         }}
+                         onSelect={handleDateRangeChange}
+                         numberOfMonths={2}
+                         pagedNavigation
+                         disabled={{ before: new Date() }}
+                         showOutsideDays={false}
+                         className="rounded-md border p-2"
+                       />
+                     </PopoverContent>
+                   </Popover>
+                </div>
+                {(renderError('startDate') || renderError('endDate')) && (validationState.interacted.has('startDate') || validationState.interacted.has('endDate')) && (
+                   <p className="text-sm text-red-600 mt-1">
+                     {errors.startDate || errors.endDate || errors.dates || 'Invalid date range or format.'}
+                   </p>
                 )}
+                 <p className="text-sm text-gray-500 mt-1">Choose your travel dates.</p> {/* Shortened helper text */}
               </div>
-              <p className="text-sm text-gray-500 mt-1">We'll use this to check pet rules for your destination.</p>
-              {errors.destination && validationState.interacted.has('destination') && (
-                <p className="text-sm text-red-600 mt-1">{errors.destination}</p>
-              )}
-            </div>
 
-            <div>
-              <Label className="text-base font-medium text-gray-700 mb-2 block">Additional Destinations (Optional)</Label>
-              <div className="space-y-3">
-                {formData.additionalCities.map((city, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <CityAutocomplete
-                      value={city}
-                      onChange={(value) => {
-                          const updatedCities = [...formData.additionalCities];
-                          updatedCities[index] = value;
+              {/* Additional Destinations (Added Icon) */}
+              <div>
+                <Label className="text-base font-medium text-gray-700 mb-2 flex items-center gap-2">
+                   <Ticket className="h-5 w-5 text-teal-600" /> Additional Stops (Optional)
+                </Label>
+                <div className="space-y-3">
+                  {formData.additionalCities.map((city, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="relative flex items-center flex-grow">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+                        <CityAutocomplete
+                          inputId={`additionalCity-${index}`}
+                          value={city}
+                          onChange={(value) => {
+                              const updatedCities = [...formData.additionalCities];
+                              updatedCities[index] = value;
+                              handleInputChange('additionalCities', updatedCities);
+                          }}
+                          onCountryChange={(country) => {
+                               const updatedCountries = [...(formData.additionalCountries ?? [])];
+                               updatedCountries[index] = country;
+                              handleInputChange('additionalCountries', updatedCountries);
+                          }}
+                          placeholder={`Add stop ${index + 1}`}
+                          className="pl-10 h-12"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const updatedCities = formData.additionalCities.filter((_, i) => i !== index);
+                          const updatedCountries = (formData.additionalCountries ?? []).filter((_, i) => i !== index);
                           handleInputChange('additionalCities', updatedCities);
-                      }}
-                      onCountryChange={(country) => {
-                           const updatedCountries = [...(formData.additionalCountries ?? [])];
-                           updatedCountries[index] = country;
                           handleInputChange('additionalCountries', updatedCountries);
-                      }}
-                      placeholder={`Add stop ${index + 1}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        const updatedCities = formData.additionalCities.filter((_, i) => i !== index);
-                        const updatedCountries = (formData.additionalCountries ?? []).filter((_, i) => i !== index);
-                        handleInputChange('additionalCities', updatedCities);
-                        handleInputChange('additionalCountries', updatedCountries);
-                      }}
-                      className="text-red-500 hover:bg-red-100 hover:text-red-700 flex-shrink-0 h-12 w-12"
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => handleInputChange('additionalCities', [...formData.additionalCities, ''])}
-                className="text-teal-600 hover:text-teal-700 text-sm p-0 mt-2 flex items-center gap-1"
-              >
-                <Plus className="h-5 w-5" /> Add Another Stop
-              </Button>
-            </div>
-
-            <div ref={datesRef} className={'relative'}>
-              <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
-                <CalendarDays className="h-5 w-5 text-teal-600" /> Trip Dates
-              </Label>
-              <div className="relative flex gap-4">
-                <div className="flex-1 relative">
-                  <Input
-                    value={dateInput.start}
-                    onChange={(e) => handleDateInputChange('start', e.target.value)}
-                    placeholder="Start date (e.g., next Friday)"
-                    className={cn(
-                      "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
-                      validationState.interacted.has('startDate') && !validationState.startDate && "border-amber-300"
-                    )}
-                  />
-                  {validationState.interacted.has('startDate') && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                            {validationState.startDate ? (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
-                            ) : (
-                              <AlertTriangle className="h-5 w-5 text-amber-500" />
-                            )}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {validationState.startDate ? 'Looks good!' : 'Must be a future date.'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                        }}
+                        className="text-red-500 hover:bg-red-100 hover:text-red-700 flex-shrink-0 h-12 w-12"
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex-1 relative">
-                  <Input
-                    value={dateInput.end}
-                    onChange={(e) => handleDateInputChange('end', e.target.value)}
-                    placeholder="End date (e.g., next Sunday)"
-                    className={cn(
-                      "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
-                      validationState.interacted.has('endDate') && !validationState.endDate && "border-amber-300"
-                    )}
-                  />
-                  {validationState.interacted.has('endDate') && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                            {validationState.endDate ? (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
-                            ) : (
-                              <AlertTriangle className="h-5 w-5 text-amber-500" />
-                            )}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {validationState.endDate ? 'Looks good!' : 'Must be after start date.'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-12 w-12 p-0"
-                    >
-                      <CalendarDays className="h-5 w-5" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={formData.startDate ?? new Date()}
-                      selected={{
-                        from: formData.startDate ?? undefined,
-                        to: formData.endDate ?? undefined,
-                      }}
-                      onSelect={handleDateRangeChange}
-                      numberOfMonths={2}
-                      pagedNavigation
-                      disabled={{ before: new Date() }}
-                      showOutsideDays={false}
-                      className="rounded-md border p-2"
-                      classNames={{
-                        months: "relative flex flex-col sm:flex-row gap-8",
-                        month: "relative w-full first-of-type:before:hidden before:absolute max-sm:before:inset-x-2 max-sm:before:h-px max-sm:before:-top-2 sm:before:inset-y-2 sm:before:w-px before:bg-border sm:before:-left-4",
-                        caption: "relative mx-10 mb-1 flex h-9 items-center justify-center z-20",
-                        caption_label: "text-sm font-medium",
-                        nav: "absolute top-0 flex w-full justify-between z-10",
-                        nav_button_previous: cn(
-                          buttonVariants({ variant: "ghost" }),
-                          "size-9 text-muted-foreground/80 hover:text-foreground p-0",
-                        ),
-                        nav_button_next: cn(
-                          buttonVariants({ variant: "ghost" }),
-                          "size-9 text-muted-foreground/80 hover:text-foreground p-0",
-                        ),
-                        head: "w-full",
-                        head_row: "flex",
-                        head_cell: "size-9 p-0 text-xs font-medium text-muted-foreground/80",
-                        table: "w-full border-collapse space-y-1",
-                        row: "flex w-full mt-2",
-                        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected][data-outside])]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 [&:has([aria-selected][data-range-end])]:rounded-r-md",
-                        day: "group size-9 px-0 py-px text-sm relative flex items-center justify-center whitespace-nowrap rounded-md p-0 text-foreground group-[[data-selected]:not([data-range-middle])]:[transition-property:color,background-color,border-radius,box-shadow] group-[[data-selected]:not([data-range-middle])]:duration-150 group-data-disabled:pointer-events-none focus-visible:z-10 hover:not-in-data-selected:bg-accent group-data-selected:bg-primary hover:not-in-data-selected:text-foreground group-data-selected:text-primary-foreground group-data-disabled:text-foreground/30 group-data-disabled:line-through group-data-outside:text-foreground/30 group-data-selected:group-data-outside:text-primary-foreground outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px] group-[[data-range-start]:not([data-range-end])]:rounded-e-none group-[[data-range-end]:not([data-range-start])]:rounded-s-none group-[data-range-middle]:rounded-none group-[data-range-middle]:group-data-selected:bg-accent group-[data-range-middle]:group-data-selected:text-foreground group-data-today:*:after:pointer-events-none group-data-today:*:after:absolute group-data-today:*:after:bottom-1 group-data-today:*:after:start-1/2 group-data-today:*:after:z-10 group-data-today:*:after:size-[3px] group-data-today:*:after:-translate-x-1/2 group-data-today:*:after:rounded-full group-data-today:*:after:bg-primary group-data-today:[&[data-selected]:not([data-range-middle])>*]:after:bg-background group-data-today:[&[data-disabled]>*]:after:bg-foreground/30 group-data-today:*:after:transition-colors group-data-outside:text-muted-foreground group-data-outside:group-data-selected:bg-accent/50 group-data-outside:group-data-selected:text-muted-foreground group-data-hidden:invisible",
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => handleInputChange('additionalCities', [...formData.additionalCities, ''])}
+                  className="text-teal-600 hover:text-teal-700 text-sm p-0 mt-2 flex items-center gap-1"
+                >
+                  <Plus className="h-5 w-5" /> Add Another Stop
+                </Button>
               </div>
-              <p className="text-sm text-gray-500 mt-1">Choose your travel dates to plan your itinerary.</p>
-              {(errors.startDate || errors.endDate || errors.dates) && (validationState.interacted.has('startDate') || validationState.interacted.has('endDate')) && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.startDate || errors.endDate || errors.dates || 'We couldn\'t find that date—try MM/DD or pick from calendar.'}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -956,122 +909,115 @@ export default function TripCreationForm({
         <div className="p-6 border border-gray-200 rounded-lg bg-white shadow-sm">
           <h2 className="text-2xl font-bold text-gray-800 tracking-tight mb-6 font-outfit">Travelers & Preferences</h2>
           <div className="space-y-6">
-            <div ref={adultsRef} className={'relative'}>
+            <div ref={adultsRef}>
               <Label className="text-base font-medium text-gray-700 mb-2 block">Number of Travelers</Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1 relative">
+                <div className="space-y-1">
                   <Label htmlFor="adults" className="text-sm text-gray-600 flex items-center gap-1">
                     <Users className="h-5 w-5 text-teal-600" /> Adults
                   </Label>
-                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-none h-12 w-12 border-r bg-gray-100 hover:bg-gray-200" 
+                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden h-12">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none h-full w-12 border-r bg-gray-50 hover:bg-gray-100 text-gray-700"
                       onClick={() => handleInputChange('adults', Math.max(1, formData.adults - 1))}
+                      aria-label="Decrease adults"
                     >
                       <Minus className="h-5 w-5" />
                     </Button>
-                    <Input 
-                      id="adults" 
-                      type="number" 
-                      value={formData.adults} 
-                      onChange={(e) => handleInputChange('adults', Math.max(1, parseInt(e.target.value) || 1))} 
+                    <Input
+                      id="adults"
+                      type="number"
+                      value={formData.adults}
+                      onChange={(e) => handleInputChange('adults', Math.max(1, parseInt(e.target.value) || 1))}
                       onBlur={() => validateField('adults')}
-                      min="1" 
+                      min="1"
                       className={cn(
-                        "w-16 h-12 text-base text-center border-0 focus:ring-0 focus-visible:ring-0 rounded-none p-0",
-                        validationState.interacted.has('adults') && !validationState.adults && "border-amber-300"
-                      )} 
+                        "flex-1 h-full w-auto min-w-[40px] text-base text-center border-0 focus:ring-0 focus-visible:ring-0 rounded-none p-0",
+                        validationState.interacted.has('adults') && !validationState.adults && "bg-red-50 border-amber-300"
+                      )}
+                      aria-invalid={validationState.interacted.has('adults') && !validationState.adults}
                     />
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-none h-12 w-12 border-l bg-gray-100 hover:bg-gray-200" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none h-full w-12 border-l bg-gray-50 hover:bg-gray-100 text-gray-700"
                       onClick={() => handleInputChange('adults', formData.adults + 1)}
+                      aria-label="Increase adults"
                     >
                       <Plus className="h-5 w-5" />
                     </Button>
-                    {validationState.interacted.has('adults') && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                              {validationState.adults ? (
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                              )}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {validationState.adults ? 'Looks good!' : 'At least one adult is required.'}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
                   </div>
-                  {errors.adults && validationState.interacted.has('adults') && (
-                    <p className="text-sm text-red-600 mt-1">{errors.adults}</p>
-                  )}
+                  {renderError('adults')}
                 </div>
-                <div className="space-y-1 relative">
+                <div className="space-y-1">
                   <Label htmlFor="children" className="text-sm text-gray-600 flex items-center gap-1">
                     <Baby className="h-5 w-5 text-teal-600" /> Children
                   </Label>
-                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-none h-12 w-12 border-r bg-gray-100 hover:bg-gray-200" 
+                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden h-12">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none h-full w-12 border-r bg-gray-50 hover:bg-gray-100 text-gray-700"
                       onClick={() => handleInputChange('children', Math.max(0, formData.children - 1))}
+                      aria-label="Decrease children"
                     >
                       <Minus className="h-5 w-5" />
                     </Button>
-                    <Input 
-                      id="children" 
-                      type="number" 
-                      value={formData.children} 
-                      onChange={(e) => handleInputChange('children', parseInt(e.target.value) || 0)} 
-                      min="0" 
-                      className="w-16 h-12 text-base text-center border-0 focus:ring-0 focus-visible:ring-0 rounded-none p-0" 
+                    <Input
+                      id="children"
+                      type="number"
+                      value={formData.children}
+                      onChange={(e) => handleInputChange('children', parseInt(e.target.value) || 0)}
+                      min="0"
+                      className="flex-1 h-full w-auto min-w-[40px] text-base text-center border-0 focus:ring-0 focus-visible:ring-0 rounded-none p-0"
                     />
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-none h-12 w-12 border-l bg-gray-100 hover:bg-gray-200" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none h-full w-12 border-l bg-gray-50 hover:bg-gray-100 text-gray-700"
                       onClick={() => handleInputChange('children', formData.children + 1)}
+                      aria-label="Increase children"
                     >
                       <Plus className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-1 relative">
+                <div className="space-y-1">
                   <Label htmlFor="pets" className="text-sm text-gray-600 flex items-center gap-1">
                     <Dog className="h-5 w-5 text-teal-600" /> Pets
                   </Label>
-                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-none h-12 w-12 border-r bg-gray-100 hover:bg-gray-200" 
+                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden h-12">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none h-full w-12 border-r bg-gray-50 hover:bg-gray-100 text-gray-700"
                       onClick={() => handleInputChange('pets', Math.max(0, formData.pets - 1))}
+                      aria-label="Decrease pets"
                     >
                       <Minus className="h-5 w-5" />
                     </Button>
-                    <Input 
-                      id="pets" 
-                      type="number" 
-                      value={formData.pets} 
-                      onChange={(e) => handleInputChange('pets', parseInt(e.target.value) || 0)} 
-                      min="0" 
-                      className="w-16 h-12 text-base text-center border-0 focus:ring-0 focus-visible:ring-0 rounded-none p-0" 
+                    <Input
+                      id="pets"
+                      type="number"
+                      value={formData.pets}
+                      onChange={(e) => handleInputChange('pets', parseInt(e.target.value) || 0)}
+                      min="0"
+                      className="flex-1 h-full w-auto min-w-[40px] text-base text-center border-0 focus:ring-0 focus-visible:ring-0 rounded-none p-0"
                     />
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="rounded-none h-12 w-12 border-l bg-gray-100 hover:bg-gray-200" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-none h-full w-12 border-l bg-gray-50 hover:bg-gray-100 text-gray-700"
                       onClick={() => handleInputChange('pets', formData.pets + 1)}
+                      aria-label="Increase pets"
                     >
                       <Plus className="h-5 w-5" />
                     </Button>
@@ -1084,12 +1030,11 @@ export default function TripCreationForm({
               <div ref={petDetailsRef} className="space-y-4 border border-gray-200 rounded-lg p-4 bg-gray-50/50">
                 <Label className="text-base font-medium text-gray-700 block">Pet Details</Label>
                 {Array.from({ length: formData.pets }).map((_, index) => (
-                  <div key={`pet-details-${index}`} className="space-y-3 border-b border-gray-200 pb-3 last:border-b-0">
+                  <div key={`pet-details-${index}`} className="space-y-4 border-b border-gray-200 pb-4 last:border-b-0">
                       <p className="text-sm font-medium text-gray-600">Pet {index + 1}</p>
-                     {/* Pet Type */}
                      <div>
                         <Label className="text-sm text-gray-500 block mb-1.5">Type (Optional)</Label>
-                        <div className="flex flex-wrap gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {petTypes.map(({ name, icon }) => (
                                 <SelectableIconButton
                                   key={name}
@@ -1102,10 +1047,9 @@ export default function TripCreationForm({
                             ))}
                         </div>
                      </div>
-                      {/* Pet Size */}
                       <div>
                         <Label className="text-sm text-gray-500 block mb-1.5">Size (Optional)</Label>
-                        <div className="flex flex-wrap gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {petSizes.map(({ value, label, icon, size }) => (
                                 <SelectableIconButton
                                     key={value}
@@ -1136,11 +1080,11 @@ export default function TripCreationForm({
               </div>
             )}
 
-            <div ref={budgetRef} className={'relative'}>
+            <div ref={budgetRef}>
               <Label className="text-base font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-teal-600" /> Budget
               </Label>
-              <div className="relative flex flex-wrap gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {budgets.map((budget) => (
                   <SelectableIconButton
                     key={budget}
@@ -1153,7 +1097,7 @@ export default function TripCreationForm({
                     icon={() => (
                       <DollarSign
                         className={cn(
-                          "h-7 w-7",
+                          "h-8 w-8",
                           budget === 'Budget' && "text-green-600",
                           budget === 'Moderate' && "text-yellow-600",
                           budget === 'Luxury' && "text-purple-600",
@@ -1163,14 +1107,15 @@ export default function TripCreationForm({
                   />
                 ))}
               </div>
+              {renderError('budget')}
               <p className="text-sm text-gray-500 mt-1">Helps us suggest activities within your budget.</p>
             </div>
 
-            <div ref={accommodationRef} className={'relative'}>
+            <div ref={accommodationRef}>
               <Label className="text-base font-medium text-gray-700 mb-2 flex items-center gap-2">
                 <Hotel className="h-5 w-5 text-teal-600" /> Accommodation
               </Label>
-              <div className="relative flex flex-wrap gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                  {accommodations.map((acc) => {
                     let IconComponent;
                     switch (acc) {
@@ -1193,6 +1138,7 @@ export default function TripCreationForm({
                     );
                   })}
               </div>
+              {renderError('accommodation')}
               <p className="text-sm text-gray-500 mt-1">We'll ensure it's pet-friendly.</p>
             </div>
           </div>
@@ -1228,14 +1174,14 @@ export default function TripCreationForm({
                 onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
                 placeholder="Any specific requests, preferences, or accessibility needs? (e.g., prefer ground floor, allergic to feathers, need quiet walks)"
                 rows={5}
-                className="w-full p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 h-auto"
               />
               <p className="text-sm text-gray-500 mt-1">Let us know any special requirements for your trip.</p>
             </div>
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white py-4 -mx-4 px-4 shadow-top">
+        <div className="sticky bottom-0 bg-white py-4 -mx-4 px-4 shadow-top border-t border-gray-200">
           <div className="flex justify-end max-w-4xl mx-auto">
             <Button
               type="submit"

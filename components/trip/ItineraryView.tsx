@@ -40,6 +40,15 @@ import {
 import Chatbot from './Chatbot';
 import { Map, Marker, Popup } from '@maptiler/sdk';
 import '@maptiler/sdk/dist/maptiler-sdk.css';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // --- Interfaces (matching store/API) ---
 interface ItineraryViewProps {
@@ -82,19 +91,19 @@ function CollapsibleCard({ title, icon: Icon, children, startExpanded = false }:
   const handleToggle = () => setIsExpanded(!isExpanded);
 
   return (
-    <div className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
-      <button onClick={handleToggle} className="w-full text-left p-4 flex justify-between items-center border-b border-gray-200">
+    <Card className="mb-6 overflow-hidden shadow-sm">
+      <button onClick={handleToggle} className="w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
         <CardTitle className="flex items-center text-gray-700 text-lg font-semibold">
-          <Icon className="h-5 w-5 mr-2" /> {title}
+          <Icon className="h-5 w-5 mr-2 text-teal-600" /> {title}
         </CardTitle>
         <ChevronDown className={cn("h-5 w-5 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
       </button>
       {isExpanded && (
-        <div className="p-4">
+        <CardContent className="p-4 pt-0">
           {children}
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -176,38 +185,38 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
   });
 
   return (
-    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
-      <button onClick={onToggle} className={cn("w-full text-left p-3 flex justify-between items-center border-b border-gray-200 bg-gray-50", isExpanded ? "border-b-0 hover:bg-gray-50/50" : "border-b-0")}>
+    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <button onClick={onToggle} className={cn("w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
         <div>
-          <h3 className="text-base font-semibold text-teal-700">Day {day.day}: {day.date}</h3>
-          <p className="text-xs text-gray-600">{day.city}</p>
+          <h3 className="text-lg font-bold text-teal-700">Day {day.day}: {day.date}</h3>
+          <p className="text-sm text-gray-600 mt-0.5">{day.city}</p>
         </div>
-        <ChevronDown className={cn("h-4 w-4 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
+        <ChevronDown className={cn("h-5 w-5 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
       </button>
       {isExpanded && (
-        <div className="p-3">
+        <div className="p-4">
           {day.travel && (
-            <div className="mb-3 bg-blue-50 p-2.5 rounded-md border border-blue-200">
-              <h4 className="font-semibold flex items-center text-blue-700 text-xs"><Plane className="h-3 w-3 mr-1.5" /> Travel Details</h4>
-              <p className="text-gray-700 mt-1 text-xs">{day.travel}</p>
+            <div className="mb-4 bg-blue-50 p-3 rounded-md border border-blue-200">
+              <h4 className="font-semibold flex items-center text-blue-700 text-sm"><Plane className="h-4 w-4 mr-1.5" /> Travel Details</h4>
+              <p className="text-gray-700 mt-1 text-sm">{day.travel}</p>
             </div>
           )}
-          <div className="mb-3">
-            <h4 className="font-semibold text-gray-800 mb-1.5 text-sm">Activities</h4>
-            <div className="space-y-2">
+          <div className="mb-4">
+            <h4 className="font-semibold text-gray-800 mb-2 text-base">Activities</h4>
+            <div className="space-y-2.5">
               {validActivities.length > 0 ? (
                 validActivities.map((activity, actIndex) => {
                   const icon = getActivityIcon(activity);
                   return (
-                    <div key={actIndex} className="flex justify-between items-start p-2.5 bg-gray-50/50 rounded-md border border-gray-100 group">
-                      <div className="flex items-start flex-grow">
-                        {icon}
+                    <div key={actIndex} className="flex justify-between items-start p-3 bg-gray-50/50 rounded-md border border-gray-100 group">
+                      <div className="flex items-start flex-grow mr-2">
+                        <div className="mr-3 mt-1 flex-shrink-0">{icon}</div>
                         <div className="flex-grow">
-                          <p className="font-medium text-gray-800 text-sm leading-snug">{activity.name}</p>
-                          <p className="text-gray-600 text-xs mt-0.5">{activity.description}</p>
-                          <p className="text-gray-500 text-xs mt-0.5 flex items-center"><MapPin className="h-3 w-3 mr-1" /> {activity.location}</p>
+                          <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
+                          <p className="text-gray-600 text-sm mt-0.5">{activity.description}</p>
+                          <p className="text-gray-500 text-xs mt-1 flex items-center"><MapPin className="h-3 w-3 mr-1" /> {activity.location}</p>
                           {(activity.startTime || activity.cost) && (
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
                               {activity.startTime && <span>{activity.startTime}{activity.endTime ? ` - ${activity.endTime}` : ''}</span>}
                               {activity.startTime && activity.cost && <span>|</span>}
                               {activity.cost && <span>{activity.cost}</span>}
@@ -232,11 +241,11 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
                     </div>
                   );
                 })
-              ) : ( <p className="text-gray-500 italic text-xs px-1">No activities planned for this day.</p> )}
+              ) : ( <p className="text-gray-500 italic text-sm px-1">No activities planned for this day.</p> )}
             </div>
-            <div className="flex justify-start space-x-2 mt-3">
-              <Button variant="outline" size="sm" onClick={onAddActivity}><Plus className="h-3 w-3 mr-1" /> Activity</Button>
-              <Button variant="outline" size="sm" onClick={onFindVets}><Stethoscope className="h-3 w-3 mr-1" /> Find Vets</Button>
+            <div className="flex justify-start space-x-2 mt-4">
+              <Button variant="outline" size="sm" onClick={onAddActivity} className="text-xs"><Plus className="h-3 w-3 mr-1" /> Add Activity</Button>
+              <Button variant="outline" size="sm" onClick={onFindVets} className="text-xs"><Stethoscope className="h-3 w-3 mr-1" /> Find Vets</Button>
             </div>
           </div>
         </div>
@@ -497,10 +506,10 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   }
 
   return (
-    <div className="flex flex-col md:flex-row relative">
+    <div className="flex flex-col md:flex-row relative font-sans">
       {/* Left sidebar - Chatbot (Sticky) */}
       {showChatbot && (
-        <div className="w-full md:w-[35%] md:sticky md:top-0 md:h-screen md:border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0 mb-4 md:mb-0">
+        <div className="w-full md:w-[35%] md:sticky md:top-0 md:h-screen md:border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0 mb-6 md:mb-0">
           <Chatbot
             tripData={tripData}
             session={session}
@@ -512,8 +521,8 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
       {/* Right content - Itinerary (Takes remaining width, natural scroll) */}
       <div className={cn("flex-grow", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
         {/* Header (Sticky within its column) */}
-        <div className="sticky top-0 bg-white z-10 p-3 border-b border-gray-200 shadow-sm flex justify-between items-center mb-4 flex-wrap gap-2">
-          <div className="flex items-center gap-2">
+        <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200 shadow-sm flex justify-between items-center mb-6 flex-wrap gap-3">
+          <div className="flex items-center gap-3">
             {onBackToPlanning && (
               <Button variant="outline" size="sm" onClick={onBackToPlanning}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Planning
@@ -522,10 +531,12 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
             {!showChatbot && (
               <Button variant="outline" size="sm" onClick={() => setShowChatbot(true)}>Show Assistant</Button>
             )}
-            <h1 className="text-lg md:text-xl font-bold text-gray-800">Your Pet-Friendly Trip</h1>
+            <h1 className="text-2xl font-bold text-black tracking-tight">Your Pet-Friendly Trip</h1>
           </div>
-          <div className="flex gap-1.5 flex-wrap">
-            <Button onClick={handleSaveTrip} disabled={isSaving} size="sm">{isSaving ? 'Saving...' : 'Save Progress'}</Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
+              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
+            </Button>
             <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
             <Button variant="outline" onClick={handleNewTrip} size="sm">New Trip</Button>
           </div>
@@ -544,18 +555,18 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
         {/* Error Display */}
         {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 mx-4" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
 
-        <div className="p-4 pt-0">
+        <div className="p-4 md:p-6 pt-0">
           {/* Pre-Departure Steps (if they exist) */}
           {preDeparturePreparation && preDeparturePreparation.length > 0 && (
               <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={true}>
-                  <div className="space-y-2 mt-1">
+                  <div className="space-y-2.5 mt-1">
                       {preDeparturePreparation.map((activity, idx) => (
-                          <div key={`prep-${idx}`} className="flex items-start p-2 bg-yellow-50/50 rounded-md border border-yellow-100">
-                              {getActivityIcon(activity)}
+                          <div key={`prep-${idx}`} className="flex items-start p-3 bg-yellow-50/50 rounded-md border border-yellow-100">
+                              <div className="mr-3 mt-1 flex-shrink-0">{getActivityIcon(activity)}</div>
                               <div>
-                                  <p className="font-medium text-gray-800 text-sm leading-snug">{activity.name}</p>
-                                  <p className="text-gray-600 text-xs mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
-                                  {activity.cost && <p className="text-gray-500 text-xs mt-0.5">Est. Cost: ${activity.cost}</p>}
+                                  <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
+                                  <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
+                                  {activity.cost && <p className="text-gray-500 text-xs mt-1">Est. Cost: ${activity.cost}</p>}
                               </div>
                           </div>
                       ))}
@@ -570,11 +581,11 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           </CollapsibleCard>
 
           {/* Booking Options */}
-          <Card className="mb-4 shadow-sm">
-            <CardHeader className="p-3">
-              <CardTitle className="text-base font-semibold">Quick Booking Links</CardTitle>
+          <Card className="mb-6 shadow-sm">
+            <CardHeader className="p-4">
+              <CardTitle className="text-lg font-semibold text-gray-700">Quick Booking Links</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3">
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
               <BookingOptionCard title="Flights" icon={<Plane className="h-5 w-5"/>} url={`https://www.google.com/flights?hl=en#flt=${encodeURIComponent(tripData?.origin || '')}.${encodeURIComponent(tripData?.destination || '')}.${tripData?.startDate || 'anytime'}*${encodeURIComponent(tripData?.destination || '')}.${encodeURIComponent(tripData?.origin || '')}.${tripData?.endDate || 'anytime'};c:USD;e:1;sd:1;t:f`} />
               <BookingOptionCard title="Hotels" icon={<Hotel className="h-5 w-5"/>} url={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(tripData?.destination || '')}&pets=1`} />
               <BookingOptionCard title="Cars" icon={<Car className="h-5 w-5"/>} url={`https://www.kayak.com/cars/${encodeURIComponent(tripData?.destination || '')}/${tripData?.startDate || 'anytime'}/${tripData?.endDate || 'anytime'}?sort=rank_a`} />
@@ -584,15 +595,19 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
 
           {/* Map View */}
           {showMap && (
-            <Card className="mb-4 shadow-sm">
-              <CardHeader className="p-3"><CardTitle className="text-base font-semibold">Trip Activity Map</CardTitle></CardHeader>
-              <CardContent className="p-1"><ItineraryMap activities={activitiesForMap} /></CardContent>
+            <Card className="mb-6 shadow-sm">
+              <CardHeader className="p-4">
+                <CardTitle className="text-lg font-semibold text-gray-700">Trip Activity Map</CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                <ItineraryMap activities={activitiesForMap} />
+              </CardContent>
             </Card>
           )}
 
           {/* Daily Breakdown */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-3">Daily Breakdown</h2>
+            <h2 className="text-xl font-bold text-black tracking-tight mb-4">Daily Breakdown</h2>
             {itinerary?.days?.map((day: ItineraryDay) => (
               <ItineraryDayAccordion
                 key={day.day}
@@ -614,42 +629,78 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
 
       {/* Modals */}
       {(addingActivityDay !== null) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <h5 className="font-semibold mb-2 text-gray-700">Suggest Activities for Day {addingActivityDay}</h5>
-            {isSearchingActivities ? <p className="text-sm text-gray-500">Searching...</p> : (
-              <ul className="space-y-1.5">
-                {activitySearchResults.map((res, i) => (
-                  <li key={i} className="flex justify-between items-center p-1.5 hover:bg-gray-100 rounded cursor-pointer" onClick={() => handleSelectActivity(addingActivityDay, res)}>
-                    <div><p className="font-medium text-sm">{res.name}</p><p className="text-xs text-gray-600">{res.description}</p></div>
-                    <Plus className="h-4 w-4 text-teal-500"/>
-                  </li>
-                ))}
-                {activitySearchResults.length === 0 && <p className="text-sm text-gray-500">No suggestions found (placeholder).</p>}
-              </ul>
-            )}
-            <Button size="sm" variant="ghost" onClick={() => setAddingActivityDay(null)} className="mt-2.5 text-xs">Cancel</Button>
-          </div>
-        </div>
+        <Dialog open={addingActivityDay !== null} onOpenChange={() => setAddingActivityDay(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Suggest Activities for Day {addingActivityDay}</DialogTitle>
+              <DialogDescription>
+                Choose an activity to add to your itinerary.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 max-h-[60vh] overflow-y-auto">
+              {isSearchingActivities ? (
+                <div className="flex justify-center items-center min-h-[100px]">
+                  <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {activitySearchResults.map((res, i) => (
+                    <li key={i} className="flex justify-between items-center p-2 hover:bg-gray-100 rounded cursor-pointer border border-gray-200" onClick={() => addingActivityDay !== null && handleSelectActivity(addingActivityDay, res)}>
+                      <div>
+                        <p className="font-medium text-sm text-gray-800">{res.name}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{res.description}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-teal-500 hover:bg-teal-50">
+                        <Plus className="h-4 w-4"/>
+                      </Button>
+                    </li>
+                  ))}
+                  {activitySearchResults.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No suggestions found (placeholder).</p>}
+                </ul>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddingActivityDay(null)}>Cancel</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
       {(addingVetDay !== null) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <h5 className="font-semibold mb-2 text-gray-700">Find Vets for Day {addingVetDay}</h5>
-            {isSearchingVets ? <p className="text-sm text-gray-500">Searching...</p> : (
-              <ul className="space-y-1.5">
-                {vetSearchResults.map((res, i) => (
-                  <li key={i} className="flex justify-between items-center p-1.5 hover:bg-gray-100 rounded cursor-pointer" onClick={() => handleAddVet(addingVetDay, res)}>
-                    <div><p className="font-medium text-sm">{res.name}</p><p className="text-xs text-gray-600">{res.description}</p></div>
-                    <Plus className="h-4 w-4 text-teal-500"/>
-                  </li>
-                ))}
-                {vetSearchResults.length === 0 && <p className="text-sm text-gray-500">No vets found (placeholder).</p>}
-              </ul>
-            )}
-            <Button size="sm" variant="ghost" onClick={() => setAddingVetDay(null)} className="mt-2.5 text-xs">Cancel</Button>
-          </div>
-        </div>
+        <Dialog open={addingVetDay !== null} onOpenChange={() => setAddingVetDay(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Find Vets for Day {addingVetDay}</DialogTitle>
+              <DialogDescription>
+                Choose a vet clinic to add to your itinerary.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 max-h-[60vh] overflow-y-auto">
+              {isSearchingVets ? (
+                <div className="flex justify-center items-center min-h-[100px]">
+                  <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {vetSearchResults.map((res, i) => (
+                    <li key={i} className="flex justify-between items-center p-2 hover:bg-gray-100 rounded cursor-pointer border border-gray-200" onClick={() => addingVetDay !== null && handleAddVet(addingVetDay, res)}>
+                      <div>
+                        <p className="font-medium text-sm text-gray-800">{res.name}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{res.description}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-teal-500 hover:bg-teal-50">
+                        <Plus className="h-4 w-4"/>
+                      </Button>
+                    </li>
+                  ))}
+                  {vetSearchResults.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No vets found (placeholder).</p>}
+                </ul>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddingVetDay(null)}>Cancel</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
