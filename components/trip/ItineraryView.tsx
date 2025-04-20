@@ -36,6 +36,7 @@ import {
   Zap,
   Loader2,
   ArrowLeft,
+  Save,
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 import { Map, Marker, Popup } from '@maptiler/sdk';
@@ -469,15 +470,70 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
     try {
       const { error: saveError } = await supabase.from('draft_itineraries').upsert({ user_id: session.user.id, trip_data: tripData, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
       if (saveError) throw saveError;
-      setToastMessage({ title: 'Trip Saved', description: 'Progress saved.' }); setOpenToast(true);
+      setToastMessage({ title: 'Progress Saved', description: 'Draft updated.' }); setOpenToast(true);
     } catch (e: any) {
-      setError(`Failed to save trip: ${e.message || 'Unknown error'}`); setToastMessage({ title: 'Save Failed', description: `Could not save progress. ${e.message || ''}` }); setOpenToast(true);
+      setError(`Failed to save draft: ${e.message || 'Unknown error'}`); setToastMessage({ title: 'Draft Save Failed', description: `Could not save progress. ${e.message || ''}` }); setOpenToast(true);
     } finally { setIsSaving(false); }
   };
 
+  const handleFinalSave = async () => {
+    if (!session) {
+      setToastMessage({ title: 'Login Required', description: 'Please log in to save your trip permanently.' });
+      setOpenToast(true);
+      return;
+    }
+    if (!tripData) {
+      setToastMessage({ title: 'No Trip Data', description: 'Cannot save an empty trip.' });
+      setOpenToast(true);
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    console.log('[ItineraryView] Data being sent to /api/trips/save:', JSON.stringify(tripData, null, 2));
+
+    try {
+      const response = await fetch('/api/trips/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tripData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[ItineraryView] API Error Response Body:', result);
+        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+      }
+
+      setToastMessage({ title: 'Trip Saved!', description: 'Your itinerary has been saved successfully.' });
+      setOpenToast(true);
+      // Optionally: Clear draft? Redirect to a dashboard?
+      // Example: await supabase.from('draft_itineraries').delete().match({ user_id: session.user.id });
+
+    } catch (e: any) {
+      console.error('[ItineraryView] Error saving final trip:', e);
+      setError(`Failed to save final trip: ${e.message || 'Unknown error'}`);
+      setToastMessage({ title: 'Save Failed', description: `Could not save the trip. ${e.message || 'Please try again.'}` });
+      setOpenToast(true);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleNewTrip = async () => {
-    if (session) { /* ... delete draft ... */ }
+    if (session) {
+      // Clear draft
+      const supabase = createClient();
+      await supabase.from('draft_itineraries').delete().match({ user_id: session.user.id });
+    }
     clearTrip();
+    if (onBackToPlanning) {
+        onBackToPlanning(); // Go back to form after clearing
+    }
   };
 
   // --- Render Logic ---
@@ -538,6 +594,14 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
               {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
             </Button>
             <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
+            <Button variant="outline" onClick={handleFinalSave} disabled={isSaving || !session} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              {isSaving ? 'Saving...' : 'Save Trip'}
+            </Button>
             <Button variant="outline" onClick={handleNewTrip} size="sm">New Trip</Button>
           </div>
         </div>
