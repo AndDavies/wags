@@ -9,6 +9,7 @@ export async function login(formData: FormData) {
   const supabase = await createClient();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const redirectPath = formData.get("redirectPath") as string | null;
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
@@ -26,24 +27,31 @@ export async function login(formData: FormData) {
       domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
       maxAge: 60 * 60 * 24 * 7,
     });
-    console.log(`[Login] Auth token set: ${sessionToken.substring(0, 50)}...`);
+    console.log(`[Login] Auth token set.`);
   }
 
-  console.log(`[Login] Login successful for ${email}`);
-  redirect("/");
+  console.log(`[Login] Login successful for ${email}. Redirecting to: ${redirectPath || "/"}`);
+  redirect(redirectPath || "/");
 }
 
-export async function loginWithGoogle() {
+export async function loginWithGoogle(redirectPath?: string | null) {
   const supabase = await createClient();
-  const redirectTo = process.env.NODE_ENV === 'production'
+  const callbackUrl = process.env.NODE_ENV === 'production'
     ? "https://wagsandwanders.com/auth/callback"
     : "http://localhost:3000/auth/callback";
 
+  const options: { redirectTo: string; state?: string } = {
+    redirectTo: callbackUrl,
+  };
+
+  if (redirectPath) {
+    options.state = Buffer.from(JSON.stringify({ redirectPath })).toString('base64');
+    console.log(`[Google Login] Setting state with redirectPath: ${redirectPath}`);
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: {
-      redirectTo, // Ensure this matches your live callback
-    },
+    options: options,
   });
 
   if (error) {
@@ -52,9 +60,10 @@ export async function loginWithGoogle() {
   }
 
   if (data.url) {
-    console.log(`[Google Login] Redirecting to: ${data.url}`);
-    redirect(data.url); // Redirect to Google OAuth page
+    console.log(`[Google Login] Redirecting to Google: ${data.url}`);
+    redirect(data.url);
   } else {
-    throw new Error("No redirect URL provided by Supabase");
+    console.error('[Google Login] No redirect URL provided by Supabase');
+    throw new Error("Could not initiate Google login");
   }
 }

@@ -26,9 +26,6 @@ export default async function ProfilePage() {
   const { data: pets, error: petsError } = await supabase.from("pets").select("*").eq("user_id", userId);
   if (petsError) throw petsError;
 
-  const { data: trips, error: tripsError } = await supabase.from("trips").select("*").eq("user_id", userId).order("created_at", { ascending: false });
-  if (tripsError) throw tripsError;
-
   const displayName = userData?.full_name || user.email?.split("@")[0] || "User";
   const email = user.email || "";
 
@@ -88,7 +85,7 @@ export default async function ProfilePage() {
               </CardFooter>
             </Card>
 
-            <ProfileClient userId={userId} initialPets={pets || []} initialTrips={trips || []} />
+            <ProfileClient userId={userId} initialPets={pets || []} />
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { Outfit } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import Notifications from '@/components/app/notifications';
+
 import { ToastProvider } from '@/components/ui/toast';
 import { Toaster } from '@/components/ui/toaster';
 import Script from 'next/script';
@@ -120,7 +120,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <SpeedInsights />
         <ToastProvider>
-          <Notifications />
+          
           <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />

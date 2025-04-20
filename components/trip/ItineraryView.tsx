@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { useTripStore, Activity, ItineraryDay, PolicyRequirementStep, GeneralPreparationItem } from '@/store/tripStore';
+import { useTripStore, Activity, ItineraryDay, PolicyRequirementStep, GeneralPreparationItem, TripData } from '@/store/tripStore';
 import * as Toast from '@radix-ui/react-toast';
 import { createClient } from '@/lib/supabase-client';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -365,7 +366,11 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
 // --- Main Component ---
 export default function ItineraryView({ session, onBackToPlanning }: ItineraryViewProps) {
   // Get state/actions from store
-  const { tripData, isSaving, error, clearTrip, addActivity, deleteActivity, setIsSaving, setError } = useTripStore();
+  const { tripData, isSaving, error, clearTrip, addActivity, deleteActivity, setIsSaving, setError, setTripData } = useTripStore();
+
+  // Hooks for navigation and path
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Derive specific data from tripData, handle null case
   const itinerary = tripData?.itinerary;
@@ -387,6 +392,7 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   const [isSearchingVets, setIsSearchingVets] = useState(false);
   const [showChatbot, setShowChatbot] = useState(true);
   const [isPolicyExpanded, setIsPolicyExpanded] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Expand first day effect
   useEffect(() => {
@@ -394,6 +400,40 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
       setExpandedDays([itinerary.days[0].day]);
     }
   }, [itinerary, expandedDays]);
+
+  // --- Phase 3: Restore Itinerary from sessionStorage --- 
+  useEffect(() => {
+    console.log('[ItineraryView] Checking for pending itinerary on mount...');
+    if (session) { 
+      const pendingData = sessionStorage.getItem('pendingItinerarySave');
+      if (pendingData) {
+        console.log('[ItineraryView] Found pending itinerary in sessionStorage.');
+        try {
+          const parsedData = JSON.parse(pendingData) as TripData; // Type assertion should work now
+          
+          setTripData(parsedData); 
+          sessionStorage.removeItem('pendingItinerarySave'); 
+          console.log('[ItineraryView] Restored trip data and cleared sessionStorage.');
+          
+          setToastMessage({ title: 'Trip Restored', description: 'Your previous progress has been loaded. Save it permanently!' });
+          setOpenToast(true);
+
+        } catch (parseError) {
+          console.error('[ItineraryView] Failed to parse pending itinerary data:', parseError);
+          sessionStorage.removeItem('pendingItinerarySave');
+          setError('Could not restore previous trip progress due to data format error.');
+          setToastMessage({ title: 'Restore Failed', description: 'Could not load previous progress.' });
+          setOpenToast(true);
+        }
+      } else {
+         console.log('[ItineraryView] No pending itinerary found in sessionStorage.');
+      }
+    } else {
+        console.log('[ItineraryView] User not logged in, skipping restore check.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]); 
+   // --- End Phase 3 --- 
 
   // Map activities effect
   useEffect(() => {
@@ -476,51 +516,66 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
     } finally { setIsSaving(false); }
   };
 
+  const handleAuthRedirect = (authPath: '/login' | '/signup') => {
+    if (!tripData) return;
+    try {
+      const serializedTripData = JSON.stringify(tripData);
+      sessionStorage.setItem('pendingItinerarySave', serializedTripData);
+      const redirectUrl = `${authPath}?redirect=${encodeURIComponent(pathname)}&reason=pendingSave`;
+      router.push(redirectUrl);
+      setShowAuthModal(false);
+    } catch (storageError) {
+      console.error('[ItineraryView] Error saving pending itinerary before auth redirect:', storageError);
+      setError('Could not temporarily save trip progress.');
+      setToastMessage({ title: 'Error', description: 'Could not save progress before redirecting.' });
+      setOpenToast(true);
+      setShowAuthModal(false);
+    }
+  };
+
   const handleFinalSave = async () => {
     if (!session) {
-      setToastMessage({ title: 'Login Required', description: 'Please log in to save your trip permanently.' });
-      setOpenToast(true);
+      // --- Guest User Flow: Open Modal --- 
+      if (!tripData) {
+          setToastMessage({ title: 'No Trip Data', description: 'Cannot save an empty trip.' });
+          setOpenToast(true);
+          return;
+      }
+      setShowAuthModal(true);
       return;
     }
+
+    // --- Logged-in User Flow (existing logic) --- 
     if (!tripData) {
       setToastMessage({ title: 'No Trip Data', description: 'Cannot save an empty trip.' });
       setOpenToast(true);
       return;
     }
-
     setIsSaving(true);
     setError(null);
-
     console.log('[ItineraryView] Data being sent to /api/trips/save:', JSON.stringify(tripData, null, 2));
-
     try {
-      const response = await fetch('/api/trips/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(tripData),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('[ItineraryView] API Error Response Body:', result);
-        throw new Error(result.error || `HTTP error! status: ${response.status}`);
-      }
-
-      setToastMessage({ title: 'Trip Saved!', description: 'Your itinerary has been saved successfully.' });
-      setOpenToast(true);
-      // Optionally: Clear draft? Redirect to a dashboard?
-      // Example: await supabase.from('draft_itineraries').delete().match({ user_id: session.user.id });
-
+        const response = await fetch('/api/trips/save', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(tripData),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            console.error('[ItineraryView] API Error Response Body:', result);
+            throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        }
+        setToastMessage({ title: 'Trip Saved!', description: 'Your itinerary has been saved successfully.' });
+        setOpenToast(true);
     } catch (e: any) {
-      console.error('[ItineraryView] Error saving final trip:', e);
-      setError(`Failed to save final trip: ${e.message || 'Unknown error'}`);
-      setToastMessage({ title: 'Save Failed', description: `Could not save the trip. ${e.message || 'Please try again.'}` });
-      setOpenToast(true);
+        console.error('[ItineraryView] Error saving final trip:', e);
+        setError(`Failed to save final trip: ${e.message || 'Unknown error'}`);
+        setToastMessage({ title: 'Save Failed', description: `Could not save the trip. ${e.message || 'Please try again.'}` });
+        setOpenToast(true);
     } finally {
-      setIsSaving(false);
+        setIsSaving(false);
     }
   };
 
@@ -594,7 +649,7 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
               {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
             </Button>
             <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
-            <Button variant="outline" onClick={handleFinalSave} disabled={isSaving || !session} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button variant="outline" onClick={handleFinalSave} disabled={isSaving} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
               {isSaving ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
@@ -766,6 +821,34 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           </DialogContent>
         </Dialog>
       )}
+
+      {/* *** NEW AUTH MODAL FOR GUESTS *** */}
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Save Your Trip</DialogTitle>
+            <DialogDescription>
+              Please log in or create an account to save your itinerary permanently. Your current progress will be preserved.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => handleAuthRedirect('/signup')}
+              className="flex-1"
+            >
+              Sign Up
+            </Button>
+            <Button 
+              onClick={() => handleAuthRedirect('/login')}
+              className="bg-teal-600 hover:bg-teal-700 text-white flex-1"
+            >
+              Log In
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

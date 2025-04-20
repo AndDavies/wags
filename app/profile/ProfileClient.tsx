@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase-client";
 import { PawPrint, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
-import TripCard from "@/components/app/TripCard";
 
 interface Pet {
   id: string;
@@ -17,39 +16,12 @@ interface Pet {
   medical_history: string | null;
 }
 
-interface Trip {
-  id: string;
-  departure: string;
-  destination: string;
-  dates: { start: string; end: string };
-  method: string;
-  travelers: { adults: number; children: number; pets: number };
-  archived: boolean;
-  status: string;
-  user_id: string;
-}
-
 interface ProfileClientProps {
   userId: string;
   initialPets: Pet[];
-  initialTrips: Trip[];
 }
 
-export default function ProfileClient({ userId, initialPets, initialTrips }: ProfileClientProps) {
-  const [showArchived, setShowArchived] = useState(false);
-  const [trips, setTrips] = useState<Trip[]>(initialTrips); // Add local trips state
-
-  const handleArchiveToggle = (tripId: string) => {
-    setTrips((prevTrips) =>
-      prevTrips.map((trip) =>
-        trip.id === tripId ? { ...trip, archived: !trip.archived } : trip
-      )
-    );
-  };
-
-  const currentTrips = trips.filter((trip) => !trip.archived);
-  const archivedTrips = trips.filter((trip) => trip.archived);
-
+export default function ProfileClient({ userId, initialPets }: ProfileClientProps) {
   return (
     <div className="md:col-span-2 space-y-6">
       <Card className="border-none shadow-md">
@@ -85,88 +57,10 @@ export default function ProfileClient({ userId, initialPets, initialTrips }: Pro
           )}
         </CardContent>
       </Card>
-
-      <Card className="border-none shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
-          <div>
-            <CardTitle className="text-xl text-brand-teal">Recent Trips</CardTitle>
-            <CardDescription>Your pet travel history and documents</CardDescription>
-          </div>
-          {archivedTrips.length > 0 && (
-            <Button
-              onClick={() => setShowArchived(!showArchived)}
-              variant="outline"
-              className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
-            >
-              {showArchived ? "Hide Archived" : "View Archived"}
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="pt-6">
-          {currentTrips.length || showArchived ? (
-            <>
-              {currentTrips.length ? (
-                <ul className="space-y-4">
-                  {currentTrips.map((trip) => (
-                    <TripCard
-                      key={trip.id}
-                      trip={{ ...trip, userId }}
-                      onArchiveToggle={() => handleArchiveToggle(trip.id)}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                !showArchived && (
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <p className="text-offblack/70 mb-4">
-                      No current trips. Trip creation is currently unavailable.
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
-                      disabled
-                    >
-                      Trip Planning Coming Soon
-                    </Button>
-                  </div>
-                )
-              )}
-              {showArchived && archivedTrips.length > 0 && (
-                <>
-                  <h3 className="text-lg font-medium text-offblack mt-6 mb-4">Archived Trips</h3>
-                  <ul className="space-y-4">
-                    {archivedTrips.map((trip) => (
-                      <TripCard
-                        key={trip.id}
-                        trip={{ ...trip, userId }}
-                        onArchiveToggle={() => handleArchiveToggle(trip.id)}
-                      />
-                    ))}
-                  </ul>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <p className="text-offblack/70 mb-4">
-                No trips yet. Trip creation is currently unavailable.
-              </p>
-              <Button
-                variant="outline"
-                className="border-brand-teal text-brand-teal hover:bg-brand-teal/10"
-                disabled
-              >
-                Trip Planning Coming Soon
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
 
-// AddPetForm remains unchanged
 function AddPetForm({ userId }: { userId: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [petData, setPetData] = useState({

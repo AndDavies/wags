@@ -612,3 +612,37 @@ Follow these steps to test the AI-powered itinerary generation feature:
    - Verify appropriate error messaging appears
 
 If all steps complete successfully, the itinerary generation feature is working properly.
+
+### Guest User Save Flow
+
+To prevent guests from losing their work when prompted to log in or sign up, the following flow is implemented:
+
+1.  **Temporary Storage (Phase 1 - Implemented)**:
+    -   When a guest clicks "Save Trip" in `ItineraryView.tsx`:
+        -   The current `tripData` is serialized and stored in `sessionStorage` under the key `pendingItinerarySave`.
+        -   A toast message informs the user they need to authenticate.
+        -   The user is redirected to `/login` with query parameters:
+            -   `redirect`: The path they were on (e.g., `/path/to/itinerary`).
+            -   `reason=pendingSave`: Indicates why they were redirected.
+2.  **Authentication Redirect (Phase 2 - Implemented)**:
+    -   The `/login` and `/signup` pages read the `redirect` query parameter.
+    -   A hidden input (`redirectPath`) is added to the login/signup forms.
+    -   The corresponding server actions (`login`, `signup`) read `redirectPath` from the form data.
+    -   Upon successful authentication, the server action redirects the user back to the `redirectPath` (or `/` as a fallback).
+3.  **Restore Itinerary (Phase 3 - **TODO**)**:
+    -   An `useEffect` hook needs to be added to `ItineraryView.tsx`.
+    -   This effect runs on component mount.
+    -   It checks if the user is now logged in (`session` exists) AND if `pendingItinerarySave` data exists in `sessionStorage`.
+    -   If both conditions are true:
+        -   Parse the data from `sessionStorage`.
+        -   Restore the data to the Zustand store (`useTripStore`).
+        -   Remove the data from `sessionStorage`.
+        -   Display a toast message confirming the restore ("Your progress has been restored...").
+
+### Future Considerations & TODOs
+
+-   **Phase 3 Implementation**: Code the `useEffect` hook in `ItineraryView.tsx` for restoring data from `sessionStorage`.
+-   **OAuth Redirect**: Handle the `redirectPath` parameter correctly within the `/auth/callback` route for OAuth flows (e.g., Google Login), potentially using the `state` parameter.
+-   **Email Confirmation Flow**: Refine the redirect in the `signup` server action to go to a "Check Email" page if email confirmation is enabled. Ensure the confirmation link redirect includes the original `redirectPath`.
+    -   **NOTE:** Currently, email confirmation is **disabled** for development. The signup redirect logic assumes immediate login capability or manual login after redirect. This needs revisiting when email confirmation is re-enabled for production.
+-   **Draft Saving for Unconfirmed Users**: _(Commented in `signup/actions.ts`)_ Consider if a more robust temporary save (e.g., to `draft_itineraries` based on email) is needed if the `sessionStorage` flow proves insufficient after testing.
