@@ -38,10 +38,16 @@ import {
   Loader2,
   ArrowLeft,
   Save,
+  Clock,
+  DollarSign,
+  Phone,
+  Info,
+  Bed,
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 import { Map, Marker, Popup } from '@maptiler/sdk';
 import '@maptiler/sdk/dist/maptiler-sdk.css';
+import ReactMarkdown from 'react-markdown';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +57,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Timeline, TimelineItem, TimelineContent, TimelineHeader,
+  TimelineSeparator, TimelineDate, TimelineTitle, TimelineIndicator
+} from "@/components/ui/timeline";
 
 // --- Interfaces (matching store/API) ---
 interface ItineraryViewProps {
@@ -176,7 +186,15 @@ function BookingOptionCard({ title, icon, url }: { title: string; icon: React.Re
 }
 
 // Updated ItineraryDayAccordion
-function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity, onFindVets, onDeleteActivity }: { day: ItineraryDay; index: number; isExpanded: boolean; onToggle: () => void; onAddActivity: () => void; onFindVets: () => void; onDeleteActivity: (actIndex: number) => void; }) {
+function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity, onDeleteActivity, tripData }: { 
+    day: ItineraryDay; 
+    index: number; 
+    isExpanded: boolean; 
+    onToggle: () => void; 
+    onAddActivity: () => void; 
+    onDeleteActivity: (actIndex: number) => void; 
+    tripData: TripData | null;
+}) {
   // Filter activities before rendering
   const validActivities = (day.activities || []).filter((activity, actIndex) => {
     const isValid = activity && typeof activity.name === 'string' && activity.name.trim() !== '' && typeof activity.location === 'string' && activity.location.trim() !== '' && activity.coordinates;
@@ -191,41 +209,112 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
       <button onClick={onToggle} className={cn("w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
         <div>
           <h3 className="text-lg font-bold text-teal-700">Day {day.day}: {day.date}</h3>
-          <p className="text-sm text-gray-600 mt-0.5">{day.city}</p>
+          {/* Display simple city name */}
+          <p className="text-sm text-gray-600 mt-0.5">{day.city?.split(',')[0] || 'Unknown City'}</p> 
         </div>
         <ChevronDown className={cn("h-5 w-5 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
       </button>
       {isExpanded && (
         <div className="p-4">
+          {/* Daily Narrative Intro */}
+          {day.narrative_intro && (
+            <p className="text-sm text-gray-700 italic mb-4 bg-teal-50 p-3 rounded-md border border-teal-100">{day.narrative_intro}</p>
+          )}
+
           {day.travel && (
             <div className="mb-4 bg-blue-50 p-3 rounded-md border border-blue-200">
               <h4 className="font-semibold flex items-center text-blue-700 text-sm"><Plane className="h-4 w-4 mr-1.5" /> Travel Details</h4>
               <p className="text-gray-700 mt-1 text-sm">{day.travel}</p>
             </div>
           )}
+
           <div className="mb-4">
-            <h4 className="font-semibold text-gray-800 mb-2 text-base">Activities</h4>
-            <div className="space-y-2.5">
+            <h4 className="font-semibold text-gray-800 mb-3 text-base">Activities</h4>
+            <Timeline>
               {validActivities.length > 0 ? (
                 validActivities.map((activity, actIndex) => {
                   const icon = getActivityIcon(activity);
+                  const simpleLocation = activity.location?.split(',')[0] || 'Location details missing';
                   return (
-                    <div key={actIndex} className="flex justify-between items-start p-3 bg-gray-50/50 rounded-md border border-gray-100 group">
-                      <div className="flex items-start flex-grow mr-2">
-                        <div className="mr-3 mt-1 flex-shrink-0">{icon}</div>
-                        <div className="flex-grow">
-                          <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
-                          <p className="text-gray-600 text-sm mt-0.5">{activity.description}</p>
-                          <p className="text-gray-500 text-xs mt-1 flex items-center"><MapPin className="h-3 w-3 mr-1" /> {activity.location}</p>
-                          {(activity.startTime || activity.cost) && (
-                            <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500">
-                              {activity.startTime && <span>{activity.startTime}{activity.endTime ? ` - ${activity.endTime}` : ''}</span>}
-                              {activity.startTime && activity.cost && <span>|</span>}
-                              {activity.cost && <span>{activity.cost}</span>}
-                            </div>
+                    <TimelineItem key={activity.name + actIndex} step={actIndex + 1} className="group relative">
+                      <TimelineHeader className="items-center">
+                        <TimelineSeparator />
+                        <TimelineDate className="text-xs text-gray-500 w-16 text-right pt-0.5">{activity.startTime || ''}</TimelineDate>
+                        <div className="flex items-center gap-2 flex-grow">
+                          <span className="flex items-center">{icon}</span>
+                          <TimelineTitle className="font-semibold text-gray-800 text-sm leading-snug pr-6 sm:-mt-0.5">{activity.name}</TimelineTitle>
+                        </div>
+                        <TimelineIndicator />
+                      </TimelineHeader>
+
+                      <TimelineContent className="space-y-2 pt-1">
+                        <div className="text-gray-600 text-sm prose prose-sm max-w-none prose-a:text-teal-600 hover:prose-a:text-teal-700">
+                          <ReactMarkdown components={{ a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}>
+                            {activity.description || ''}
+                          </ReactMarkdown>
+                        </div>
+
+                        {activity.photo_references && activity.photo_references.length > 0 && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
+                          <img 
+                            src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${activity.photo_references[0].photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+                            alt={`Photo of ${activity.name}`}
+                            className="mt-1 rounded-md max-h-40 w-auto shadow-sm border border-gray-200"
+                            loading="lazy"
+                          />
+                        )}
+
+                        <div className="text-xs text-gray-500 space-y-1.5 pt-1">
+                          <p className="flex items-center"><MapPin className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {simpleLocation}</p>
+                          {activity.cost && activity.cost !== "$ - $" && activity.cost !== "Free" && (
+                            <p className="flex items-center"><DollarSign className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.cost}</p>
+                          )}
+                          {(activity.endTime || activity.estimated_duration) && (
+                            <p className="flex items-center font-medium text-gray-600">
+                              <Clock className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" />
+                              {activity.startTime && activity.endTime
+                                ? `${activity.startTime} - ${activity.endTime}`
+                                : activity.startTime
+                                  ? `Starts ${activity.startTime}`
+                                  : activity.endTime
+                                    ? `Ends ~${activity.endTime}`
+                                    : 'Timing not specified'}
+                              {activity.estimated_duration ? ` (Est. ${activity.estimated_duration} min)` : ''}
+                            </p>
+                          )}
+                          {activity.phone_number && (
+                            <p className="flex items-center"><Phone className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.phone_number}</p>
+                          )}
+                          {activity.opening_hours && (
+                            <p className="flex items-start"><Info className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-gray-400" /> Hours: {activity.opening_hours}</p>
                           )}
                         </div>
-                      </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5">
+                          {activity.website && (
+                            <a href={activity.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-teal-600 hover:text-teal-700 text-xs font-medium hover:underline">
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Website
+                            </a>
+                          )}
+                          {activity.type === 'accommodation' && (
+                            <a 
+                              href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(day.city?.split(',')[0] || '')}&checkin=${day.date}&checkout=${day.date /* Placeholder: Need next day logic */}&group_adults=${tripData?.adults || 1}&group_children=${tripData?.children || 0}&pets=1&lang=en-us&aid=YOUR_AFFILIATE_ID`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-3 py-1 bg-mustard-500 hover:bg-mustard-600 text-white text-xs font-medium rounded-md shadow-sm transition-colors"
+                            >
+                              <Bed className="h-3.5 w-3.5 mr-1" /> Check Rates / Book
+                            </a>
+                          )}
+                        </div>
+
+                        {activity.pet_friendliness_details && activity.pet_friendliness_details !== "N/A" && (
+                          <p className="text-xs text-amber-700 mt-1 flex items-start bg-amber-50 p-1.5 rounded border border-amber-100">
+                            <Dog className="h-3.5 w-3.5 mr-1.5 mt-0.5 flex-shrink-0 text-amber-600" />
+                            <span>{activity.pet_friendliness_details}</span>
+                          </p>
+                        )}
+                      </TimelineContent>
+
                       <button
                         onClick={() => {
                           const originalIndex = (day.activities || []).findIndex(a => a === activity);
@@ -235,21 +324,22 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
                             console.error("Could not find original index for deletion after filtering");
                           }
                         }}
-                        className="text-gray-400 hover:text-red-600 p-1 ml-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-red-50"
                         aria-label="Delete activity"
                       >
                         <X className="h-4 w-4" />
                       </button>
-                    </div>
+                    </TimelineItem>
                   );
                 })
-              ) : ( <p className="text-gray-500 italic text-sm px-1">No activities planned for this day.</p> )}
-            </div>
-            <div className="flex justify-start space-x-2 mt-4">
-              <Button variant="outline" size="sm" onClick={onAddActivity} className="text-xs"><Plus className="h-3 w-3 mr-1" /> Add Activity</Button>
-              <Button variant="outline" size="sm" onClick={onFindVets} className="text-xs"><Stethoscope className="h-3 w-3 mr-1" /> Find Vets</Button>
-            </div>
+              ) : ( <p className="text-gray-500 italic text-sm px-1">No activities planned for this day.</p> )} 
+            </Timeline>
           </div>
+
+          {/* Daily Narrative Outro */} 
+          {day.narrative_outro && (
+            <p className="text-sm text-gray-700 italic mt-4 bg-teal-50 p-3 rounded-md border border-teal-100">{day.narrative_outro}</p>
+          )}
         </div>
       )}
     </div>
@@ -452,25 +542,90 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   const toggleMapView = () => setShowMap(prev => !prev);
 
   const handleAddActivity = async (day: number) => {
-    setAddingActivityDay(day);
+    const currentDayData = itinerary?.days.find(d => d.day === day);
+    if (!currentDayData || !tripData) { 
+        setToastMessage({ title: 'Error', description: 'Cannot add activity: Missing day or trip data.' }); 
+        setOpenToast(true);
+        return; 
+    }
+
+    setAddingActivityDay(day); // Open the modal
     setIsSearchingActivities(true);
     setActivitySearchResults([]);
-    const currentDayData = itinerary?.days.find(d => d.day === day);
-    if (!currentDayData || !tripData) { setIsSearchingActivities(false); return; }
-    await new Promise(resolve => setTimeout(resolve, 750));
-    const mockResults = [
-      { name: "Nearby Pet Cafe", description: "Coffee time!", location: currentDayData.city, coordinates: { lat: 0, lng: 0}, petFriendly: true },
-      { name: "Local Park", description: "Walkies!", location: currentDayData.city, coordinates: { lat: 0, lng: 0}, petFriendly: true },
-    ];
-    setActivitySearchResults(mockResults);
-    setIsSearchingActivities(false);
+    
+    // --- Simulate API Call (Replace with actual fetch later) ---
+    const apiUrl = '/api/trip/suggest-activity'; // TODO: Create this API endpoint
+    console.log(`[ItineraryView] Simulating fetch to ${apiUrl} for Day ${day} in ${currentDayData.city}`);
+    try {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000)); 
+
+        // Simulate a fetch call (replace with actual fetch when API exists)
+        // const response = await fetch(apiUrl, {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({ 
+        //         city: currentDayData.city, 
+        //         coordinates: currentDayData.activities[0]?.coordinates || tripData.itinerary?.days[0]?.activities[0]?.coordinates, // Use some reference coords 
+        //         interests: tripData.interests,
+        //         budget: tripData.budget
+        //      }),
+        // });
+        // if (!response.ok) throw new Error('Network response was not ok');
+        // const results = await response.json();
+
+        // --- Mock Results (Replace with actual results from API) ---
+        const mockResults = [
+          { place_id: 'mock1', name: "Suggested Pet Cafe", description: "A lovely spot based on your interests.", location: currentDayData.city, coordinates: currentDayData.activities[0]?.coordinates || { lat: 0, lng: 0}, petFriendly: true },
+          { place_id: 'mock2', name: "Suggested Local Park", description: "Great for a walk.", location: currentDayData.city, coordinates: currentDayData.activities[0]?.coordinates || { lat: 0, lng: 0}, petFriendly: true },
+        ];
+        // --- End Mock Results ---
+        
+        setActivitySearchResults(mockResults); // Use results from API
+
+    } catch (error) {
+        console.error("[ItineraryView] Error fetching activity suggestions (simulated):", error);
+        setToastMessage({ title: 'Error', description: 'Could not fetch activity suggestions.' });
+        setOpenToast(true);
+        setActivitySearchResults([]); // Clear results on error
+    } finally {
+        setIsSearchingActivities(false);
+    }
+    // --- End Simulate API Call ---
   };
 
-  const handleSelectActivity = (day: number, activity: any) => {
-    addActivity(day, { name: activity.name, description: activity.description, petFriendly: activity.petFriendly ?? true, location: activity.location, coordinates: activity.coordinates });
-    setAddingActivityDay(null); setActivitySearchResults([]);
-    setToastMessage({ title: 'Activity Added', description: `${activity.name} added to Day ${day}` }); setOpenToast(true);
-    handleSaveTrip();
+  const handleSelectActivity = (day: number, activitySuggestion: any) => {
+    // Construct a basic Activity object from the suggestion
+    // (Expand this if the suggestion API returns more fields later)
+    const newActivity: Activity = {
+        name: activitySuggestion.name || 'Suggested Activity',
+        description: activitySuggestion.description || '',
+        petFriendly: activitySuggestion.petFriendly ?? true,
+        location: activitySuggestion.location || 'Unknown Location',
+        coordinates: activitySuggestion.coordinates || { lat: 0, lng: 0 },
+        place_id: activitySuggestion.place_id, // Include place_id if provided by suggestion
+        type: 'activity', // Default type
+        // Initialize other fields as undefined or default
+        startTime: undefined,
+        endTime: undefined,
+        cost: undefined,
+        website: undefined,
+        phone_number: undefined,
+        opening_hours: undefined,
+        photo_references: undefined,
+        booking_link: undefined,
+        pet_friendliness_details: undefined,
+        estimated_duration: 60, // Default duration
+    };
+    
+    // Call the store action to add the activity
+    addActivity(day, newActivity);
+    
+    setAddingActivityDay(null); 
+    setActivitySearchResults([]);
+    setToastMessage({ title: 'Activity Added', description: `${newActivity.name} added to Day ${day}` }); 
+    setOpenToast(true);
+    handleSaveTrip(); // Save trip after adding activity
   };
 
   const handleDeleteActivity = (day: number, activityIndex: number) => {
@@ -745,6 +900,28 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
             </CardContent>
           </Card>
 
+          {/* Vet Info Card */}
+          <Card className="mb-6 shadow-sm border border-amber-200 bg-amber-50/50">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
+                <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 text-sm text-amber-900 space-y-2">
+               <p>
+                  It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
+               </p>
+               <a 
+                  href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-teal-700 hover:text-teal-800 hover:underline text-xs font-medium"
+                >
+                   Find Vets Near {tripData?.destination?.split(',')[0] || 'Destination'} <ExternalLink className="h-3 w-3 ml-1" />
+               </a>
+            </CardContent>
+          </Card>
+
           {/* Map View */}
           {showMap && (
             <Card className="mb-6 shadow-sm">
@@ -768,8 +945,8 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
                 isExpanded={expandedDays.includes(day.day)}
                 onToggle={() => handleToggleDay(day.day)}
                 onAddActivity={() => handleAddActivity(day.day)}
-                onFindVets={() => handleFindVets(day.day)}
                 onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)}
+                tripData={tripData}
               />
             ))}
             {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (

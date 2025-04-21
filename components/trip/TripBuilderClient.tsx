@@ -22,12 +22,13 @@ export default function TripBuilderClient({
   const [showForm, setShowForm] = useState(!initialDraft);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
+  
   useEffect(() => {
     setIsLoading(true);
     let draftToUse: TripData | null = null;
 
     if (initialDraft) {
+      
       draftToUse = initialDraft;
     } else {
       const guestDraftString = sessionStorage.getItem('tripData');

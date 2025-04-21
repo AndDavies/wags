@@ -1,12 +1,16 @@
 import { createClient } from '@/lib/supabase-server';
 import TripBuilderClient from '@/components/trip/TripBuilderClient';
 
+// Force dynamic rendering to ensure fresh data on each load
+export const dynamic = 'force-dynamic';
+
 export default async function CreateTripPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   let draft = null;
   if (user) {
+    
     const { data, error } = await supabase
       .from('draft_itineraries')
       .select('trip_data')

@@ -12,6 +12,14 @@ export interface Activity {
   endTime?: string;
   cost?: string;
   type?: 'flight' | 'transfer' | 'accommodation' | 'meal' | 'activity' | 'placeholder' | 'preparation';
+  place_id?: string;
+  website?: string;
+  phone_number?: string;
+  opening_hours?: string;
+  photo_references?: any[];
+  booking_link?: string;
+  pet_friendliness_details?: string;
+  estimated_duration?: number;
 }
 
 export interface ItineraryDay {
@@ -19,8 +27,10 @@ export interface ItineraryDay {
   date: string;
   city: string;
   activities: Activity[];
+  preparation?: GeneralPreparationItem[];
   travel?: string;
-  coordinates?: { lat: number; lng: number };
+  narrative_intro?: string;
+  narrative_outro?: string;
 }
 
 export interface Itinerary {
@@ -46,8 +56,8 @@ export interface TripData {
   destinationCountry?: string;
   additionalCities?: string[];
   additionalCountries?: string[];
-  startDate?: string | undefined;
-  endDate?: string | undefined;
+  startDate?: string | Date | null;
+  endDate?: string | Date | null;
   adults?: number;
   children?: number;
   pets?: number;
