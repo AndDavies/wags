@@ -517,19 +517,51 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   };
 
   const handleAuthRedirect = (authPath: '/login' | '/signup') => {
-    if (!tripData) return;
+    console.log(`[handleAuthRedirect] Called for path: ${authPath}`); // Log entry
+    if (!tripData) { 
+        console.error('[handleAuthRedirect] CRITICAL: No tripData available in store when attempting to save pending action.');
+        // Show error toast to user
+        setToastMessage({ title: 'Error', description: 'Cannot save trip data. Please try generating the trip again.' });
+        setOpenToast(true);
+        setShowAuthModal(false); // Close modal on failure
+        return; 
+    }
     try {
-      const serializedTripData = JSON.stringify(tripData);
-      sessionStorage.setItem('pendingItinerarySave', serializedTripData);
-      const redirectUrl = `${authPath}?redirect=${encodeURIComponent(pathname)}&reason=pendingSave`;
-      router.push(redirectUrl);
-      setShowAuthModal(false);
-    } catch (storageError) {
-      console.error('[ItineraryView] Error saving pending itinerary before auth redirect:', storageError);
-      setError('Could not temporarily save trip progress.');
-      setToastMessage({ title: 'Error', description: 'Could not save progress before redirecting.' });
-      setOpenToast(true);
-      setShowAuthModal(false);
+      console.log('[handleAuthRedirect] Preparing pending action. Current tripData keys:', Object.keys(tripData));
+      const pendingAction = {
+        action: 'save_draft', 
+        payload: tripData 
+      };
+      
+      let actionString;
+      try {
+        actionString = JSON.stringify(pendingAction);
+        console.log(`[handleAuthRedirect] Stringified action successfully (length: ${actionString.length}).`);
+      } catch (stringifyError) {
+        console.error('[handleAuthRedirect] Error stringifying pending action payload:', stringifyError, pendingAction.payload);
+        throw new Error('Failed to prepare trip data for saving.');
+      }
+
+      localStorage.setItem('pending_auth_action', actionString);
+      console.log('[handleAuthRedirect] Set pending_auth_action in localStorage.');
+
+      const finalRedirectPath = '/create-trip'; 
+      localStorage.setItem('post_auth_redirect', finalRedirectPath);
+      console.log('[handleAuthRedirect] Set post_auth_redirect in localStorage.');
+      
+      const authRedirectUrl = `${authPath}?redirect=${encodeURIComponent(finalRedirectPath)}&reason=pendingSave`;
+      
+      console.log(`[handleAuthRedirect] Attempting redirect to: ${authRedirectUrl}`);
+      setShowAuthModal(false); // Close modal immediately before push
+      router.push(authRedirectUrl);
+      console.log(`[handleAuthRedirect] router.push executed.`); // Log after push
+
+    } catch (error) {
+       console.error('[ItineraryView] Error setting localStorage or stringifying:', error);
+       setError('Could not temporarily save trip progress for authentication.');
+       setToastMessage({ title: 'Error', description: 'Could not save progress before redirecting. Please try again.' });
+       setOpenToast(true);
+       setShowAuthModal(false);
     }
   };
 
@@ -541,6 +573,7 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           setOpenToast(true);
           return;
       }
+      console.log('[handleFinalSave] User not logged in. Showing auth modal.');
       setShowAuthModal(true);
       return;
     }

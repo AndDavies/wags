@@ -543,18 +543,41 @@ export default function TripCreationForm({
         draftId = undefined;
       }
       
-      // Update local FormData state: Ensure dates remain Date objects
-      // Create a copy of dataToSave to avoid modifying the original potentially
-      const updatedFormData = { ...dataToSave, draftId }; 
-      setFormData((prev) => ({
-         ...prev, 
-         ...updatedFormData,
-         // Ensure dates are Date objects or null
-         startDate: updatedFormData.startDate && typeof updatedFormData.startDate === 'string' ? new Date(updatedFormData.startDate) : updatedFormData.startDate as Date | null,
-         endDate: updatedFormData.endDate && typeof updatedFormData.endDate === 'string' ? new Date(updatedFormData.endDate) : updatedFormData.endDate as Date | null,
-      }));
+      // Update local FormData state AFTER successful save
+      setFormData((prev) => {
+        // Create the next state based on the previous state
+        const nextState = { ...prev };
+        
+        // Update fields from dataToSave, ensuring correct types
+        Object.keys(dataToSave).forEach((key) => {
+          const formKey = key as keyof FormData; // Type assertion
+          const value = (dataToSave as any)[formKey];
+
+          if (formKey === 'startDate' || formKey === 'endDate') {
+            if (value && typeof value === 'string') {
+              const parsedDate = new Date(value); // Try parsing string
+              if (isValid(parsedDate)) {
+                (nextState[formKey] as Date | null) = parsedDate;
+              } else {
+                (nextState[formKey] as Date | null) = null; // Set invalid dates to null
+              }
+            } else if (value instanceof Date && isValid(value)){
+               (nextState[formKey] as Date | null) = value; // Assign if already a valid Date object
+            } else {
+                (nextState[formKey] as Date | null) = null; // Set to null otherwise
+            }
+          } else if (value !== undefined) {
+            // Assign other values directly (handle potential type mismatches if necessary)
+            (nextState as any)[formKey] = value;
+          }
+        });
+        // Ensure draftId is updated
+        nextState.draftId = draftId;
+
+        return nextState;
+      });
       
-      // Update Zustand store (use dbPayload with string dates, assuming TripData expects strings)
+      // Update Zustand store (use dbPayload with string dates)
       setTripData({ ...tripData, ...dbPayload, draftId: draftId } as TripData); 
 
       setToastMessage(session ? 'Draft saved successfully!' : 'Draft saved locally!');
@@ -575,37 +598,32 @@ export default function TripCreationForm({
   }, [session, setTripData, tripData]);
   // --- End Refactored Save Draft Logic ---
 
-  // --- useEffect for Handling Post-Auth Action ---
+  // --- RE-ADD useEffect for Handling Post-Auth Action ---
   useEffect(() => {
-    console.log('[TripCreationForm] useEffect running - checking for pending action.');
     const pendingActionString = localStorage.getItem('pending_auth_action');
-    
-    if (pendingActionString && session) { // Only proceed if logged in
-      console.log('[TripCreationForm] Found pending action string:', pendingActionString);
-      localStorage.removeItem('pending_auth_action'); // Clear immediately
-      
+
+    if (pendingActionString && session) {
+      localStorage.removeItem('pending_auth_action');
+
       try {
         const pendingAction = JSON.parse(pendingActionString);
-        console.log('[TripCreationForm] Parsed pending action:', pendingAction);
 
         if (pendingAction.action === 'save_draft' && pendingAction.payload) {
-          console.log('[TripCreationForm] Handling pending save_draft action.');
-          // Directly call the save function with the payload from localStorage
-          saveDraftToBackend(pendingAction.payload, false); 
+          saveDraftToBackend(pendingAction.payload, false).then(draftId => {
+          });
         } else {
-          console.warn('[TripCreationForm] Unknown or invalid pending action:', pendingAction);
+          console.warn('[TripCreationForm] Unknown or invalid pending action structure:', pendingAction);
         }
       } catch (e) {
         console.error('[TripCreationForm] Error parsing pending action from localStorage:', e);
       }
-    } else {
-       console.log('[TripCreationForm] No pending action or not logged in.');
+    } else if (!session && pendingActionString) {
+       console.log('[TripCreationForm] Pending action found, waiting for session.');
     }
-  // Run only once on mount after session is available
-  // We depend on `session` to ensure we only run this check when the auth state is known.
-  // `saveDraftToBackend` is memoized with useCallback and its dependencies are listed.
+
+  // Ensure dependencies are correct - run when session becomes available or saveDraftToBackend definition changes
   }, [session, saveDraftToBackend]);
-  // --- End useEffect ---
+  // --- End RE-ADD useEffect ---
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

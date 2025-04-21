@@ -18,6 +18,7 @@ function LoginForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [pendingSaveData, setPendingSaveData] = useState<string | null>(null);
 
   useEffect(() => {
     const callbackError = searchParams.get('error');
@@ -26,11 +27,22 @@ function LoginForm() {
       setError(errorMessage || `Authentication failed: ${callbackError}`);
       router.replace('/login', { scroll: false });
     }
+
+    try {
+      const pendingActionString = localStorage.getItem('pending_auth_action');
+      if (pendingActionString) {
+        console.log('[Login Page] Found pending action in localStorage:', pendingActionString);
+        setPendingSaveData(pendingActionString);
+      }
+    } catch (e) {
+      console.error("[Login Page] Error reading pending action from localStorage:", e);
+    }
   }, [searchParams, router]);
 
   const handleLogin = async (formData: FormData) => {
     setIsSubmitting(true);
     setError("");
+    setPendingSaveData(null);
     try {
       await login(formData);
     } catch (err) {
@@ -90,6 +102,9 @@ function LoginForm() {
 
       <form action={handleLogin} className="space-y-6">
         <input type="hidden" name="redirectPath" value={redirectParam || ""} />
+        {pendingSaveData && (
+          <input type="hidden" name="pendingSaveData" value={pendingSaveData} />
+        )}
 
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-offblack">

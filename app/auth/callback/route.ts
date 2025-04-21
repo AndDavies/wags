@@ -18,9 +18,9 @@ export async function GET(request: Request) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       
       if (!error) {
-        console.log('[Auth Callback Route] Code exchange successful. Redirecting to origin for client-side handling.');
-        // Redirect to origin. Client-side logic will check localStorage.
-        return NextResponse.redirect(origin);
+        console.log('[Auth Callback Route] Code exchange successful. Redirecting to /auth/processing.');
+        // Redirect to the processing page. AuthListener there will handle the final redirect.
+        return NextResponse.redirect(`${origin}/auth/processing`);
       } else {
         console.error('[Auth Callback Route] Error exchanging code:', error.message);
         // Redirect to login page, maybe include error query params
