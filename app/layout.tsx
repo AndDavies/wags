@@ -3,6 +3,7 @@ import './globals.css';
 import { Outfit } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import AuthListener from '@/components/AuthListener';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
 import { ToastProvider } from '@/components/ui/toast';
@@ -120,10 +121,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <SpeedInsights />
         <ToastProvider>
-          
-          <Navbar />
-          <main className="flex-grow">{children}</main>
-          <Footer />
+          <AuthListener>
+            <Navbar />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </AuthListener>
           <Toaster />
         </ToastProvider>
       </body>

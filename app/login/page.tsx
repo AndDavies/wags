@@ -1,25 +1,38 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from 'next/navigation';
-import { login, loginWithGoogle } from "./actions";
+import { useSearchParams, useRouter } from 'next/navigation';
+import { login } from "./actions";
+import { createClient } from '@/lib/supabase-client';
+import { getURL } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get('redirect');
+  const supabase = createClient();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const callbackError = searchParams.get('error');
+    const errorMessage = searchParams.get('message');
+    if (callbackError) {
+      setError(errorMessage || `Authentication failed: ${callbackError}`);
+      router.replace('/login', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const handleLogin = async (formData: FormData) => {
     setIsSubmitting(true);
     setError("");
     try {
-      await login(formData); // Server handles redirect
+      await login(formData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
@@ -31,9 +44,33 @@ function LoginForm() {
     setIsSubmitting(true);
     setError("");
     try {
-      await loginWithGoogle(redirectParam);
+      if (redirectParam) {
+        console.log(`[Login Page] Storing post-auth redirect in localStorage: ${redirectParam}`);
+        localStorage.setItem('post_auth_redirect', redirectParam);
+      } else {
+        localStorage.removeItem('post_auth_redirect');
+      }
+
+      const callbackUrl = process.env.NODE_ENV === 'production'
+        ? `${getURL()}auth/callback`
+        : 'http://localhost:3000/auth/callback';
+      
+      console.log(`[Login Page] Initiating Google OAuth with callback: ${callbackUrl}`);
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: callbackUrl,
+        },
+      });
+
+      if (oauthError) {
+        throw oauthError;
+      }
     } catch (err) {
+      console.error("[Login Page] Google login error:", err);
       setError(err instanceof Error ? err.message : "Google login failed. Please try again.");
+      localStorage.removeItem('post_auth_redirect');
       setIsSubmitting(false);
     }
   };

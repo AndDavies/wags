@@ -3,7 +3,7 @@
 
 import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { getURL } from "@/lib/utils";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -17,18 +17,13 @@ export async function login(formData: FormData) {
     throw new Error(error.message);
   }
 
-  const sessionToken = data.session?.access_token;
-  if (sessionToken) {
-    const cookieStore = await cookies();
-    cookieStore.set("auth-token", sessionToken, {
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      domain: process.env.NODE_ENV === 'production' ? '.wagsandwanders.com' : undefined,
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    console.log(`[Login] Auth token set.`);
-  }
+  // @supabase/ssr handles cookie setting for sessions automatically now
+  // const sessionToken = data.session?.access_token;
+  // if (sessionToken) {
+  //   const cookieStore = await cookies();
+  //   cookieStore.set("auth-token", sessionToken, { ... });
+  //   console.log(`[Login] Auth token set.`);
+  // }
 
   console.log(`[Login] Login successful for ${email}. Redirecting to: ${redirectPath || "/"}`);
   redirect(redirectPath || "/");
@@ -36,32 +31,41 @@ export async function login(formData: FormData) {
 
 export async function loginWithGoogle(redirectPath?: string | null) {
   const supabase = await createClient();
-  const callbackUrl = process.env.NODE_ENV === 'production'
-    ? "https://wagsandwanders.com/auth/callback"
-    : "http://localhost:3000/auth/callback";
 
-  const options: { redirectTo: string; state?: string } = {
-    redirectTo: callbackUrl,
-  };
+  // Get the base callback URL
+  const callbackUrlBase = process.env.NODE_ENV === 'production'
+    ? `${getURL()}auth/callback` 
+    : 'http://localhost:3000/auth/callback';
 
+  // Append the final desired path as the 'next' query parameter
+  let finalRedirectToUrl = callbackUrlBase;
   if (redirectPath) {
-    options.state = Buffer.from(JSON.stringify({ redirectPath })).toString('base64');
-    console.log(`[Google Login] Setting state with redirectPath: ${redirectPath}`);
+    const path = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+    finalRedirectToUrl = `${callbackUrlBase}?next=${encodeURIComponent(path)}`;
+    console.log(`[Google Login] Appending final path. Full redirectTo for Supabase: ${finalRedirectToUrl}`);
+  } else {
+     console.log(`[Google Login] No final path provided. Using base callback URL for Supabase: ${callbackUrlBase}`);
   }
 
+  // Call signInWithOAuth with the callback URL + next parameter
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: options,
+    options: {
+      redirectTo: finalRedirectToUrl, 
+      // Remove options.data - passing path via query param now
+    }
   });
 
   if (error) {
-    console.error(`[Google Login] Error: ${error.message}`);
+    console.error(`[Google Login] Error initiating OAuth: ${error.message}`);
     throw new Error(error.message);
   }
 
   if (data.url) {
-    console.log(`[Google Login] Redirecting to Google: ${data.url}`);
-    redirect(data.url);
+    // This URL sent to Google should have redirect_to= pointing to callbackUrlBase (without the ?next=)
+    // Supabase handles remembering the 'next' parameter internally for the callback step.
+    console.log(`[Google Login] Redirecting user to Google auth page: ${data.url}`);
+    redirect(data.url); 
   } else {
     console.error('[Google Login] No redirect URL provided by Supabase');
     throw new Error("Could not initiate Google login");

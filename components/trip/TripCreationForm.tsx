@@ -203,6 +203,7 @@ export default function TripCreationForm({
 }) {
   const { tripData, setTripData } = useTripStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
@@ -230,28 +231,31 @@ export default function TripCreationForm({
   const accommodationRef = useRef<HTMLDivElement>(null);
   const petDetailsRef = useRef<HTMLDivElement>(null);
 
-  const [formData, setFormData] = useState<FormData>(() => ({
-    origin: tripData?.origin || '',
-    originCountry: tripData?.originCountry || '',
-    destination: tripData?.destination || '',
-    destinationCountry: tripData?.destinationCountry || '',
-    additionalCities: tripData?.additionalCities || [],
-    additionalCountries: tripData?.additionalCountries || [],
-    startDate: tripData?.startDate ? new Date(tripData.startDate) : null,
-    endDate: tripData?.endDate ? new Date(tripData.endDate) : null,
-    adults: tripData?.adults || 1,
-    children: tripData?.children || 0,
-    pets: tripData?.pets || 1,
-    petDetails: tripData?.petDetails?.map((p: { type?: string; size?: string } | null | undefined) => ({
+  const [formData, setFormData] = useState<FormData>(() => {
+    const initial: FormData = {
+      origin: tripData?.origin || '',
+      originCountry: tripData?.originCountry || '',
+      destination: tripData?.destination || '',
+      destinationCountry: tripData?.destinationCountry || '',
+      additionalCities: tripData?.additionalCities || [],
+      additionalCountries: tripData?.additionalCountries || [],
+      startDate: tripData?.startDate ? new Date(tripData.startDate) : null,
+      endDate: tripData?.endDate ? new Date(tripData.endDate) : null,
+      adults: tripData?.adults || 1,
+      children: tripData?.children || 0,
+      pets: tripData?.pets || 1,
+      petDetails: tripData?.petDetails?.map((p: { type?: string; size?: string } | null | undefined) => ({
         type: p?.type || '',
         size: p?.size || ''
-    })) || [{ type: '', size: '' }],
-    budget: tripData?.budget || 'Moderate',
-    accommodation: tripData?.accommodation || 'Hotels',
-    interests: tripData?.interests || [],
-    additionalInfo: tripData?.additionalInfo || '',
-    draftId: tripData?.draftId || undefined,
-  }));
+      })) || [{ type: '', size: '' }],
+      budget: tripData?.budget || 'Moderate',
+      accommodation: tripData?.accommodation || 'Hotels',
+      interests: tripData?.interests || [],
+      additionalInfo: tripData?.additionalInfo || '',
+      draftId: tripData?.draftId,
+    };
+    return initial;
+  });
 
   // Initialize date input based on formData
   useEffect(() => {
@@ -499,6 +503,110 @@ export default function TripCreationForm({
     return count;
   };
 
+  // --- Refactored Save Draft Logic ---
+  const saveDraftToBackend = useCallback(async (dataToSave: Partial<TripData>, isGenerating: boolean = false): Promise<string | undefined> => {
+    setIsSavingDraft(!isGenerating); // Show specific saving indicator only if not part of generation
+    setIsLoading(isGenerating); // Show general loading if part of generation
+    setErrors({}); // Clear previous errors
+    let draftId = dataToSave.draftId;
+
+    // Create a payload suitable for the database (dates as strings)
+    const dbPayload = {
+        ...dataToSave,
+        // Convert dates to strings ONLY for the DB payload
+        startDate: dataToSave.startDate && typeof dataToSave.startDate !== 'string' 
+                     ? (dataToSave.startDate as Date).toISOString().split('T')[0] 
+                     : dataToSave.startDate, 
+        endDate: dataToSave.endDate && typeof dataToSave.endDate !== 'string'
+                   ? (dataToSave.endDate as Date).toISOString().split('T')[0]
+                   : dataToSave.endDate,
+    };
+
+    try {
+      if (session) {
+        const supabase = createClient();
+        const { data: upsertedDraft, error: upsertError } = await supabase
+          .from('draft_itineraries')
+          .upsert({ 
+            id: draftId, 
+            user_id: session.user.id, 
+            trip_data: dbPayload, // Use payload with string dates
+            updated_at: new Date().toISOString() 
+          })
+          .select('id')
+          .single();
+        if (upsertError) throw upsertError; // Throw the actual error
+        draftId = upsertedDraft?.id;
+      } else {
+        // Guests: save the original dataToSave (which might have Date objects) to sessionStorage
+        sessionStorage.setItem('tripData', JSON.stringify(dataToSave));
+        draftId = undefined;
+      }
+      
+      // Update local FormData state: Ensure dates remain Date objects
+      // Create a copy of dataToSave to avoid modifying the original potentially
+      const updatedFormData = { ...dataToSave, draftId }; 
+      setFormData((prev) => ({
+         ...prev, 
+         ...updatedFormData,
+         // Ensure dates are Date objects or null
+         startDate: updatedFormData.startDate && typeof updatedFormData.startDate === 'string' ? new Date(updatedFormData.startDate) : updatedFormData.startDate as Date | null,
+         endDate: updatedFormData.endDate && typeof updatedFormData.endDate === 'string' ? new Date(updatedFormData.endDate) : updatedFormData.endDate as Date | null,
+      }));
+      
+      // Update Zustand store (use dbPayload with string dates, assuming TripData expects strings)
+      setTripData({ ...tripData, ...dbPayload, draftId: draftId } as TripData); 
+
+      setToastMessage(session ? 'Draft saved successfully!' : 'Draft saved locally!');
+      setToastOpen(true);
+      return draftId;
+
+    } catch (error) {
+      console.error('[saveDraftToBackend] Error:', error);
+      const message = (error as PostgrestError)?.message || (error instanceof Error ? error.message : 'Failed to save draft.');
+      setErrors((prev) => ({ ...prev, general: message }));
+      setToastMessage(message);
+      setToastOpen(true);
+      return undefined; // Indicate save failure
+    } finally {
+      setIsSavingDraft(false);
+      if (!isGenerating) setIsLoading(false); // Only turn off general loading if this wasn't part of generation
+    }
+  }, [session, setTripData, tripData]);
+  // --- End Refactored Save Draft Logic ---
+
+  // --- useEffect for Handling Post-Auth Action ---
+  useEffect(() => {
+    console.log('[TripCreationForm] useEffect running - checking for pending action.');
+    const pendingActionString = localStorage.getItem('pending_auth_action');
+    
+    if (pendingActionString && session) { // Only proceed if logged in
+      console.log('[TripCreationForm] Found pending action string:', pendingActionString);
+      localStorage.removeItem('pending_auth_action'); // Clear immediately
+      
+      try {
+        const pendingAction = JSON.parse(pendingActionString);
+        console.log('[TripCreationForm] Parsed pending action:', pendingAction);
+
+        if (pendingAction.action === 'save_draft' && pendingAction.payload) {
+          console.log('[TripCreationForm] Handling pending save_draft action.');
+          // Directly call the save function with the payload from localStorage
+          saveDraftToBackend(pendingAction.payload, false); 
+        } else {
+          console.warn('[TripCreationForm] Unknown or invalid pending action:', pendingAction);
+        }
+      } catch (e) {
+        console.error('[TripCreationForm] Error parsing pending action from localStorage:', e);
+      }
+    } else {
+       console.log('[TripCreationForm] No pending action or not logged in.');
+    }
+  // Run only once on mount after session is available
+  // We depend on `session` to ensure we only run this check when the auth state is known.
+  // `saveDraftToBackend` is memoized with useCallback and its dependencies are listed.
+  }, [session, saveDraftToBackend]);
+  // --- End useEffect ---
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setShowSummary(true);
@@ -508,68 +616,44 @@ export default function TripCreationForm({
       return;
     }
   
-    setIsLoading(true);
-    setErrors({});
-
-    // Prepare data for API/store, ensuring type safety
-    const finalFormData: Partial<TripData> = {
-      ...formData,
+    // Prepare data for saving/AI call (use local formData state)
+    const dataForSaveAndAI: Partial<TripData> = {
+      origin: formData.origin,
+      originCountry: formData.originCountry,
+      destination: formData.destination,
+      destinationCountry: formData.destinationCountry,
+      additionalCities: formData.additionalCities,
+      additionalCountries: formData.additionalCountries,
       startDate: formData.startDate ? formData.startDate.toISOString().split('T')[0] : undefined,
       endDate: formData.endDate ? formData.endDate.toISOString().split('T')[0] : undefined,
-      // Explicitly set itinerary and policy fields to undefined or null
-      // if they shouldn't be part of the *initial* submission data
-      // but ensure they are optional in the TripData type
+      adults: formData.adults,
+      children: formData.children,
+      pets: formData.pets,
+      petDetails: formData.petDetails,
+      budget: formData.budget,
+      accommodation: formData.accommodation,
+      interests: formData.interests,
+      additionalInfo: formData.additionalInfo,
+      draftId: formData.draftId,
       itinerary: undefined,
       policyRequirements: undefined,
       generalPreparation: undefined,
       preDeparturePreparation: undefined,
     };
 
-    // Set the data in the store (no `as any` needed if types match)
-    setTripData(finalFormData as TripData);
-
-    let draftIdToUpdate = formData.draftId;
+    // 1. Save draft
+    const savedDraftId = await saveDraftToBackend(dataForSaveAndAI, true);
+    if (savedDraftId === undefined && session) return;
+    const dataForAIWithId = { ...dataForSaveAndAI, draftId: savedDraftId };
   
+    // 2. Call AI API
+    setIsLoading(true);
     try {
-      if (session) {
-        const supabase = createClient();
-        const { data: upsertedDraft, error: upsertError } = await supabase
-          .from('draft_itineraries')
-          .upsert({ id: draftIdToUpdate, user_id: session.user.id, trip_data: finalFormData, updated_at: new Date().toISOString() })
-          .select('id').single();
-        if (upsertError) throw new Error(`Failed to save draft: ${(upsertError as PostgrestError).message || 'Unknown error'}`);
-        draftIdToUpdate = upsertedDraft.id;
-        setFormData((prev) => ({ ...prev, draftId: draftIdToUpdate }));
-        setTripData({ ...finalFormData, draftId: draftIdToUpdate } as TripData);
-        setToastMessage('Draft saved successfully!');
-        setToastOpen(true);
-      } else {
-        sessionStorage.setItem('tripData', JSON.stringify(finalFormData));
-        draftIdToUpdate = undefined;
-        setFormData((prev) => ({ ...prev, draftId: undefined }));
-        setTripData({ ...finalFormData, draftId: undefined } as TripData);
-        setToastMessage('Draft saved locally!');
-        setToastOpen(true);
-      }
-    } catch (error) {
-      console.error('[TripCreationForm] Error during draft saving:', error);
-      setErrors({ general: error instanceof Error ? error.message : 'An unexpected error occurred while saving.' });
-      setToastMessage(error instanceof Error ? error.message : 'Failed to save draft.');
-      setToastOpen(true);
-      setIsLoading(false);
-      return;
-    }
-  
-    try {
-      console.log("Submitting trip data to API:", finalFormData);
       const response = await fetch('/api/ai/enhanced-itinerary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalFormData),
+        body: JSON.stringify(dataForAIWithId), 
       });
-  
-      console.log("API Response Status:", response.status);
-  
       if (!response.ok) {
         let errorBody = 'Unknown error';
         try {
@@ -580,95 +664,33 @@ export default function TripCreationForm({
         }
         throw new Error(`API Error (${response.status}): ${response.statusText}. Details: ${errorBody}`);
       }
-  
-      let result: any;
-      try {
-        result = await response.json();
-        console.log("API Response JSON:", result);
-      } catch (parseError: any) {
-        console.error("Failed to parse API response JSON:", parseError);
-        throw new Error('Failed to parse itinerary response from server.');
+      const result = await response.json();
+      if (!result || !result.itinerary) {
+        throw new Error('Invalid response format received from server.');
       }
-  
-      if (!result || typeof result !== 'object') {
-          throw new Error('Invalid response format received from server.');
-      }
-      
-      if (!result.itinerary || typeof result.itinerary !== 'object' || !Array.isArray(result.itinerary.days)) {
-        if (result.error && typeof result.error === 'string') { 
-           console.error('API returned an error message:', result.error);
-           throw new Error(`Itinerary generation failed: ${result.error}`);
-        } else {
-          console.error('Invalid itinerary structure received:', result.itinerary);
-          throw new Error('Generated itinerary data is missing or malformed.');
-        }
-      }
-  
-      console.log("Generated itinerary:", result.itinerary);
-  
-      // Assuming result has { itinerary, policyRequirements, generalPreparation, preDeparturePreparation }
+
+      // 3. Prepare final data
       const finalTripDataWithResults: TripData = {
-        // Ensure all fields from TripData are present or optional
-        origin: finalFormData.origin ?? '',
-        originCountry: finalFormData.originCountry ?? '',
-        destination: finalFormData.destination ?? '',
-        destinationCountry: finalFormData.destinationCountry ?? '',
-        additionalCities: finalFormData.additionalCities ?? [],
-        additionalCountries: finalFormData.additionalCountries ?? [],
-        startDate: finalFormData.startDate,
-        endDate: finalFormData.endDate,
-        adults: finalFormData.adults ?? 1,
-        children: finalFormData.children ?? 0,
-        pets: finalFormData.pets ?? 0,
-        petDetails: finalFormData.petDetails ?? [],
-        budget: finalFormData.budget ?? '',
-        accommodation: finalFormData.accommodation ?? 'Hotels',
-        interests: finalFormData.interests ?? [],
-        additionalInfo: finalFormData.additionalInfo ?? '',
-        itinerary: result.itinerary,
-        policyRequirements: result.policyRequirements,
-        generalPreparation: result.generalPreparation,
-        preDeparturePreparation: result.preDeparturePreparation,
-        draftId: draftIdToUpdate, // Keep draftId
+          ...(dataForAIWithId as Omit<TripData, 'itinerary' | 'policyRequirements' | 'generalPreparation' | 'preDeparturePreparation'>),
+          itinerary: result.itinerary,
+          policyRequirements: result.policyRequirements,
+          generalPreparation: result.generalPreparation,
+          preDeparturePreparation: result.preDeparturePreparation,
+          draftId: savedDraftId, 
       };
 
-      // Set final data in the store (no `as any` needed)
+      // 4. Update store & save final state
       setTripData(finalTripDataWithResults);
-  
-      if (session && draftIdToUpdate) {
-        const supabase = createClient();
-        console.log('[TripCreationForm] Attempting final update to draft ID:', draftIdToUpdate, 'with data containing itinerary:', !!finalTripDataWithResults.itinerary);
-        const { error: updateError } = await supabase
-          .from('draft_itineraries')
-          .update({ trip_data: finalTripDataWithResults, updated_at: new Date().toISOString() })
-          .eq('id', draftIdToUpdate);
-        if (updateError) {
-          console.error('[TripCreationForm] CRITICAL: Failed to update draft with generated itinerary:', updateError);
-          // Optionally, inform the user the final save failed
-          setToastMessage("Itinerary generated, but failed to save final state. Please save manually if needed.");
-          setToastOpen(true); // Show a toast for the update failure
-        } else {
-          console.log('[TripCreationForm] Successfully updated draft with generated itinerary.');
-          // Existing success toast message (or modify if needed)
-          setToastMessage("Itinerary generated successfully!");
-          setToastOpen(true);
-        }
-      } else {
-        // Guest user or no draftId - save to sessionStorage
-        console.log('[TripCreationForm] Saving final results to sessionStorage for guest user.');
-        sessionStorage.setItem('tripData', JSON.stringify(finalTripDataWithResults));
-        setToastMessage("Itinerary generated successfully!");
-        setToastOpen(true);
-      }
+      await saveDraftToBackend(finalTripDataWithResults, true);
       
-      // Move onClose call outside the try block to ensure it always happens on logical success
-      // but potentially inside the if/else blocks if you only want it after successful save
-      if (onClose) onClose(); // Close form on success (API call succeeded)
+      setToastMessage("Itinerary generated successfully!");
+      setToastOpen(true);
+      if (onClose) onClose();
 
     } catch (error: any) {
-      console.error("Error in handleSubmit:", error);
-      setErrors({ submit: error.message || 'An unexpected error occurred during itinerary generation.' });
-      setToastMessage(error.message || 'Failed to generate itinerary. Please try again.');
+      console.error("[handleSubmit] Error during AI generation or final save:", error);
+      setErrors({ submit: error.message || 'An error occurred during itinerary generation.' });
+      setToastMessage(error.message || 'Failed to generate itinerary.');
       setToastOpen(true);
     } finally {
       setIsLoading(false);
