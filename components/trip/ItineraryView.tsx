@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Fragment } from 'react';
 import { useTripStore, Activity, ItineraryDay, PolicyRequirementStep, GeneralPreparationItem, TripData } from '@/store/tripStore';
 import * as Toast from '@radix-ui/react-toast';
 import { createClient } from '@/lib/supabase-client';
+import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -238,13 +239,14 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
                   return (
                     <TimelineItem key={activity.name + actIndex} step={actIndex + 1} className="group relative">
                       <TimelineHeader className="items-center">
-                        <TimelineSeparator />
+                        <TimelineSeparator className="[&>div]:bg-gray-400" />
                         <TimelineDate className="text-xs text-gray-500 w-16 text-right pt-0.5">{activity.startTime || ''}</TimelineDate>
                         <div className="flex items-center gap-2 flex-grow">
-                          <span className="flex items-center">{icon}</span>
                           <TimelineTitle className="font-semibold text-gray-800 text-sm leading-snug pr-6 sm:-mt-0.5">{activity.name}</TimelineTitle>
                         </div>
-                        <TimelineIndicator />
+                        <TimelineIndicator className="!bg-transparent border-gray-400">
+                          {React.cloneElement(getActivityIcon(activity) as React.ReactElement, { className: "h-3.5 w-3.5" })}
+                        </TimelineIndicator>
                       </TimelineHeader>
 
                       <TimelineContent className="space-y-2 pt-1">
