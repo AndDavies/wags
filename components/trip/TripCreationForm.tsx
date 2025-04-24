@@ -525,18 +525,46 @@ export default function TripCreationForm({
     try {
       if (session) {
         const supabase = createClient();
+        console.log('[saveDraftToBackend] Upserting draft for user:', session.user.id);
         const { data: upsertedDraft, error: upsertError } = await supabase
           .from('draft_itineraries')
           .upsert({ 
-            id: draftId, 
+            // id: draftId, // <<< REMOVE id from payload when using onConflict: user_id
             user_id: session.user.id, 
             trip_data: dbPayload, // Use payload with string dates
             updated_at: new Date().toISOString() 
+          }, {
+            onConflict: 'user_id' // <<< EXPLICITLY use user_id
           })
-          .select('id')
+          .select('id') // Still select the ID after upsert
           .single();
-        if (upsertError) throw upsertError; // Throw the actual error
-        draftId = upsertedDraft?.id;
+          
+        if (upsertError) {
+            console.error('[saveDraftToBackend] Supabase upsert error:', upsertError);
+            throw upsertError; 
+        }
+        
+        if (!upsertedDraft) {
+            // This case might occur if RLS prevents seeing the result, but the upsert worked.
+            // Or if there was an issue retrieving the ID after upsert.
+            console.warn('[saveDraftToBackend] Upsert seemed successful but did not return draft ID.');
+            // Attempt to fetch the ID based on user_id as a fallback
+            const { data: fetchedDraft, error: fetchError } = await supabase
+                .from('draft_itineraries')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+            
+            if (fetchError || !fetchedDraft) {
+                 console.error('[saveDraftToBackend] Could not confirm draft ID after upsert:', fetchError);
+                 throw new Error('Failed to save draft: Could not confirm saved ID.');
+            }
+            draftId = fetchedDraft.id;
+        } else {
+            draftId = upsertedDraft.id;
+        }
+        console.log('[saveDraftToBackend] Draft upserted successfully, ID:', draftId);
+        
       } else {
         // Guests: save the original dataToSave (which might have Date objects) to sessionStorage
         sessionStorage.setItem('tripData', JSON.stringify(dataToSave));

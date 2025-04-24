@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Fragment } from 'react';
 import { useTripStore, Activity, ItineraryDay, PolicyRequirementStep, GeneralPreparationItem, TripData } from '@/store/tripStore';
 import * as Toast from '@radix-ui/react-toast';
 import { createClient } from '@/lib/supabase-client';
+import { PostgrestError } from '@supabase/supabase-js';
 import React from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -46,7 +47,7 @@ import {
   Bed,
 } from 'lucide-react';
 import Chatbot from './Chatbot';
-import { Map, Marker, Popup } from '@maptiler/sdk';
+import { Map, Marker, Popup, LngLatBounds } from '@maptiler/sdk';
 import '@maptiler/sdk/dist/maptiler-sdk.css';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -62,6 +63,16 @@ import {
   Timeline, TimelineItem, TimelineContent, TimelineHeader,
   TimelineSeparator, TimelineDate, TimelineTitle, TimelineIndicator
 } from "@/components/ui/timeline";
+import { ActivitySuggestion } from '@/app/api/trip/suggest-activity/route'; // Import the type
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 // --- Interfaces (matching store/API) ---
 interface ItineraryViewProps {
@@ -205,6 +216,19 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
     return isValid;
   });
 
+  // Calculate next day for hotel checkout
+  let checkoutDate = '';
+  if (day.date) {
+    try {
+      const currentDate = new Date(day.date + 'T00:00:00'); // Ensure parsing as local time
+      currentDate.setDate(currentDate.getDate() + 1);
+      checkoutDate = currentDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    } catch (e) {
+      console.error("Error calculating checkout date:", e);
+      checkoutDate = day.date; // Fallback to same day on error
+    }
+  }
+
   return (
     <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <button onClick={onToggle} className={cn("w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
@@ -230,12 +254,23 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
           )}
 
           <div className="mb-4">
-            <h4 className="font-semibold text-gray-800 mb-3 text-base">Activities</h4>
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="font-semibold text-gray-800 text-base">Activities</h4>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={onAddActivity}
+                className="text-xs h-7 px-2"
+              >
+                <Plus className="h-3 w-3 mr-1" /> Add
+              </Button>
+            </div>
             <Timeline>
               {validActivities.length > 0 ? (
                 validActivities.map((activity, actIndex) => {
                   const icon = getActivityIcon(activity);
                   const simpleLocation = activity.location?.split(',')[0] || 'Location details missing';
+
                   return (
                     <TimelineItem key={activity.name + actIndex} step={actIndex + 1} className="group relative">
                       <TimelineHeader className="items-center">
@@ -292,14 +327,14 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5">
-                          {activity.website && (
+                          {activity.website && activity.type !== 'accommodation' && ( // Conditionally show website link
                             <a href={activity.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-teal-600 hover:text-teal-700 text-xs font-medium hover:underline">
-                              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Website
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Visit Website
                             </a>
                           )}
-                          {activity.type === 'accommodation' && (
-                            <a 
-                              href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(day.city?.split(',')[0] || '')}&checkin=${day.date}&checkout=${day.date /* Placeholder: Need next day logic */}&group_adults=${tripData?.adults || 1}&group_children=${tripData?.children || 0}&pets=1&lang=en-us&aid=YOUR_AFFILIATE_ID`}
+                          {activity.type === 'accommodation' && day.date && checkoutDate && ( // Ensure dates exist before rendering
+                            <a
+                              href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(day.city?.split(',')[0] || '')}&checkin=${day.date}&checkout=${checkoutDate}&group_adults=${tripData?.adults || 1}&group_children=${tripData?.children || 0}&pets=1&lang=en-us&aid=YOUR_AFFILIATE_ID`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center px-3 py-1 bg-mustard-500 hover:bg-mustard-600 text-white text-xs font-medium rounded-md shadow-sm transition-colors"
@@ -352,7 +387,7 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
   // Maptiler configuration
   const MAPTILER_API_KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
   const DEFAULT_COORDS = { lat: 39.8283, lng: -98.5795 }; // Center of USA as fallback
-  const PET_FRIENDLY_STYLE = 'outdoor'; // Maptiler OUTDOOR style
+  const MAP_STYLE = 'streets-v2'; // Use OpenStreetMap-derived style
   const MAX_MARKERS = 50; // Limit markers for performance
 
   // Refs for map container and Maptiler instance
@@ -365,84 +400,137 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
 
   // Initialize Maptiler map and markers
   useEffect(() => {
-    if (!MAPTILER_API_KEY || !mapContainerRef.current) return;
+    if (!MAPTILER_API_KEY || !mapContainerRef.current || mapRef.current) return; // Ensure map doesn't re-initialize
+
+    // Filter valid activities with coordinates BEFORE initializing map
+    const validActivities = activities
+        .filter(activity => activity.coordinates && activity.coordinates.lat !== 0 && activity.coordinates.lng !== 0)
+        .slice(0, MAX_MARKERS);
+
+    // Determine initial center and zoom
+    let initialCenter: [number, number] = [DEFAULT_COORDS.lng, DEFAULT_COORDS.lat];
+    let initialZoom: number = 3;
+
+    if (validActivities.length === 1) {
+        // If only one activity, center on it
+        initialCenter = [validActivities[0].coordinates.lng, validActivities[0].coordinates.lat];
+        initialZoom = 13; // Zoom in closer for single point
+    } else if (validActivities.length > 1) {
+        // If multiple activities, calculate bounds later
+        // Set initial center roughly (first point or default)
+        initialCenter = [validActivities[0].coordinates.lng, validActivities[0].coordinates.lat];
+        initialZoom = 10; // Start with a reasonable zoom, fitBounds will adjust
+    }
 
     // Initialize map
-    mapRef.current = new Map({
-      container: mapContainerRef.current,
-      style: PET_FRIENDLY_STYLE,
-      center: [DEFAULT_COORDS.lng, DEFAULT_COORDS.lat],
-      zoom: 3,
-      apiKey: MAPTILER_API_KEY,
-    });
-
-    // Center map on first valid activity
-    const firstValidCoords = activities.find(a => a.coordinates && a.coordinates.lat !== 0 && a.coordinates.lng !== 0)?.coordinates;
-    if (firstValidCoords) {
-      mapRef.current.setCenter([firstValidCoords.lng, firstValidCoords.lat]);
-      mapRef.current.setZoom(11);
+    try {
+        mapRef.current = new Map({
+            container: mapContainerRef.current,
+            style: MAP_STYLE, // Use the new style
+            center: initialCenter,
+            zoom: initialZoom,
+            apiKey: MAPTILER_API_KEY,
+        });
+    } catch (mapError) {
+        console.error("Error initializing Maptiler map:", mapError);
+        return; // Don't proceed if map fails to initialize
     }
 
     // Add markers and popups
-    const validActivities = activities
-      .filter(activity => activity.coordinates && activity.coordinates.lat !== 0 && activity.coordinates.lng !== 0)
-      .slice(0, MAX_MARKERS);
-
+    markersRef.current.forEach(marker => marker.remove()); // Clear previous markers
     markersRef.current = validActivities.map(activity => {
-      const markerElement = document.createElement('div');
-      markerElement.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${
-          activity.type === 'meal' ? '#f97316' : '#14b8a6'
-        }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin">
-          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
-      `;
-      markerElement.className = 'cursor-pointer hover:scale-110 transition-transform';
-      markerElement.setAttribute('aria-label', activity.name);
-
-      const marker = new Marker({ element: markerElement })
-        .setLngLat([activity.coordinates.lng, activity.coordinates.lat])
-        .addTo(mapRef.current!);
-
-      const popup = new Popup({ offset: 30 })
-        .setHTML(`
-          <div class="p-2 max-w-xs bg-white rounded-lg shadow-md">
-            <h4 class="font-semibold text-sm text-gray-800">${activity.name}</h4>
-            <p className="text-xs text-gray-600">${activity.location}</p>
-            <button class="text-teal-600 hover:underline text-xs mt-1" onclick="document.dispatchEvent(new CustomEvent('close-popup'))">Close</button>
+        const markerElement = document.createElement('div');
+        // Add text label below the SVG marker icon
+        markerElement.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${
+            activity.type === 'meal' ? '#f97316' : // Orange for meals
+            activity.type === 'accommodation' ? '#0891b2' : // Cyan for accommodation
+            activity.petFriendly ? '#14b8a6' : // Teal for pet-friendly
+            '#6b7280' // Gray for others/unknown
+            }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span style="font-size: 9px; font-weight: 500; color: #374151; margin-top: 2px; background-color: rgba(255, 255, 255, 0.7); padding: 1px 3px; border-radius: 3px; white-space: nowrap; max-width: 80px; overflow: hidden; text-overflow: ellipsis;">
+              ${activity.name}
+            </span>
           </div>
-        `);
+        `;
+        markerElement.className = 'cursor-pointer hover:scale-110 transition-transform';
+        markerElement.setAttribute('aria-label', activity.name);
 
-      marker.setPopup(popup);
+        const marker = new Marker({ 
+            element: markerElement,
+            anchor: 'bottom' // Anchor the marker at the bottom center of the SVG pin
+        })
+            .setLngLat([activity.coordinates.lng, activity.coordinates.lat])
+            .addTo(mapRef.current!);
 
-      marker.getElement().addEventListener('click', () => {
-        setSelectedActivity(activity);
-        popup.addTo(mapRef.current!);
-      });
+        // Enhanced Popup Content
+        const popup = new Popup({ offset: 30 })
+            .setHTML(`
+            <div class="p-2.5 max-w-xs bg-white rounded-lg shadow-lg border border-gray-100 font-sans">
+                <h4 class="font-semibold text-base text-gray-800 mb-1">${activity.name}</h4>
+                <p class="text-xs text-gray-600 mb-1.5">${activity.location}</p>
+                ${activity.description ? `<p class="text-xs text-gray-500 mb-1.5 line-clamp-2">${activity.description}</p>` : ''}
+                <div class="text-xs text-gray-500 space-y-0.5">
+                    ${activity.startTime ? `<p><strong class="font-medium text-gray-600">Time:</strong> ${activity.startTime}${activity.endTime ? ` - ${activity.endTime}` : ''}</p>` : ''}
+                    <p><strong class="font-medium text-gray-600">Pet Friendly:</strong> ${activity.petFriendly ? '<span class="text-teal-600 font-semibold">Yes</span>' : 'No/Unknown'}</p>
+                </div>
+                <button class="text-teal-600 hover:underline text-xs mt-2 font-medium" onclick="document.dispatchEvent(new CustomEvent('close-popup'))">Close</button>
+            </div>
+            `);
 
-      return marker;
+        marker.setPopup(popup);
+
+        marker.getElement().addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent map click event when clicking marker
+            // Close any existing popups
+            markersRef.current.forEach(m => m.getPopup()?.remove());
+            setSelectedActivity(activity);
+            popup.addTo(mapRef.current!);
+        });
+
+        return marker;
     });
 
-    // Handle popup close
+    // Fit map to bounds if multiple activities exist
+    if (validActivities.length > 1) {
+        const bounds = new LngLatBounds();
+        validActivities.forEach(activity => {
+            bounds.extend([activity.coordinates.lng, activity.coordinates.lat]);
+        });
+        try {
+           mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 15 }); // Add padding and limit max zoom
+        } catch (fitBoundsError) {
+            console.error("Error fitting map bounds:", fitBoundsError);
+        }
+    }
+
+    // Handle popup close on map click or custom event
     const handleClosePopup = () => {
-      setSelectedActivity(null);
-      markersRef.current.forEach(marker => marker.getPopup()?.remove());
+        setSelectedActivity(null);
+        markersRef.current.forEach(marker => marker.getPopup()?.remove());
     };
-    document.addEventListener('close-popup', handleClosePopup);
+    mapRef.current?.on('click', handleClosePopup); // Close popup on map click
+    document.addEventListener('close-popup', handleClosePopup); // Close popup via button
 
     // Cleanup on unmount
     return () => {
-      document.removeEventListener('close-popup', handleClosePopup);
-      if (mapRef.current) {
-        mapRef.current.remove();
+        document.removeEventListener('close-popup', handleClosePopup);
+        mapRef.current?.remove();
         mapRef.current = null;
-      }
+        markersRef.current = []; // Clear marker refs
     };
-  }, [MAPTILER_API_KEY, activities]);
+  // IMPORTANT: Re-run effect only if activities array *reference* changes, not just content
+  // This prevents excessive map re-renders if the parent component updates tripData frequently.
+  // Consider passing a stable reference or memoized version if needed.
+  }, [MAPTILER_API_KEY, activities]); 
 
+  // Simplified render structure for the map container
   return (
-    <div className="h-[350px] w-full rounded-lg overflow-hidden relative border border-gray-200">
+    <div className="w-full h-full rounded-lg overflow-hidden relative border border-gray-200 min-h-[300px]">
       {!MAPTILER_API_KEY && (
         <div className="absolute inset-0 bg-gray-100 bg-opacity-80 flex items-center justify-center z-10">
           <p className="text-red-600 font-semibold p-4 bg-white rounded shadow">
@@ -450,7 +538,7 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
           </p>
         </div>
       )}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      <div ref={mapContainerRef} className="w-full h-full" aria-label="Activity Map" />
     </div>
   );
 }
@@ -477,7 +565,7 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   const [showMap, setShowMap] = useState(false);
   const [activitiesForMap, setActivitiesForMap] = useState<Activity[]>([]);
   const [addingActivityDay, setAddingActivityDay] = useState<number | null>(null);
-  const [activitySearchResults, setActivitySearchResults] = useState<any[]>([]);
+  const [activitySearchResults, setActivitySearchResults] = useState<ActivitySuggestion[]>([]);
   const [isSearchingActivities, setIsSearchingActivities] = useState(false);
   const [addingVetDay, setAddingVetDay] = useState<number | null>(null);
   const [vetSearchResults, setVetSearchResults] = useState<any[]>([]);
@@ -485,6 +573,7 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   const [showChatbot, setShowChatbot] = useState(true);
   const [isPolicyExpanded, setIsPolicyExpanded] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [mapFilterDay, setMapFilterDay] = useState<number | 'all'>('all'); // State for map day filter
 
   // Expand first day effect
   useEffect(() => {
@@ -555,69 +644,75 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
     setIsSearchingActivities(true);
     setActivitySearchResults([]);
     
-    // --- Simulate API Call (Replace with actual fetch later) ---
-    const apiUrl = '/api/trip/suggest-activity'; // TODO: Create this API endpoint
-    console.log(`[ItineraryView] Simulating fetch to ${apiUrl} for Day ${day} in ${currentDayData.city}`);
+    const apiUrl = '/api/trip/suggest-activity';
+    console.log(`[ItineraryView] Fetching suggestions from ${apiUrl} for Day ${day} in ${currentDayData.city}`);
+
     try {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000)); 
+        // Prepare request body
+        const requestBody = {
+            dayNumber: day,
+            city: currentDayData.city || tripData.destination || '', // Use day city or fallback
+            // Try to get coordinates from the first existing activity of the day as a reference
+            coordinates: currentDayData.activities?.[0]?.coordinates,
+            interests: tripData.interests,
+            budget: tripData.budget,
+            existingActivities: currentDayData.activities || [],
+        };
 
-        // Simulate a fetch call (replace with actual fetch when API exists)
-        // const response = await fetch(apiUrl, {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ 
-        //         city: currentDayData.city, 
-        //         coordinates: currentDayData.activities[0]?.coordinates || tripData.itinerary?.days[0]?.activities[0]?.coordinates, // Use some reference coords 
-        //         interests: tripData.interests,
-        //         budget: tripData.budget
-        //      }),
-        // });
-        // if (!response.ok) throw new Error('Network response was not ok');
-        // const results = await response.json();
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+        });
 
-        // --- Mock Results (Replace with actual results from API) ---
-        const mockResults = [
-          { place_id: 'mock1', name: "Suggested Pet Cafe", description: "A lovely spot based on your interests.", location: currentDayData.city, coordinates: currentDayData.activities[0]?.coordinates || { lat: 0, lng: 0}, petFriendly: true },
-          { place_id: 'mock2', name: "Suggested Local Park", description: "Great for a walk.", location: currentDayData.city, coordinates: currentDayData.activities[0]?.coordinates || { lat: 0, lng: 0}, petFriendly: true },
-        ];
-        // --- End Mock Results ---
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("[ItineraryView] API Error response:", errorData);
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
         
-        setActivitySearchResults(mockResults); // Use results from API
+        const results = await response.json();
+        console.log("[ItineraryView] Received suggestions:", results.suggestions);
+        setActivitySearchResults(results.suggestions || []); // Expecting { suggestions: ActivitySuggestion[] }
 
-    } catch (error) {
-        console.error("[ItineraryView] Error fetching activity suggestions (simulated):", error);
-        setToastMessage({ title: 'Error', description: 'Could not fetch activity suggestions.' });
+    } catch (error: any) {
+        console.error("[ItineraryView] Error fetching activity suggestions:", error);
+        setToastMessage({ title: 'Error', description: `Could not fetch suggestions: ${error.message}` });
         setOpenToast(true);
         setActivitySearchResults([]); // Clear results on error
     } finally {
         setIsSearchingActivities(false);
     }
-    // --- End Simulate API Call ---
   };
 
-  const handleSelectActivity = (day: number, activitySuggestion: any) => {
-    // Construct a basic Activity object from the suggestion
-    // (Expand this if the suggestion API returns more fields later)
+  const handleSelectActivity = (day: number, activitySuggestion: ActivitySuggestion) => {
+    // Construct the Activity object from the suggestion
     const newActivity: Activity = {
+        place_id: activitySuggestion.place_id,
         name: activitySuggestion.name || 'Suggested Activity',
-        description: activitySuggestion.description || '',
-        petFriendly: activitySuggestion.petFriendly ?? true,
+        description: activitySuggestion.description || '', // Use description if available from API
+        petFriendly: activitySuggestion.petFriendly ?? false, // Use API value or default
         location: activitySuggestion.location || 'Unknown Location',
         coordinates: activitySuggestion.coordinates || { lat: 0, lng: 0 },
-        place_id: activitySuggestion.place_id, // Include place_id if provided by suggestion
-        type: 'activity', // Default type
-        // Initialize other fields as undefined or default
+        type: 'activity', // Default type, could refine based on suggestion.types
         startTime: undefined,
         endTime: undefined,
-        cost: undefined,
-        website: undefined,
-        phone_number: undefined,
-        opening_hours: undefined,
-        photo_references: undefined,
+        cost: undefined, // Cost isn't directly provided by basic search
+        website: activitySuggestion.website,
+        phone_number: undefined, // Not typically in basic search results
+        opening_hours: undefined, // Not typically in basic search results
+        // Simplify photo_references to store only the reference string
+        photo_references: activitySuggestion.photo_references?.map(photo => ({ 
+            photo_reference: photo.photo_reference,
+            // Optionally keep width/height if needed for display hints, but avoid html_attributions
+            width: photo.width,
+            height: photo.height
+        })) || [], 
         booking_link: undefined,
-        pet_friendliness_details: undefined,
+        pet_friendliness_details: activitySuggestion.petFriendly ? 'Potentially pet-friendly based on search' : undefined,
         estimated_duration: 60, // Default duration
+        rating: activitySuggestion.rating, // Add rating if available
+        user_ratings_total: activitySuggestion.user_ratings_total, // Add rating count if available
     };
     
     // Call the store action to add the activity
@@ -661,16 +756,72 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   };
 
   const handleSaveTrip = async () => {
-    if (!session || !tripData) { setError('Cannot save: No user session or trip data.'); setToastMessage({title: 'Save Failed', description: 'Please log in and create a trip first.'}); setOpenToast(true); return; }
-    setIsSaving(true); setError(null);
+    if (!session || !tripData) { 
+        setError('Cannot save: No user session or trip data.'); 
+        setToastMessage({title: 'Save Failed', description: 'Please log in and create a trip first.'}); 
+        setOpenToast(true); 
+        return; 
+    }
+    
+    setIsSaving(true); 
+    setError(null);
     const supabase = createClient();
+
+    // Prepare payload (ensure dates are strings if they exist)
+    const dbPayload = {
+        ...tripData,
+        startDate: tripData.startDate && typeof tripData.startDate !== 'string' 
+                    ? (tripData.startDate as Date).toISOString().split('T')[0] 
+                    : tripData.startDate, 
+        endDate: tripData.endDate && typeof tripData.endDate !== 'string'
+                  ? (tripData.endDate as Date).toISOString().split('T')[0]
+                  : tripData.endDate,
+    };
+
     try {
-      const { error: saveError } = await supabase.from('draft_itineraries').upsert({ user_id: session.user.id, trip_data: tripData, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-      if (saveError) throw saveError;
-      setToastMessage({ title: 'Progress Saved', description: 'Draft updated.' }); setOpenToast(true);
+      console.log('[handleSaveTrip] Upserting draft for user:', session.user.id);
+      const { data: upsertedData, error: saveError } = await supabase
+        .from('draft_itineraries')
+        .upsert({ 
+            // id field is omitted
+            user_id: session.user.id, 
+            trip_data: dbPayload, 
+            updated_at: new Date().toISOString() 
+        }, {
+            onConflict: 'user_id' // Explicitly use user_id
+        })
+        .select('id') // Select ID to confirm
+        .single();
+
+      if (saveError) {
+          console.error('[handleSaveTrip] Supabase upsert error:', saveError);
+          throw saveError; 
+      }
+      
+      // We don't strictly *need* the ID here unless we update the store's draftId
+      // But logging it confirms the save worked.
+      if (upsertedData) {
+          console.log('[handleSaveTrip] Draft updated successfully, ID:', upsertedData.id);
+          // Optionally update draftId in zustand store if it changed/was missing
+          if (tripData.draftId !== upsertedData.id) {
+              setTripData({ ...tripData, draftId: upsertedData.id });
+          }
+      } else {
+          console.warn('[handleSaveTrip] Upsert seemed successful but did not return data.');
+      }
+
+      setToastMessage({ title: 'Progress Saved', description: 'Draft updated.' }); 
+      setOpenToast(true);
+
     } catch (e: any) {
-      setError(`Failed to save draft: ${e.message || 'Unknown error'}`); setToastMessage({ title: 'Draft Save Failed', description: `Could not save progress. ${e.message || ''}` }); setOpenToast(true);
-    } finally { setIsSaving(false); }
+      console.error('[handleSaveTrip] Error saving draft:', e);
+      const message = (e as PostgrestError)?.message || (e instanceof Error ? e.message : 'Unknown error');
+      setError(`Failed to save draft: ${message}`); 
+      setToastMessage({ title: 'Draft Save Failed', description: `Could not save progress. ${message}` }); 
+      setOpenToast(true);
+    } finally { 
+      setIsSaving(false); 
+    }
   };
 
   const handleAuthRedirect = (authPath: '/login' | '/signup') => {
@@ -822,8 +973,9 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
       {/* Right content - Itinerary (Takes remaining width, natural scroll) */}
       <div className={cn("flex-grow", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
         {/* Header (Sticky within its column) */}
-        <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200 shadow-sm flex justify-between items-center mb-6 flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+        <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200 shadow-sm flex justify-between items-center mb-6 gap-3">
+          {/* Left side elements */}
+          <div className="flex items-center gap-3 flex-shrink-0">
             {onBackToPlanning && (
               <Button variant="outline" size="sm" onClick={onBackToPlanning}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Planning
@@ -832,9 +984,10 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
             {!showChatbot && (
               <Button variant="outline" size="sm" onClick={() => setShowChatbot(true)}>Show Assistant</Button>
             )}
-            <h1 className="text-2xl font-bold text-black tracking-tight">Your Pet-Friendly Trip</h1>
+            <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1> { /* Hide title on small screens to save space */ }
           </div>
-          <div className="flex gap-2 flex-wrap">
+          {/* Right side button group - prevent shrinking and wrapping */}
+          <div className="flex gap-2 flex-wrap flex-shrink-0">
             <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
               {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
             </Button>
@@ -924,18 +1077,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
             </CardContent>
           </Card>
 
-          {/* Map View */}
-          {showMap && (
-            <Card className="mb-6 shadow-sm">
-              <CardHeader className="p-4">
-                <CardTitle className="text-lg font-semibold text-gray-700">Trip Activity Map</CardTitle>
-              </CardHeader>
-              <CardContent className="p-2">
-                <ItineraryMap activities={activitiesForMap} />
-              </CardContent>
-            </Card>
-          )}
-
           {/* Daily Breakdown */}
           <div>
             <h2 className="text-xl font-bold text-black tracking-tight mb-4">Daily Breakdown</h2>
@@ -957,6 +1098,56 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           </div>
         </div>
       </div>
+
+      {/* Map Drawer */}
+      <Drawer open={showMap} onOpenChange={setShowMap} direction="right">
+        <DrawerContent className="h-screen top-0 right-0 left-auto mt-0 w-[700px] max-w-[90vw] rounded-none flex flex-col"> { /* Increased width */ }
+          <DrawerHeader className="flex-shrink-0 border-b">
+            <DrawerTitle>Trip Activity Map</DrawerTitle>
+            {/* Day Filter Buttons */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Button
+                variant={mapFilterDay === 'all' ? 'default' : 'outline'}
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => setMapFilterDay('all')}
+              >
+                All Days
+              </Button>
+              {[...(new Set(itinerary?.days?.map(d => d.day) || []))].sort((a, b) => a - b).map(dayNum => (
+                <Button
+                  key={dayNum}
+                  variant={mapFilterDay === dayNum ? 'default' : 'outline'}
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => setMapFilterDay(dayNum)}
+                >
+                  Day {dayNum}
+                </Button>
+              ))}
+            </div>
+          </DrawerHeader>
+          <div className="flex-grow overflow-auto p-4">
+            {(() => {
+              // Calculate displayed activities based on filter
+              const displayedMapActivities = mapFilterDay === 'all'
+                ? activitiesForMap
+                : activitiesForMap.filter(activity => {
+                    // Find which day this activity belongs to
+                    const dayData = itinerary?.days?.find(d => d.activities.includes(activity));
+                    return dayData?.day === mapFilterDay;
+                  });
+              
+              return <ItineraryMap activities={displayedMapActivities} />;
+            })()}
+          </div>
+           <DrawerFooter className="flex-shrink-0 border-t">
+            <DrawerClose asChild>
+              <Button variant="outline">Close Map</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* Modals */}
       {(addingActivityDay !== null) && (

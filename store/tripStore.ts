@@ -20,6 +20,8 @@ export interface Activity {
   booking_link?: string;
   pet_friendliness_details?: string;
   estimated_duration?: number;
+  rating?: number;
+  user_ratings_total?: number;
 }
 
 export interface ItineraryDay {

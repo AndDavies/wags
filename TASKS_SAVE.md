@@ -1,6 +1,3 @@
-After Phase 1: Verify email/password login now auto-saves the draft. Verify the useEffect in TripCreationForm is gone but the OAuth save still works (via AuthListener).
-After Phase 2: Verify the "Save Draft" button works correctly for both logged-in and logged-out users (triggering the login flow). Verify "Generate My Trip" still works as before.
-After Phase 3: Verify the post-OAuth redirect flow no longer shows the full homepage layout but goes through the (potentially blank) /auth/processing page before landing on /create-trip.
 
 # Create-Trip Workflow Review & Refinement Tasks (Post-OAuth Fix)
 
