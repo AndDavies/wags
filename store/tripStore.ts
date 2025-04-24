@@ -1,6 +1,70 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+// --- Utility Function to Parse Time --- 
+
+/**
+ * Parses a time string (e.g., "9:00 AM", "14:30", "5pm") into minutes past midnight.
+ * Returns a large number if the time is invalid or missing, placing them at the end.
+ * @param timeString The time string to parse.
+ * @returns Minutes past midnight or a large number (for sorting).
+ */
+const parseTimeToMinutes = (timeString?: string): number => {
+  if (!timeString) {
+    return 9999; // Place activities without time at the end
+  }
+  const cleanedTime = timeString.toLowerCase().replace(/\s+/g, '');
+  let hours = 0;
+  let minutes = 0;
+
+  // Try matching HH:MM am/pm format
+  let match = cleanedTime.match(/^(\d{1,2}):(\d{2})(am|pm)?$/);
+  if (match) {
+    hours = parseInt(match[1], 10);
+    minutes = parseInt(match[2], 10);
+    const period = match[3];
+    if (period === 'pm' && hours < 12) {
+      hours += 12;
+    }
+    if (period === 'am' && hours === 12) { // Midnight case
+      hours = 0;
+    }
+  } else {
+    // Try matching H(am/pm) format (e.g., "5pm", "9am")
+    match = cleanedTime.match(/^(\d{1,2})(am|pm)?$/);
+    if (match) {
+      hours = parseInt(match[1], 10);
+      const period = match[2];
+      if (period === 'pm' && hours < 12) {
+        hours += 12;
+      }
+      if (period === 'am' && hours === 12) {
+        hours = 0;
+      }
+    }
+    // Add more parsing logic if needed (e.g., 24-hour format without colon)
+    else {
+        // Basic 24h check like "1430"
+        match = cleanedTime.match(/^(\d{2})(\d{2})$/);
+        if(match && cleanedTime.length === 4) {
+            hours = parseInt(match[1], 10);
+            minutes = parseInt(match[2], 10);
+        } else {
+             console.warn(`[parseTimeToMinutes] Could not parse time: ${timeString}`);
+             return 9999; // Treat unparseable times as having no time
+        }
+    }
+  }
+
+  // Validate parsed hours and minutes
+  if (isNaN(hours) || hours < 0 || hours > 23 || isNaN(minutes) || minutes < 0 || minutes > 59) {
+    console.warn(`[parseTimeToMinutes] Invalid time after parsing: ${timeString} -> H:${hours} M:${minutes}`);
+    return 9999;
+  }
+
+  return hours * 60 + minutes;
+};
+
 // Export core data structure interfaces
 export interface Activity {
   name: string;
@@ -110,7 +174,16 @@ export const useTripStore = create<TripState>()(
 
         const updatedDays = currentData.itinerary.days.map(dayItem => {
           if (dayItem.day === day) {
-            const activities = [...(dayItem.activities || []), activity];
+            // 1. Add the new activity
+            let activities = [...(dayItem.activities || []), activity];
+
+            // 2. Sort activities by startTime
+            activities.sort((a, b) => {
+              const timeA = parseTimeToMinutes(a.startTime);
+              const timeB = parseTimeToMinutes(b.startTime);
+              return timeA - timeB;
+            });
+
             return { ...dayItem, activities };
           }
           return dayItem;
@@ -130,6 +203,7 @@ export const useTripStore = create<TripState>()(
         const updatedDays = currentData.itinerary.days.map(dayItem => {
           if (dayItem.day === day) {
             const activities = (dayItem.activities || []).filter((_, index) => index !== activityIndex);
+            // No need to re-sort after deletion unless desired
             return { ...dayItem, activities };
           }
           return dayItem;

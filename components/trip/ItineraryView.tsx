@@ -45,6 +45,8 @@ import {
   Phone,
   Info,
   Bed,
+  Image as ImageIcon,
+  ChevronRight,
 } from 'lucide-react';
 import Chatbot from './Chatbot';
 import { Map, Marker, Popup, LngLatBounds } from '@maptiler/sdk';
@@ -58,12 +60,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Timeline, TimelineItem, TimelineContent, TimelineHeader,
   TimelineSeparator, TimelineDate, TimelineTitle, TimelineIndicator
 } from "@/components/ui/timeline";
-import { ActivitySuggestion } from '@/app/api/trip/suggest-activity/route'; // Import the type
+import { ActivitySuggestion } from '@/app/api/trip/suggest-activity/route';
 import {
   Drawer,
   DrawerClose,
@@ -77,39 +80,38 @@ import {
 // --- Interfaces (matching store/API) ---
 interface ItineraryViewProps {
   session: { user: { id: string } } | null;
-  onBackToPlanning?: () => void; // Optional callback to return to form
+  onBackToPlanning?: () => void;
+  onTriggerSave?: () => Promise<void>;
 }
 
 // --- Helper Function & Components ---
 
-// Enhanced getActivityIcon definition with more icons and colors
 const getActivityIcon = (activity: Activity): React.ReactNode => {
   const lowerName = activity.name.toLowerCase();
   const lowerDesc = activity.description.toLowerCase();
   const type = activity.type;
 
-  if (type === 'flight') return <Plane className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />;
-  if (type === 'transfer') return <Car className="h-5 w-5 text-purple-600 mr-3 mt-0.5 flex-shrink-0" />;
-  if (type === 'accommodation') return <Hotel className="h-5 w-5 text-cyan-600 mr-3 mt-0.5 flex-shrink-0" />;
-  if (type === 'preparation') return <ClipboardCheck className="h-5 w-5 text-yellow-700 mr-3 mt-0.5 flex-shrink-0" />;
+  if (type === 'flight') return <Plane className="h-5 w-5 text-blue-600" />;
+  if (type === 'transfer') return <Car className="h-5 w-5 text-purple-600" />;
+  if (type === 'accommodation') return <Hotel className="h-5 w-5 text-cyan-600" />;
+  if (type === 'preparation') return <ClipboardCheck className="h-5 w-5 text-yellow-700" />;
   if (type === 'meal') {
-    if (lowerName.includes('breakfast') || lowerName.includes('cafe') || lowerName.includes('coffee')) return <Coffee className="h-5 w-5 text-yellow-800 mr-3 mt-0.5 flex-shrink-0" />;
-    if (lowerName.includes('lunch')) return <Sandwich className="h-5 w-5 text-orange-500 mr-3 mt-0.5 flex-shrink-0" />;
-    if (lowerName.includes('dinner') || lowerName.includes('restaurant')) return <Utensils className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />;
-    return <Utensils className="h-5 w-5 text-orange-600 mr-3 mt-0.5 flex-shrink-0" />;
+    if (lowerName.includes('breakfast') || lowerName.includes('cafe') || lowerName.includes('coffee')) return <Coffee className="h-5 w-5 text-yellow-800" />;
+    if (lowerName.includes('lunch')) return <Sandwich className="h-5 w-5 text-orange-500" />;
+    if (lowerName.includes('dinner') || lowerName.includes('restaurant')) return <Utensils className="h-5 w-5 text-red-600" />;
+    return <Utensils className="h-5 w-5 text-orange-600" />;
   }
-  if (lowerName.includes('park') || lowerName.includes('hike') || lowerName.includes('outdoor') || lowerDesc.includes('walk')) return <Mountain className="h-5 w-5 text-green-600 mr-3 mt-0.5 flex-shrink-0" />;
-  if (lowerName.includes('museum') || lowerName.includes('gallery') || lowerName.includes('art')) return <Palette className="h-5 w-5 text-indigo-600 mr-3 mt-0.5 flex-shrink-0" />;
-  if (lowerName.includes('landmark') || lowerName.includes('historical') || lowerName.includes('sightseeing')) return <Landmark className="h-5 w-5 text-purple-700 mr-3 mt-0.5 flex-shrink-0" />;
-  if (lowerName.includes('shop') || lowerName.includes('market')) return <ShoppingBag className="h-5 w-5 text-pink-600 mr-3 mt-0.5 flex-shrink-0" />;
-  if (lowerName.includes('vet') || lowerDesc.includes('vet')) return <Stethoscope className="h-5 w-5 text-red-700 mr-3 mt-0.5 flex-shrink-0" />;
-  if (lowerName.includes('beach') || lowerName.includes('water')) return <Waves className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />;
-  if (lowerName.includes('nightlife') || lowerName.includes('bar')) return <Zap className="h-5 w-5 text-yellow-500 mr-3 mt-0.5 flex-shrink-0" />;
-  if (type === 'placeholder' || lowerName.includes('relax') || lowerName.includes('free')) return <Wind className="h-5 w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />;
-  return <MapPin className="h-5 w-5 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />;
+  if (lowerName.includes('park') || lowerName.includes('hike') || lowerName.includes('outdoor') || lowerDesc.includes('walk')) return <Mountain className="h-5 w-5 text-green-600" />;
+  if (lowerName.includes('museum') || lowerName.includes('gallery') || lowerName.includes('art')) return <Palette className="h-5 w-5 text-indigo-600" />;
+  if (lowerName.includes('landmark') || lowerName.includes('historical') || lowerName.includes('sightseeing')) return <Landmark className="h-5 w-5 text-purple-700" />;
+  if (lowerName.includes('shop') || lowerName.includes('market')) return <ShoppingBag className="h-5 w-5 text-pink-600" />;
+  if (lowerName.includes('vet') || lowerDesc.includes('vet')) return <Stethoscope className="h-5 w-5 text-red-700" />;
+  if (lowerName.includes('beach') || lowerName.includes('water')) return <Waves className="h-5 w-5 text-blue-500" />;
+  if (lowerName.includes('nightlife') || lowerName.includes('bar')) return <Zap className="h-5 w-5 text-yellow-500" />;
+  if (type === 'placeholder' || lowerName.includes('relax') || lowerName.includes('free')) return <Wind className="h-5 w-5 text-gray-400" />;
+  return <MapPin className="h-5 w-5 text-gray-500" />;
 };
 
-// Collapsible Card Component
 function CollapsibleCard({ title, icon: Icon, children, startExpanded = false }: { title: string; icon: React.ElementType; children: React.ReactNode; startExpanded?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(startExpanded);
   const handleToggle = () => setIsExpanded(!isExpanded);
@@ -131,7 +133,6 @@ function CollapsibleCard({ title, icon: Icon, children, startExpanded = false }:
   );
 }
 
-// Updated PolicyRequirementsSteps to use Card internally
 function PolicyRequirementsSteps({ steps }: { steps: PolicyRequirementStep[] | undefined }) {
   if (!steps || steps.length === 0) {
     return <p className="text-gray-500 text-xs italic px-2">No specific entry requirement steps found for this destination country.</p>;
@@ -155,7 +156,6 @@ function PolicyRequirementsSteps({ steps }: { steps: PolicyRequirementStep[] | u
   );
 }
 
-// Updated GeneralPreparationInfo to use Card internally
 function GeneralPreparationInfo({ items }: { items: GeneralPreparationItem[] | undefined }) {
   if (!items || items.length === 0) { return null; }
   return (
@@ -185,7 +185,6 @@ function GeneralPreparationInfo({ items }: { items: GeneralPreparationItem[] | u
   );
 }
 
-// Updated BookingOptionCard styling
 function BookingOptionCard({ title, icon, url }: { title: string; icon: React.ReactNode; url: string }) {
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all text-center h-full hover:border-teal-400 group">
@@ -197,183 +196,202 @@ function BookingOptionCard({ title, icon, url }: { title: string; icon: React.Re
   );
 }
 
-// Updated ItineraryDayAccordion
-function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity, onDeleteActivity, tripData }: { 
+function ItineraryDayAccordion({
+    day,
+    index,
+    isExpanded,
+    onToggle,
+    onAddActivityClick,
+    onDeleteActivity,
+    onOpenBookingModal,
+    tripData
+}: { 
     day: ItineraryDay; 
     index: number; 
     isExpanded: boolean; 
     onToggle: () => void; 
-    onAddActivity: () => void; 
+    onAddActivityClick: () => void;
     onDeleteActivity: (actIndex: number) => void; 
+    onOpenBookingModal: (activity: Activity) => void;
     tripData: TripData | null;
 }) {
-  // Filter activities before rendering
+  const [expandedActivityIndex, setExpandedActivityIndex] = useState<number | null>(null);
+
   const validActivities = (day.activities || []).filter((activity, actIndex) => {
-    const isValid = activity && typeof activity.name === 'string' && activity.name.trim() !== '' && typeof activity.location === 'string' && activity.location.trim() !== '' && activity.coordinates;
+    const isValid = activity && typeof activity.name === 'string' && activity.name.trim() !== '' && typeof activity.location === 'string' /* && activity.location.trim() !== '' && activity.coordinates */ ;
     if (!isValid) {
       console.warn(`[ItineraryView] Filtering out invalid activity at Day ${day.day}, Index ${actIndex}:`, activity);
     }
     return isValid;
   });
 
-  // Calculate next day for hotel checkout
-  let checkoutDate = '';
-  if (day.date) {
-    try {
-      const currentDate = new Date(day.date + 'T00:00:00'); // Ensure parsing as local time
-      currentDate.setDate(currentDate.getDate() + 1);
-      checkoutDate = currentDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    } catch (e) {
-      console.error("Error calculating checkout date:", e);
-      checkoutDate = day.date; // Fallback to same day on error
-    }
-  }
+  const toggleActivityDetails = (actIndex: number) => {
+      setExpandedActivityIndex(prev => prev === actIndex ? null : actIndex);
+  };
 
   return (
     <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <button onClick={onToggle} className={cn("w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
         <div>
           <h3 className="text-lg font-bold text-teal-700">Day {day.day}: {day.date}</h3>
-          {/* Display simple city name */}
           <p className="text-sm text-gray-600 mt-0.5">{day.city?.split(',')[0] || 'Unknown City'}</p> 
         </div>
         <ChevronDown className={cn("h-5 w-5 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
       </button>
+      
       {isExpanded && (
         <div className="p-4">
-          {/* Daily Narrative Intro */}
           {day.narrative_intro && (
             <p className="text-sm text-gray-700 italic mb-4 bg-teal-50 p-3 rounded-md border border-teal-100">{day.narrative_intro}</p>
           )}
-
+          
           {day.travel && (
-            <div className="mb-4 bg-blue-50 p-3 rounded-md border border-blue-200">
-              <h4 className="font-semibold flex items-center text-blue-700 text-sm"><Plane className="h-4 w-4 mr-1.5" /> Travel Details</h4>
-              <p className="text-gray-700 mt-1 text-sm">{day.travel}</p>
-            </div>
-          )}
+             <div className="mb-4 bg-blue-50 p-3 rounded-md border border-blue-200">
+               <h4 className="font-semibold flex items-center text-blue-700 text-sm"><Plane className="h-4 w-4 mr-1.5" /> Travel Details</h4>
+               <p className="text-gray-700 mt-1 text-sm">{day.travel}</p>
+             </div>
+           )}
 
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-semibold text-gray-800 text-base">Activities</h4>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={onAddActivity}
-                className="text-xs h-7 px-2"
-              >
-                <Plus className="h-3 w-3 mr-1" /> Add
-              </Button>
-            </div>
-            <Timeline>
-              {validActivities.length > 0 ? (
-                validActivities.map((activity, actIndex) => {
-                  const icon = getActivityIcon(activity);
-                  const simpleLocation = activity.location?.split(',')[0] || 'Location details missing';
+          <div className="space-y-2">
+            {validActivities.length > 0 ? (
+              validActivities.map((activity, actIndex) => {
+                const isDetailsExpanded = expandedActivityIndex === actIndex;
+                const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+                const photoRef = activity.photo_references?.[0]?.photo_reference;
+                const imageUrl = googleApiKey && photoRef 
+                    ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${photoRef}&key=${googleApiKey}`
+                    : null;
 
-                  return (
-                    <TimelineItem key={activity.name + actIndex} step={actIndex + 1} className="group relative">
-                      <TimelineHeader className="items-center">
-                        <TimelineSeparator className="[&>div]:bg-gray-400" />
-                        <TimelineDate className="text-xs text-gray-500 w-16 text-right pt-0.5">{activity.startTime || ''}</TimelineDate>
-                        <div className="flex items-center gap-2 flex-grow">
-                          <TimelineTitle className="font-semibold text-gray-800 text-sm leading-snug pr-6 sm:-mt-0.5">{activity.name}</TimelineTitle>
-                        </div>
-                        <TimelineIndicator className="!bg-transparent border-gray-400">
-                          {React.cloneElement(getActivityIcon(activity) as React.ReactElement, { className: "h-3.5 w-3.5" })}
-                        </TimelineIndicator>
-                      </TimelineHeader>
-
-                      <TimelineContent className="space-y-2 pt-1">
-                        <div className="text-gray-600 text-sm prose prose-sm max-w-none prose-a:text-teal-600 hover:prose-a:text-teal-700">
-                          <ReactMarkdown components={{ a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}>
-                            {activity.description || ''}
-                          </ReactMarkdown>
-                        </div>
-
-                        {activity.photo_references && activity.photo_references.length > 0 && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
-                          <img 
-                            src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${activity.photo_references[0].photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
-                            alt={`Photo of ${activity.name}`}
-                            className="mt-1 rounded-md max-h-40 w-auto shadow-sm border border-gray-200"
-                            loading="lazy"
-                          />
-                        )}
-
-                        <div className="text-xs text-gray-500 space-y-1.5 pt-1">
-                          <p className="flex items-center"><MapPin className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {simpleLocation}</p>
-                          {activity.cost && activity.cost !== "$ - $" && activity.cost !== "Free" && (
-                            <p className="flex items-center"><DollarSign className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.cost}</p>
-                          )}
-                          {(activity.endTime || activity.estimated_duration) && (
-                            <p className="flex items-center font-medium text-gray-600">
-                              <Clock className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" />
-                              {activity.startTime && activity.endTime
-                                ? `${activity.startTime} - ${activity.endTime}`
-                                : activity.startTime
-                                  ? `Starts ${activity.startTime}`
-                                  : activity.endTime
-                                    ? `Ends ~${activity.endTime}`
-                                    : 'Timing not specified'}
-                              {activity.estimated_duration ? ` (Est. ${activity.estimated_duration} min)` : ''}
-                            </p>
-                          )}
-                          {activity.phone_number && (
-                            <p className="flex items-center"><Phone className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.phone_number}</p>
-                          )}
-                          {activity.opening_hours && (
-                            <p className="flex items-start"><Info className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-gray-400" /> Hours: {activity.opening_hours}</p>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1.5">
-                          {activity.website && activity.type !== 'accommodation' && ( // Conditionally show website link
-                            <a href={activity.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-teal-600 hover:text-teal-700 text-xs font-medium hover:underline">
-                              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Visit Website
-                            </a>
-                          )}
-                          {activity.type === 'accommodation' && day.date && checkoutDate && ( // Ensure dates exist before rendering
-                            <a
-                              href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(day.city?.split(',')[0] || '')}&checkin=${day.date}&checkout=${checkoutDate}&group_adults=${tripData?.adults || 1}&group_children=${tripData?.children || 0}&pets=1&lang=en-us&aid=YOUR_AFFILIATE_ID`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center px-3 py-1 bg-mustard-500 hover:bg-mustard-600 text-white text-xs font-medium rounded-md shadow-sm transition-colors"
-                            >
-                              <Bed className="h-3.5 w-3.5 mr-1" /> Check Rates / Book
-                            </a>
-                          )}
-                        </div>
-
-                        {activity.pet_friendliness_details && activity.pet_friendliness_details !== "N/A" && (
-                          <p className="text-xs text-amber-700 mt-1 flex items-start bg-amber-50 p-1.5 rounded border border-amber-100">
-                            <Dog className="h-3.5 w-3.5 mr-1.5 mt-0.5 flex-shrink-0 text-amber-600" />
-                            <span>{activity.pet_friendliness_details}</span>
-                          </p>
-                        )}
-                      </TimelineContent>
-
-                      <button
-                        onClick={() => {
-                          const originalIndex = (day.activities || []).findIndex(a => a === activity);
-                          if (originalIndex !== -1) {
-                            onDeleteActivity(originalIndex);
-                          } else {
-                            console.error("Could not find original index for deletion after filtering");
-                          }
-                        }}
-                        className="absolute top-2 right-2 text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-red-50"
-                        aria-label="Delete activity"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </TimelineItem>
+                let actionButton: React.ReactNode = null;
+                if (activity.type === 'accommodation') {
+                  actionButton = (
+                    <Button 
+                       size="sm" 
+                       onClick={() => onOpenBookingModal(activity)} 
+                       className="bg-gray-800 hover:bg-black text-white text-xs h-8 px-3 shadow-sm"
+                     >Book</Button>
                   );
-                })
-              ) : ( <p className="text-gray-500 italic text-sm px-1">No activities planned for this day.</p> )} 
-            </Timeline>
+                } else if (activity.website) {
+                    actionButton = (
+                        <Button 
+                            variant="outline"
+                            size="sm" 
+                            onClick={() => window.open(activity.website, '_blank')} 
+                            className="text-xs h-8 px-3 shadow-sm"
+                        >
+                           Site <ExternalLink className="h-3 w-3 ml-1.5" />
+                        </Button>
+                    );
+                } else {
+                     actionButton = (
+                        <Button 
+                            variant="ghost"
+                            size="sm" 
+                            onClick={() => toggleActivityDetails(actIndex)} 
+                            className="text-xs h-8 px-3 text-gray-600 hover:bg-gray-100"
+                        >
+                           Details <ChevronRight className={cn("h-4 w-4 ml-1 transition-transform", isDetailsExpanded && "rotate-90")} />
+                        </Button>
+                     );
+                }
+                
+                const distance = "0.53 mi";
+
+                return (
+                  <Fragment key={`${activity.name}-${actIndex}`}>
+                    <div className="flex items-start space-x-3 group relative py-2">
+                       <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+                            {imageUrl ? (
+                                <img src={imageUrl} alt={activity.name} className="object-cover w-full h-full" loading="lazy" />
+                            ) : (
+                                <ImageIcon className="h-6 w-6 text-gray-400" />
+                            )}
+                       </div>
+
+                       <div className="flex-grow min-w-0">
+                           <div className="flex items-center mb-0.5">
+                             <span className="mr-1.5">{React.cloneElement(getActivityIcon(activity) as React.ReactElement, { className: "h-4 w-4" })}</span>
+                             <h4 className="text-sm font-semibold text-gray-800 tracking-tight truncate">{activity.name}</h4>
+                           </div>
+                           <p className="text-xs text-gray-500 flex items-center tracking-tight">
+                              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                              {activity.startTime ? `${activity.startTime}${activity.endTime ? ` - ${activity.endTime}` : ''}` : 'Time not specified'}
+                           </p>
+                           {isDetailsExpanded && (
+                                <div className="mt-2 space-y-2 pr-4">
+                                    <div className="text-gray-600 text-sm tracking-tight prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-a:text-teal-600 hover:prose-a:text-teal-700">
+                                      <ReactMarkdown components={{ a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}>
+                                        {activity.description || 'No description available.'}
+                                      </ReactMarkdown>
+                                    </div>
+                                    <div className="text-xs text-gray-500 space-y-1 pt-1">
+                                       <p className="flex items-center tracking-tight"><MapPin className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.location?.split(',')[0] || 'Location details missing'}</p>
+                                        {activity.cost && activity.cost !== "$ - $" && activity.cost !== "Free" && (
+                                          <p className="flex items-center tracking-tight"><DollarSign className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.cost}</p>
+                                        )}
+                                        {activity.estimated_duration && (
+                                            <p className="flex items-center font-medium text-gray-600 tracking-tight">
+                                                <Clock className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" />
+                                                Est. {activity.estimated_duration} min
+                                            </p>
+                                        )}
+                                         {activity.phone_number && (
+                                           <p className="flex items-center tracking-tight"><Phone className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.phone_number}</p>
+                                         )}
+                                         {activity.opening_hours && (
+                                           <p className="flex items-start tracking-tight"><Info className="h-3 w-3 mr-1.5 mt-0.5 flex-shrink-0 text-gray-400" /> Hours: {activity.opening_hours}</p>
+                                         )}
+                                    </div>
+                                    {activity.pet_friendliness_details && activity.pet_friendliness_details !== "N/A" && (
+                                      <p className="text-xs text-amber-700 mt-1 flex items-start bg-amber-50 p-1.5 rounded border border-amber-100 tracking-tight">
+                                        <Dog className="h-3.5 w-3.5 mr-1.5 mt-0.5 flex-shrink-0 text-amber-600" />
+                                        <span>{activity.pet_friendliness_details}</span>
+                                      </p>
+                                    )}
+                                </div>
+                           )}
+                       </div>
+
+                       <div className="flex-shrink-0 ml-2">
+                           {actionButton}
+                       </div>
+
+                       <button
+                           onClick={() => {
+                               const originalIndex = (day.activities || []).findIndex(a => a === activity);
+                               if (originalIndex !== -1) onDeleteActivity(originalIndex);
+                               else console.error("Could not find original index for deletion after filtering");
+                           }}
+                           className="absolute top-1 right-1 text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-red-50 z-10"
+                           aria-label="Delete activity"
+                       >
+                           <X className="h-3.5 w-3.5" />
+                       </button>
+                    </div>
+                    {actIndex < validActivities.length - 1 && (
+                       <div className="flex items-center my-1">
+                           <span className="text-xs text-gray-400 tracking-tight pl-20">{distance}</span>
+                           <div className="flex-grow border-t border-dashed border-gray-200 ml-2"></div>
+                       </div>
+                    )}
+                  </Fragment>
+                );
+              })
+            ) : ( 
+              <p className="text-gray-500 italic text-sm px-1 text-center py-4">No activities planned for this day.</p> 
+            )}
+            <div className="pt-2">
+                 <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={onAddActivityClick}
+                    className="w-full text-xs h-9"
+                  >
+                   <Plus className="h-3 w-3 mr-1" /> Add Activity
+                 </Button>
+             </div>
           </div>
 
-          {/* Daily Narrative Outro */} 
           {day.narrative_outro && (
             <p className="text-sm text-gray-700 italic mt-4 bg-teal-50 p-3 rounded-md border border-teal-100">{day.narrative_outro}</p>
           )}
@@ -383,71 +401,151 @@ function ItineraryDayAccordion({ day, index, isExpanded, onToggle, onAddActivity
   );
 }
 
-function ItineraryMap({ activities }: { activities: Array<Activity> }) {
-  // Maptiler configuration
-  const MAPTILER_API_KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
-  const DEFAULT_COORDS = { lat: 39.8283, lng: -98.5795 }; // Center of USA as fallback
-  const MAP_STYLE = 'streets-v2'; // Use OpenStreetMap-derived style
-  const MAX_MARKERS = 50; // Limit markers for performance
+interface HotelBookingModalProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    activity: Activity | null;
+    tripData: TripData | null;
+}
 
-  // Refs for map container and Maptiler instance
+function HotelBookingModal({ open, onOpenChange, activity, tripData }: HotelBookingModalProps) {
+    if (!activity || !tripData) return null;
+
+    const checkInDate = tripData.startDate ? (typeof tripData.startDate === 'string' ? tripData.startDate : tripData.startDate.toISOString().split('T')[0]) : '';
+    const checkOutDate = tripData.endDate ? (typeof tripData.endDate === 'string' ? tripData.endDate : tripData.endDate.toISOString().split('T')[0]) : '';
+    const city = activity.location?.split(',')[0] || 'Unknown City';
+    const adults = tripData.adults || 1;
+    const children = tripData.children || 0;
+
+    const partners = [
+        {
+            name: 'Booking.com',
+            logo: 'https://q-xx.bstatic.com/backend_static/common/flags/new/booking_logo_dark_bg.svg',
+            url: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(activity.name)}%2C%20${encodeURIComponent(city)}&checkin=${checkInDate}&checkout=${checkOutDate}&group_adults=${adults}&group_children=${children}&pets=1&lang=en-us&aid=YOUR_AFFILIATE_ID`
+        },
+        {
+            name: 'Priceline',
+            logo: 'https://www.priceline.com/v1/media/common/logos/priceline/logo-contrast.svg',
+            url: `https://www.priceline.com/hotels/?city=${encodeURIComponent(city)}&check-in-date=${checkInDate}&check-out-date=${checkOutDate}&adults=${adults}&children=${children}&amenities=17&property-name=${encodeURIComponent(activity.name)}`
+        },
+        {
+            name: 'Agoda',
+            logo: 'https://cdn6.agoda.net/images/kite-js/logo/agoda/color-default.svg',
+            url: `https://www.agoda.com/search?city=${encodeURIComponent(city)}&checkIn=${checkInDate}&checkOut=${checkOutDate}&adults=${adults}&children=${children}&Search=${encodeURIComponent(activity.name)}&pets=1`
+        },
+         {
+            name: 'Michelin Guide',
+            logo: 'https://guide.michelin.com/_ipx/image//_next/static/media/michelin-guide-logo-desktop.4570a79f.svg?url=%2F_next%2Fstatic%2Fmedia%2Fmichelin-guide-logo-desktop.4570a79f.svg&w=384&q=75',
+            url: `https://guide.michelin.com/us/en/search?q=${encodeURIComponent(activity.name)}%20${encodeURIComponent(city)}`
+        },
+        {
+            name: 'Direct',
+            logo: null,
+            url: activity.website || `https://www.google.com/search?q=${encodeURIComponent(activity.name)}%20${encodeURIComponent(city)}`
+        },
+    ];
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="text-lg font-semibold">{activity.name}</DialogTitle>
+                    <DialogDescription>
+                        Booking options {checkInDate && checkOutDate ? ` • ${checkInDate} - ${checkOutDate}` : ''}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-3 max-h-[60vh] overflow-y-auto">
+                    {partners.map((partner) => (
+                        <div key={partner.name} className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-white">
+                            <div className="flex items-center space-x-3">
+                               {partner.logo ? (
+                                   <img src={partner.logo} alt={partner.name} className="h-6 object-contain" />
+                               ) : partner.name === 'Direct' ? (
+                                    <Hotel className="h-5 w-5 text-gray-500" />
+                               ) : null}
+                                <div>
+                                   <p className="text-sm font-medium text-gray-800">{partner.name}</p>
+                                   <p className="text-xs text-gray-500">
+                                      {partner.name === 'Direct' ? 'Book directly with the hotel' : `Book at ${partner.name.toLowerCase()}`}
+                                   </p>
+                               </div>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(partner.url, '_blank')}
+                                className="text-xs h-8 px-3 shadow-sm"
+                            >
+                                Visit site <ExternalLink className="h-3 w-3 ml-1.5" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+                 <DialogFooter className="sm:justify-start">
+                     <DialogClose asChild>
+                         <Button type="button" variant="secondary">
+                             Close
+                         </Button>
+                     </DialogClose>
+                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function ItineraryMap({ activities }: { activities: Array<Activity> }) {
+  const MAPTILER_API_KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
+  const DEFAULT_COORDS = { lat: 39.8283, lng: -98.5795 };
+  const MAP_STYLE = 'streets-v2';
+  const MAX_MARKERS = 50;
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const markersRef = useRef<Marker[]>([]);
 
-  // State for selected activity
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
-  // Initialize Maptiler map and markers
   useEffect(() => {
-    if (!MAPTILER_API_KEY || !mapContainerRef.current || mapRef.current) return; // Ensure map doesn't re-initialize
+    if (!MAPTILER_API_KEY || !mapContainerRef.current || mapRef.current) return;
 
-    // Filter valid activities with coordinates BEFORE initializing map
     const validActivities = activities
         .filter(activity => activity.coordinates && activity.coordinates.lat !== 0 && activity.coordinates.lng !== 0)
         .slice(0, MAX_MARKERS);
 
-    // Determine initial center and zoom
     let initialCenter: [number, number] = [DEFAULT_COORDS.lng, DEFAULT_COORDS.lat];
     let initialZoom: number = 3;
 
     if (validActivities.length === 1) {
-        // If only one activity, center on it
         initialCenter = [validActivities[0].coordinates.lng, validActivities[0].coordinates.lat];
-        initialZoom = 13; // Zoom in closer for single point
+        initialZoom = 13;
     } else if (validActivities.length > 1) {
-        // If multiple activities, calculate bounds later
-        // Set initial center roughly (first point or default)
         initialCenter = [validActivities[0].coordinates.lng, validActivities[0].coordinates.lat];
-        initialZoom = 10; // Start with a reasonable zoom, fitBounds will adjust
+        initialZoom = 10;
     }
 
-    // Initialize map
     try {
         mapRef.current = new Map({
             container: mapContainerRef.current,
-            style: MAP_STYLE, // Use the new style
+            style: MAP_STYLE,
             center: initialCenter,
             zoom: initialZoom,
             apiKey: MAPTILER_API_KEY,
         });
     } catch (mapError) {
         console.error("Error initializing Maptiler map:", mapError);
-        return; // Don't proceed if map fails to initialize
+        return;
     }
 
-    // Add markers and popups
-    markersRef.current.forEach(marker => marker.remove()); // Clear previous markers
+    markersRef.current.forEach(marker => marker.remove());
     markersRef.current = validActivities.map(activity => {
         const markerElement = document.createElement('div');
-        // Add text label below the SVG marker icon
         markerElement.innerHTML = `
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${
-            activity.type === 'meal' ? '#f97316' : // Orange for meals
-            activity.type === 'accommodation' ? '#0891b2' : // Cyan for accommodation
-            activity.petFriendly ? '#14b8a6' : // Teal for pet-friendly
-            '#6b7280' // Gray for others/unknown
+            activity.type === 'meal' ? '#f97316' :
+            activity.type === 'accommodation' ? '#0891b2' :
+            activity.petFriendly ? '#14b8a6' :
+            '#6b7280'
             }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin">
               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
               <circle cx="12" cy="10" r="3"/>
@@ -462,12 +560,11 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
 
         const marker = new Marker({ 
             element: markerElement,
-            anchor: 'bottom' // Anchor the marker at the bottom center of the SVG pin
+            anchor: 'bottom'
         })
             .setLngLat([activity.coordinates.lng, activity.coordinates.lat])
             .addTo(mapRef.current!);
 
-        // Enhanced Popup Content
         const popup = new Popup({ offset: 30 })
             .setHTML(`
             <div class="p-2.5 max-w-xs bg-white rounded-lg shadow-lg border border-gray-100 font-sans">
@@ -485,8 +582,7 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
         marker.setPopup(popup);
 
         marker.getElement().addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent map click event when clicking marker
-            // Close any existing popups
+            e.stopPropagation();
             markersRef.current.forEach(m => m.getPopup()?.remove());
             setSelectedActivity(activity);
             popup.addTo(mapRef.current!);
@@ -495,40 +591,33 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
         return marker;
     });
 
-    // Fit map to bounds if multiple activities exist
     if (validActivities.length > 1) {
         const bounds = new LngLatBounds();
         validActivities.forEach(activity => {
             bounds.extend([activity.coordinates.lng, activity.coordinates.lat]);
         });
         try {
-           mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 15 }); // Add padding and limit max zoom
+           mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 15 });
         } catch (fitBoundsError) {
             console.error("Error fitting map bounds:", fitBoundsError);
         }
     }
 
-    // Handle popup close on map click or custom event
     const handleClosePopup = () => {
         setSelectedActivity(null);
         markersRef.current.forEach(marker => marker.getPopup()?.remove());
     };
-    mapRef.current?.on('click', handleClosePopup); // Close popup on map click
-    document.addEventListener('close-popup', handleClosePopup); // Close popup via button
+    mapRef.current?.on('click', handleClosePopup);
+    document.addEventListener('close-popup', handleClosePopup);
 
-    // Cleanup on unmount
     return () => {
         document.removeEventListener('close-popup', handleClosePopup);
         mapRef.current?.remove();
         mapRef.current = null;
-        markersRef.current = []; // Clear marker refs
+        markersRef.current = [];
     };
-  // IMPORTANT: Re-run effect only if activities array *reference* changes, not just content
-  // This prevents excessive map re-renders if the parent component updates tripData frequently.
-  // Consider passing a stable reference or memoized version if needed.
   }, [MAPTILER_API_KEY, activities]); 
 
-  // Simplified render structure for the map container
   return (
     <div className="w-full h-full rounded-lg overflow-hidden relative border border-gray-200 min-h-[300px]">
       {!MAPTILER_API_KEY && (
@@ -543,22 +632,17 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
   );
 }
 
-// --- Main Component ---
-export default function ItineraryView({ session, onBackToPlanning }: ItineraryViewProps) {
-  // Get state/actions from store
+export default function ItineraryView({ session, onBackToPlanning, onTriggerSave }: ItineraryViewProps) {
   const { tripData, isSaving, error, clearTrip, addActivity, deleteActivity, setIsSaving, setError, setTripData } = useTripStore();
 
-  // Hooks for navigation and path
   const router = useRouter();
   const pathname = usePathname();
 
-  // Derive specific data from tripData, handle null case
   const itinerary = tripData?.itinerary;
   const policyRequirements = tripData?.policyRequirements;
   const generalPreparation = tripData?.generalPreparation;
   const preDeparturePreparation = tripData?.preDeparturePreparation;
 
-  // Component state
   const [expandedDays, setExpandedDays] = useState<number[]>([]);
   const [openToast, setOpenToast] = useState(false);
   const [toastMessage, setToastMessage] = useState({ title: '', description: '' });
@@ -571,18 +655,18 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   const [vetSearchResults, setVetSearchResults] = useState<any[]>([]);
   const [isSearchingVets, setIsSearchingVets] = useState(false);
   const [showChatbot, setShowChatbot] = useState(true);
-  const [isPolicyExpanded, setIsPolicyExpanded] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [mapFilterDay, setMapFilterDay] = useState<number | 'all'>('all'); // State for map day filter
+  const [mapFilterDay, setMapFilterDay] = useState<number | 'all'>('all');
+  
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedHotelActivity, setSelectedHotelActivity] = useState<Activity | null>(null);
 
-  // Expand first day effect
   useEffect(() => {
     if (itinerary?.days && itinerary.days.length > 0 && expandedDays.length === 0) {
       setExpandedDays([itinerary.days[0].day]);
     }
   }, [itinerary, expandedDays]);
 
-  // --- Phase 3: Restore Itinerary from sessionStorage --- 
   useEffect(() => {
     console.log('[ItineraryView] Checking for pending itinerary on mount...');
     if (session) { 
@@ -590,7 +674,7 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
       if (pendingData) {
         console.log('[ItineraryView] Found pending itinerary in sessionStorage.');
         try {
-          const parsedData = JSON.parse(pendingData) as TripData; // Type assertion should work now
+          const parsedData = JSON.parse(pendingData) as TripData;
           
           setTripData(parsedData); 
           sessionStorage.removeItem('pendingItinerarySave'); 
@@ -612,11 +696,8 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
     } else {
         console.log('[ItineraryView] User not logged in, skipping restore check.');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]); 
-   // --- End Phase 3 --- 
-
-  // Map activities effect
+  
   useEffect(() => {
     if (itinerary?.days) {
       const allActivities = itinerary.days.flatMap((day: ItineraryDay) => day.activities || []);
@@ -626,13 +707,12 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
     }
   }, [itinerary]);
 
-  // Handlers
   const handleToggleDay = (day: number) => {
     setExpandedDays((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]);
   };
   const toggleMapView = () => setShowMap(prev => !prev);
 
-  const handleAddActivity = async (day: number) => {
+  const handleAddActivityClick = async (day: number) => {
     const currentDayData = itinerary?.days.find(d => d.day === day);
     if (!currentDayData || !tripData) { 
         setToastMessage({ title: 'Error', description: 'Cannot add activity: Missing day or trip data.' }); 
@@ -640,7 +720,7 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
         return; 
     }
 
-    setAddingActivityDay(day); // Open the modal
+    setAddingActivityDay(day);
     setIsSearchingActivities(true);
     setActivitySearchResults([]);
     
@@ -648,11 +728,9 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
     console.log(`[ItineraryView] Fetching suggestions from ${apiUrl} for Day ${day} in ${currentDayData.city}`);
 
     try {
-        // Prepare request body
         const requestBody = {
             dayNumber: day,
-            city: currentDayData.city || tripData.destination || '', // Use day city or fallback
-            // Try to get coordinates from the first existing activity of the day as a reference
+            city: currentDayData.city || tripData.destination || '',
             coordinates: currentDayData.activities?.[0]?.coordinates,
             interests: tripData.interests,
             budget: tripData.budget,
@@ -673,56 +751,52 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
         
         const results = await response.json();
         console.log("[ItineraryView] Received suggestions:", results.suggestions);
-        setActivitySearchResults(results.suggestions || []); // Expecting { suggestions: ActivitySuggestion[] }
+        setActivitySearchResults(results.suggestions || []);
 
     } catch (error: any) {
         console.error("[ItineraryView] Error fetching activity suggestions:", error);
         setToastMessage({ title: 'Error', description: `Could not fetch suggestions: ${error.message}` });
         setOpenToast(true);
-        setActivitySearchResults([]); // Clear results on error
+        setActivitySearchResults([]);
     } finally {
         setIsSearchingActivities(false);
     }
   };
 
   const handleSelectActivity = (day: number, activitySuggestion: ActivitySuggestion) => {
-    // Construct the Activity object from the suggestion
     const newActivity: Activity = {
         place_id: activitySuggestion.place_id,
         name: activitySuggestion.name || 'Suggested Activity',
-        description: activitySuggestion.description || '', // Use description if available from API
-        petFriendly: activitySuggestion.petFriendly ?? false, // Use API value or default
+        description: activitySuggestion.description || '',
+        petFriendly: activitySuggestion.petFriendly ?? false,
         location: activitySuggestion.location || 'Unknown Location',
         coordinates: activitySuggestion.coordinates || { lat: 0, lng: 0 },
-        type: 'activity', // Default type, could refine based on suggestion.types
+        type: 'activity',
         startTime: undefined,
         endTime: undefined,
-        cost: undefined, // Cost isn't directly provided by basic search
+        cost: undefined,
         website: activitySuggestion.website,
-        phone_number: undefined, // Not typically in basic search results
-        opening_hours: undefined, // Not typically in basic search results
-        // Simplify photo_references to store only the reference string
+        phone_number: undefined,
+        opening_hours: undefined,
         photo_references: activitySuggestion.photo_references?.map(photo => ({ 
             photo_reference: photo.photo_reference,
-            // Optionally keep width/height if needed for display hints, but avoid html_attributions
             width: photo.width,
             height: photo.height
         })) || [], 
         booking_link: undefined,
         pet_friendliness_details: activitySuggestion.petFriendly ? 'Potentially pet-friendly based on search' : undefined,
-        estimated_duration: 60, // Default duration
-        rating: activitySuggestion.rating, // Add rating if available
-        user_ratings_total: activitySuggestion.user_ratings_total, // Add rating count if available
+        estimated_duration: 60,
+        rating: activitySuggestion.rating,
+        user_ratings_total: activitySuggestion.user_ratings_total,
     };
     
-    // Call the store action to add the activity
     addActivity(day, newActivity);
     
     setAddingActivityDay(null); 
     setActivitySearchResults([]);
     setToastMessage({ title: 'Activity Added', description: `${newActivity.name} added to Day ${day}` }); 
     setOpenToast(true);
-    handleSaveTrip(); // Save trip after adding activity
+    handleSaveTrip();
   };
 
   const handleDeleteActivity = (day: number, activityIndex: number) => {
@@ -767,7 +841,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
     setError(null);
     const supabase = createClient();
 
-    // Prepare payload (ensure dates are strings if they exist)
     const dbPayload = {
         ...tripData,
         startDate: tripData.startDate && typeof tripData.startDate !== 'string' 
@@ -783,14 +856,13 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
       const { data: upsertedData, error: saveError } = await supabase
         .from('draft_itineraries')
         .upsert({ 
-            // id field is omitted
             user_id: session.user.id, 
             trip_data: dbPayload, 
             updated_at: new Date().toISOString() 
         }, {
-            onConflict: 'user_id' // Explicitly use user_id
+            onConflict: 'user_id'
         })
-        .select('id') // Select ID to confirm
+        .select('id')
         .single();
 
       if (saveError) {
@@ -798,11 +870,8 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           throw saveError; 
       }
       
-      // We don't strictly *need* the ID here unless we update the store's draftId
-      // But logging it confirms the save worked.
       if (upsertedData) {
           console.log('[handleSaveTrip] Draft updated successfully, ID:', upsertedData.id);
-          // Optionally update draftId in zustand store if it changed/was missing
           if (tripData.draftId !== upsertedData.id) {
               setTripData({ ...tripData, draftId: upsertedData.id });
           }
@@ -825,13 +894,12 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
   };
 
   const handleAuthRedirect = (authPath: '/login' | '/signup') => {
-    console.log(`[handleAuthRedirect] Called for path: ${authPath}`); // Log entry
+    console.log(`[handleAuthRedirect] Called for path: ${authPath}`);
     if (!tripData) { 
         console.error('[handleAuthRedirect] CRITICAL: No tripData available in store when attempting to save pending action.');
-        // Show error toast to user
         setToastMessage({ title: 'Error', description: 'Cannot save trip data. Please try generating the trip again.' });
         setOpenToast(true);
-        setShowAuthModal(false); // Close modal on failure
+        setShowAuthModal(false);
         return; 
     }
     try {
@@ -860,9 +928,9 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
       const authRedirectUrl = `${authPath}?redirect=${encodeURIComponent(finalRedirectPath)}&reason=pendingSave`;
       
       console.log(`[handleAuthRedirect] Attempting redirect to: ${authRedirectUrl}`);
-      setShowAuthModal(false); // Close modal immediately before push
+      setShowAuthModal(false);
       router.push(authRedirectUrl);
-      console.log(`[handleAuthRedirect] router.push executed.`); // Log after push
+      console.log(`[handleAuthRedirect] router.push executed.`);
 
     } catch (error) {
        console.error('[ItineraryView] Error setting localStorage or stringifying:', error);
@@ -875,7 +943,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
 
   const handleFinalSave = async () => {
     if (!session) {
-      // --- Guest User Flow: Open Modal --- 
       if (!tripData) {
           setToastMessage({ title: 'No Trip Data', description: 'Cannot save an empty trip.' });
           setOpenToast(true);
@@ -886,7 +953,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
       return;
     }
 
-    // --- Logged-in User Flow (existing logic) --- 
     if (!tripData) {
       setToastMessage({ title: 'No Trip Data', description: 'Cannot save an empty trip.' });
       setOpenToast(true);
@@ -922,17 +988,20 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
 
   const handleNewTrip = async () => {
     if (session) {
-      // Clear draft
       const supabase = createClient();
       await supabase.from('draft_itineraries').delete().match({ user_id: session.user.id });
     }
     clearTrip();
     if (onBackToPlanning) {
-        onBackToPlanning(); // Go back to form after clearing
+        onBackToPlanning();
     }
   };
 
-  // --- Render Logic ---
+  const handleOpenBookingModal = (activity: Activity) => {
+      setSelectedHotelActivity(activity);
+      setIsBookingModalOpen(true);
+  };
+
   if (!tripData) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -959,22 +1028,19 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
 
   return (
     <div className="flex flex-col md:flex-row relative font-sans">
-      {/* Left sidebar - Chatbot (Sticky) */}
       {showChatbot && (
         <div className="w-full md:w-[35%] md:sticky md:top-0 md:h-screen md:border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0 mb-6 md:mb-0">
           <Chatbot
             tripData={tripData}
             session={session}
             onClose={() => setShowChatbot(false)}
+            onTriggerSave={onTriggerSave}
           />
         </div>
       )}
 
-      {/* Right content - Itinerary (Takes remaining width, natural scroll) */}
       <div className={cn("flex-grow", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
-        {/* Header (Sticky within its column) */}
         <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200 shadow-sm flex justify-between items-center mb-6 gap-3">
-          {/* Left side elements */}
           <div className="flex items-center gap-3 flex-shrink-0">
             {onBackToPlanning && (
               <Button variant="outline" size="sm" onClick={onBackToPlanning}>
@@ -984,9 +1050,8 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
             {!showChatbot && (
               <Button variant="outline" size="sm" onClick={() => setShowChatbot(true)}>Show Assistant</Button>
             )}
-            <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1> { /* Hide title on small screens to save space */ }
+            <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1>
           </div>
-          {/* Right side button group - prevent shrinking and wrapping */}
           <div className="flex gap-2 flex-wrap flex-shrink-0">
             <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
               {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
@@ -1004,7 +1069,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           </div>
         </div>
 
-        {/* Toast */}
         <Toast.Provider swipeDirection="right">
           <Toast.Root open={openToast} onOpenChange={setOpenToast} className="bg-white border border-gray-200 shadow-lg p-4 rounded-lg z-50 data-[state=open]:animate-slideIn data-[state=closed]:animate-hide data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-swipeOut">
             <Toast.Title className={cn("font-semibold text-base mb-1", error ? "text-red-600" : "text-teal-700")}>{toastMessage.title}</Toast.Title>
@@ -1014,11 +1078,9 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw] z-[2147483647] outline-none" />
         </Toast.Provider>
 
-        {/* Error Display */}
         {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 mx-4" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
 
         <div className="p-4 md:p-6 pt-0">
-          {/* Pre-Departure Steps (if they exist) */}
           {preDeparturePreparation && preDeparturePreparation.length > 0 && (
               <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={true}>
                   <div className="space-y-2.5 mt-1">
@@ -1036,13 +1098,11 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
               </CollapsibleCard>
           )}
 
-          {/* Policy Info (Collapsible) */}
           <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}>
             <PolicyRequirementsSteps steps={policyRequirements} />
             <GeneralPreparationInfo items={generalPreparation} />
           </CollapsibleCard>
 
-          {/* Booking Options */}
           <Card className="mb-6 shadow-sm">
             <CardHeader className="p-4">
               <CardTitle className="text-lg font-semibold text-gray-700">Quick Booking Links</CardTitle>
@@ -1055,7 +1115,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
             </CardContent>
           </Card>
 
-          {/* Vet Info Card */}
           <Card className="mb-6 shadow-sm border border-amber-200 bg-amber-50/50">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
@@ -1077,7 +1136,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
             </CardContent>
           </Card>
 
-          {/* Daily Breakdown */}
           <div>
             <h2 className="text-xl font-bold text-black tracking-tight mb-4">Daily Breakdown</h2>
             {itinerary?.days?.map((day: ItineraryDay) => (
@@ -1087,8 +1145,9 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
                 index={day.day}
                 isExpanded={expandedDays.includes(day.day)}
                 onToggle={() => handleToggleDay(day.day)}
-                onAddActivity={() => handleAddActivity(day.day)}
+                onAddActivityClick={() => handleAddActivityClick(day.day)}
                 onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)}
+                onOpenBookingModal={handleOpenBookingModal}
                 tripData={tripData}
               />
             ))}
@@ -1099,12 +1158,10 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
         </div>
       </div>
 
-      {/* Map Drawer */}
       <Drawer open={showMap} onOpenChange={setShowMap} direction="right">
-        <DrawerContent className="h-screen top-0 right-0 left-auto mt-0 w-[700px] max-w-[90vw] rounded-none flex flex-col"> { /* Increased width */ }
+        <DrawerContent className="h-screen top-0 right-0 left-auto mt-0 w-[700px] max-w-[90vw] rounded-none flex flex-col">
           <DrawerHeader className="flex-shrink-0 border-b">
             <DrawerTitle>Trip Activity Map</DrawerTitle>
-            {/* Day Filter Buttons */}
             <div className="flex flex-wrap gap-2 mt-3">
               <Button
                 variant={mapFilterDay === 'all' ? 'default' : 'outline'}
@@ -1129,11 +1186,9 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
           </DrawerHeader>
           <div className="flex-grow overflow-auto p-4">
             {(() => {
-              // Calculate displayed activities based on filter
               const displayedMapActivities = mapFilterDay === 'all'
                 ? activitiesForMap
                 : activitiesForMap.filter(activity => {
-                    // Find which day this activity belongs to
                     const dayData = itinerary?.days?.find(d => d.activities.includes(activity));
                     return dayData?.day === mapFilterDay;
                   });
@@ -1149,7 +1204,6 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
         </DrawerContent>
       </Drawer>
 
-      {/* Modals */}
       {(addingActivityDay !== null) && (
         <Dialog open={addingActivityDay !== null} onOpenChange={() => setAddingActivityDay(null)}>
           <DialogContent className="sm:max-w-[425px]">
@@ -1225,32 +1279,12 @@ export default function ItineraryView({ session, onBackToPlanning }: ItineraryVi
         </Dialog>
       )}
 
-      {/* *** NEW AUTH MODAL FOR GUESTS *** */}
-      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Save Your Trip</DialogTitle>
-            <DialogDescription>
-              Please log in or create an account to save your itinerary permanently. Your current progress will be preserved.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => handleAuthRedirect('/signup')}
-              className="flex-1"
-            >
-              Sign Up
-            </Button>
-            <Button 
-              onClick={() => handleAuthRedirect('/login')}
-              className="bg-teal-600 hover:bg-teal-700 text-white flex-1"
-            >
-              Log In
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <HotelBookingModal 
+          open={isBookingModalOpen} 
+          onOpenChange={setIsBookingModalOpen}
+          activity={selectedHotelActivity}
+          tripData={tripData}
+      />
 
     </div>
   );

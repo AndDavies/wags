@@ -1,40 +1,53 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/lib/supabase-client';
+import { Loader2, X } from 'lucide-react';
+import { useTripStore, Activity } from '@/store/tripStore'; // Import store and Activity type
+import ReactMarkdown from 'react-markdown'; // Import react-markdown
 
 interface ChatbotProps {
   tripData: any;
   onClose: () => void;
   session: any | null;
-  onSaveMessage?: (message: string, isUser: boolean) => Promise<void>;
+  onTriggerSave?: () => Promise<void>;
 }
 
-export default function Chatbot({ tripData, onClose, session, onSaveMessage }: ChatbotProps) {
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
+// Structure expected in the API response's 'actions' array
+interface FrontendAction {
+    action: string; // e.g., 'add_activity_to_day', 'save_trip', 'get_trip_details'
+    payload: any; // Data needed for the action (e.g., day number, activity details)
+}
+
+export default function Chatbot({ tripData, onClose, session, onTriggerSave }: ChatbotProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Get actions from the Zustand store
+  const addActivity = useTripStore((state) => state.addActivity);
+  // Assume a saveTrip function exists or will be added to the store/component context
+  // const saveTrip = useTripStore((state) => state.saveTrip); // Example if saveTrip is in store
+  const triggerSave = () => {
+      console.log('[Chatbot] Action received: save_trip. Calling onTriggerSave prop.');
+      if (onTriggerSave) {
+          onTriggerSave(); // Call the function passed down from ItineraryView
+      } else {
+          console.error('[Chatbot] onTriggerSave prop is missing!');
+          // Optionally show an error message to the user in the chat
+          setMessages(prev => [...prev, {role: 'assistant', content: 'Sorry, I couldn\'t save the trip right now. Please use the save button.'}]);
+      }
+  };
+
   useEffect(() => {
     if (session) {
-      console.log('ready to fetch conversation history');
-      // const supabase = createClient();
-      // supabase
-      //   .from('conversations')
-      //   .select('message, response')
-      //   .eq('user_id', session.user.id)
-      //   .then(({ data, error }) => {
-      //     if (error) {
-      //       console.error('Error fetching conversation history:', error);
-      //     } else {
-      //       setMessages(
-      //         data?.flatMap((item) => [
-      //           { role: 'user', content: item.message },
-      //           { role: 'assistant', content: item.response },
-      //         ]) || []
-      //       );
-      //     }
-      //   });
+      console.log('[Chatbot] Ready to potentially fetch conversation history (not implemented yet)');
+    } else {
     }
   }, [session]);
 
@@ -43,106 +56,174 @@ export default function Chatbot({ tripData, onClose, session, onSaveMessage }: C
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
-    const newMessages = [...messages, { role: 'user', content: input }];
+    const userMessage: ChatMessage = { role: 'user', content: input };
+    const newMessages: ChatMessage[] = [...messages, userMessage];
     setMessages(newMessages);
     setInput('');
+    setIsLoading(true);
 
-    // Save message using the onSaveMessage callback if provided
-    if (onSaveMessage) {
-      await onSaveMessage(input, true);
-    }
+    let finalMessages = newMessages; // Keep track of messages for error display
 
     try {
-      // Check if query is vet-related
-      if (input.toLowerCase().includes('vet') || input.toLowerCase().includes('veterinarian')) {
-        const dayMatch = input.match(/day (\d+)/i);
-        const day = dayMatch ? parseInt(dayMatch[1]) - 1 : 0;
-        const location = tripData.itinerary?.[day]?.city || tripData.destination;
-        const response = await fetch('/api/places/nearby', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ location, type: 'veterinary_care' }),
-        });
-        if (!response.ok) throw new Error('Failed to fetch vets');
-        const results = await response.json();
-        const vetList = results.map((vet: any) => `${vet.name} (${vet.rating || 'N/A'} stars)`).join(', ');
-        const reply = results.length > 0 ? `Nearby vets: ${vetList}` : 'No vets found nearby.';
-        setMessages([...newMessages, { role: 'assistant', content: reply }]);
-        if (onSaveMessage) {
-          await onSaveMessage(reply, false);
-        }
-      } else {
-        const response = await fetch('/api/ai/enhanced-itinerary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: input, tripData }),
-        });
-        if (!response.ok) throw new Error('Failed to process query');
-        const { reply } = await response.json();
-        setMessages([...newMessages, { role: 'assistant', content: reply }]);
-        if (onSaveMessage) {
-          await onSaveMessage(reply, false);
-        }
+      const response = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages,
+          tripData: tripData
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API Error: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Error processing chatbot query:', error);
-      setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I couldn\'t process that. Try again?' }]);
+
+      // Expect { reply: string | null, actions: FrontendAction[] }
+      const result: { reply: string | null; actions?: FrontendAction[] } = await response.json();
+      const { reply, actions } = result;
+
+      // Add the assistant's text reply if it exists
+      if (reply) {
+        const assistantMessage: ChatMessage = { role: 'assistant', content: reply };
+        finalMessages = [...newMessages, assistantMessage]; // Update finalMessages to include reply
+        setMessages(finalMessages);
+      } else {
+          finalMessages = newMessages; // No reply, keep messages as they were before assistant response
+      }
+
+      // Process actions requested by the backend
+      if (actions && actions.length > 0) {
+        console.log('[Chatbot] Processing actions:', actions);
+        actions.forEach(action => {
+          switch (action.action) {
+            case 'add_activity_to_day':
+              const { day_number, activity } = action.payload;
+              // TODO: Validate payload structure and types more robustly
+              if (typeof day_number === 'number' && activity && typeof activity.name === 'string') {
+                  console.log(`[Chatbot] Executing action: addActivity for Day ${day_number}`, activity);
+                  // Map API payload to the structure expected by addActivity store action
+                  const newActivity: Activity = {
+                       place_id: activity.place_id || undefined, // Map fields if names differ
+                       name: activity.name,
+                       description: activity.description || '',
+                       petFriendly: activity.pet_friendly_status === 'yes',
+                       location: activity.location || 'Unknown Location',
+                       coordinates: activity.coordinates || { lat: 0, lng: 0 }, // Need coordinates if available
+                       type: activity.type || 'activity', // Default type
+                       startTime: activity.start_time,
+                       endTime: activity.end_time,
+                       cost: activity.cost,
+                       website: activity.website,
+                       phone_number: activity.phone_number,
+                       opening_hours: activity.opening_hours,
+                       photo_references: activity.photo_references || [], // Ensure it's an array
+                       booking_link: activity.booking_link,
+                       pet_friendliness_details: activity.pet_friendliness_details,
+                       estimated_duration: activity.duration_minutes,
+                       rating: activity.rating,
+                       user_ratings_total: activity.user_ratings_total
+                  };
+                  addActivity(day_number, newActivity);
+              } else {
+                  console.error('[Chatbot] Invalid payload for add_activity_to_day:', action.payload);
+              }
+              break;
+            case 'save_trip_progress':
+              triggerSave(); // Call the updated save function
+              break;
+            case 'get_trip_details':
+               console.log('[Chatbot] Action requested: get_trip_details. Frontend should provide details in next message turn (implementation TBD).');
+               // For now, we just log. The AI should ideally use the tripData passed initially.
+               // If needed, we could trigger sending a specific message back containing tripData.
+               break;
+            default:
+              console.warn(`[Chatbot] Received unknown action: ${action.action}`);
+          }
+        });
+      }
+
+    } catch (error: any) {
+      console.error('[Chatbot] Error processing message:', error);
+      const errorMessage: ChatMessage = {
+           role: 'assistant',
+           content: `Sorry, I encountered an error: ${error.message}. Please try again.`
+       };
+       // Use finalMessages which might include the user's message even if API failed early
+      setMessages([
+        ...finalMessages,
+        errorMessage
+      ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-gray-100 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-teal-700 font-bold text-lg">Travel Assistant</h3>
+    <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex flex-col h-full">
+      <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 flex-shrink-0">
+        <h3 className="text-teal-700 font-bold text-lg">Baggo - Travel Assistant 🐾</h3>
         <button
           onClick={onClose}
-          className="text-gray-600 hover:text-gray-800"
+          className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+          aria-label="Close chat"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <X className="w-5 h-5" />
         </button>
       </div>
-      <div className="max-h-64 overflow-y-auto mb-2">
+
+      <div className="flex-grow overflow-y-auto mb-3 pr-2 space-y-3">
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`p-2 rounded-lg mb-2 ${
-              msg.role === 'user' ? 'bg-teal-50 text-gray-700' : 'bg-white text-gray-700'
+            className={`p-3 rounded-lg max-w-[85%] ${
+              msg.role === 'user'
+                ? 'bg-teal-500 text-white ml-auto rounded-br-none'
+                : 'bg-gray-100 text-gray-800 mr-auto rounded-bl-none'
             }`}
           >
-            <strong>{msg.role === 'user' ? 'You' : 'Assistant'}:</strong> {msg.content}
+            <div className="text-sm tracking-tight prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-a:text-teal-600 hover:prose-a:text-teal-700">
+              <ReactMarkdown
+                components={{
+                    a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />
+                }}
+              >
+                {msg.content}
+               </ReactMarkdown>
+            </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex items-center justify-start p-3">
+            <Loader2 className="h-5 w-5 text-teal-600 animate-spin mr-2" />
+            <span className="text-sm text-gray-500 italic">Baggo is thinking...</span>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
-      <div className="flex gap-2">
+
+      <div className="flex gap-2 border-t border-gray-200 pt-3 flex-shrink-0">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-          placeholder="Ask about your trip..."
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100"
+          placeholder="Ask Baggo about your trip..."
+          disabled={isLoading}
         />
         <button
           onClick={handleSend}
-          className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium"
+          className="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center"
+          disabled={isLoading || !input.trim()}
         >
-          Send
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            'Send'
+          )}
         </button>
       </div>
     </div>

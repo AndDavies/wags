@@ -1,115 +1,77 @@
 "use client";
 
-import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import { CountryData } from "./page";
 
-// Debounce utility with explicit types
-const debounce = <T extends unknown[]>(
-  func: (...args: T) => void,
-  wait: number
-): ((...args: T) => void) => {
-  let timeout: NodeJS.Timeout;
-  return (...args: T) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
-
+/**
+ * Displays a grid of country cards based on the provided data.
+ * Links each card to the specific country's policy page.
+ *
+ * @param {object} props - Component props.
+ * @param {CountryData[]} props.countries - Array of country data objects to display.
+ */
 export default function CountriesList({
-  initialCountries,
+  countries,
 }: {
-  initialCountries: CountryData[];
+  countries: CountryData[];
 }) {
-  const [countries, setCountries] = useState<CountryData[]>(initialCountries);
-  const [offset, setOffset] = useState(initialCountries.length);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const itemsPerLoad = 12;
-
-  const loadMoreCountries = useCallback(
-    debounce(async () => {
-      if (isLoading) return;
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/policies?offset=${offset}&limit=${itemsPerLoad}`);
-        if (!response.ok) throw new Error("Failed to fetch more countries");
-        const newCountries: CountryData[] = await response.json();
-        if (newCountries.length < itemsPerLoad) setHasMore(false);
-        const uniqueNewCountries = newCountries.filter(
-          (newCountry) => !countries.some((existing) => existing.slug === newCountry.slug)
-        );
-        setCountries((prev) => [...prev, ...uniqueNewCountries].sort((a, b) => a.name.localeCompare(b.name)));
-        setOffset((prev) => prev + uniqueNewCountries.length);
-      } catch (error) {
-        console.error("Error loading more countries:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300),
-    [countries, offset, isLoading]
-  );
+  if (!countries || countries.length === 0) {
+    return (
+      <div className="text-center py-10 text-gray-600">
+        <p className="text-lg mb-2">No countries match your current filters.</p>
+        <p className="text-sm">Try adjusting your search or filter criteria.</p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-        {countries.map((country, index) => {
-          const flagSrc = country.flag_path && country.flag_path.startsWith("/")
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {countries.map((country, index) => {
+        const flagSrc = country.flag_path
+          ? country.flag_path.startsWith("/")
             ? country.flag_path
-            : `/${country.flag_path}`;
-          return (
-            <Link
-              key={country.slug}
-              href={`/directory/policies/${country.slug}`}
-              className="transition-transform hover:scale-105"
-            >
-              <Card className="h-full overflow-hidden border-none shadow-md hover:shadow-xl transition-shadow">
-                <div className="relative h-40 bg-gray-100">
-                  <Image
-                    src={country.flag_path}
-                    alt={`${country.name} flag`}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    priority={index < 4}
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="p-4 bg-white">
-                  <h3 className="text-xl font-semibold text-brand-teal">{country.name}</h3>
+            : `/${country.flag_path}`
+          : "/placeholder-flag.png";
 
-                </CardContent>
-                <CardFooter className="p-4 pt-0 bg-white">
-                  <Button variant="link" className="p-0 text-brand-teal hover:text-brand-pink">
-                    View Requirements
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            </Link>
-          );
-        })}
-        {isLoading &&
-          Array(4)
-            .fill(0)
-            .map((_, i) => (
-              <Card key={`loading-${i}`} className="h-[300px] bg-gray-200 animate-pulse" />
-            ))}
-      </div>
-      {hasMore && (
-        <div className="text-center mt-8">
-          <Button
-            onClick={loadMoreCountries}
-            disabled={isLoading}
-            className="bg-brand-teal text-white hover:bg-brand-pink hover:text-offblack"
+        return (
+          <Link
+            key={country.slug}
+            href={`/directory/policies/${country.slug}`}
+            passHref
+            legacyBehavior={false}
+            className="block transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 rounded-lg"
+            aria-label={`View pet import policies for ${country.name}`}
           >
-            {isLoading ? "Loading..." : "Load More Countries"}
-          </Button>
-        </div>
-      )}
-    </>
+            <Card className="h-full flex flex-col overflow-hidden border border-gray-200 hover:border-teal-300 rounded-lg shadow hover:shadow-md transition-all duration-200 bg-white">
+              <div className="relative h-40 w-full bg-gray-100">
+                <Image
+                  src={flagSrc}
+                  alt={`${country.name} flag`}
+                  fill
+                  sizes="(max-width: 640px) 90vw, (max-width: 768px) 45vw, (max-width: 1024px) 30vw, 23vw"
+                  priority={index < 8}
+                  className="object-cover"
+                  unoptimized={flagSrc.startsWith('data:')}
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-flag.png'; }}
+                />
+              </div>
+              <CardContent className="p-4 flex-grow">
+                <h3 className="text-lg font-semibold text-black tracking-tight font-sans">{country.name}</h3>
+              </CardContent>
+              <CardFooter className="p-4 pt-0 border-t border-gray-100 mt-auto">
+                <div className="flex items-center text-sm font-medium text-teal-600 hover:text-teal-700">
+                  View Requirements
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </div>
+              </CardFooter>
+            </Card>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
