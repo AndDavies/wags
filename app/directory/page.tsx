@@ -72,7 +72,7 @@ export default function DirectoryHomePage() {
   const popularSearches = ["Dog-friendly airlines", "No quarantine countries", "EU pet passport", "Pet hotels in NYC"]
 
   return (
-    <div className="min-h-screen bg-gradient-to-t from-brand-pink/20 to-white pt-24">
+    <div className="min-h-screen bg-gradient-to-t from-brand-pink/20 to-white">
       <div className="container mx-auto px-4">
         {/* Search Section */}
         <div className="relative mb-12 bg-white rounded-xl shadow-md overflow-hidden">

@@ -110,7 +110,7 @@ export default async function PoliciesDirectoryPage({
   return (
     <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8 max-w-7xl">
       {/* Header Section */}
-      <div className="mt-16 md:mt-20" />
+      
       <Card className="bg-teal-50 border border-teal-200 shadow-sm rounded-lg overflow-hidden">
         <CardHeader className="p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">

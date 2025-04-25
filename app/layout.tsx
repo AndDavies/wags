@@ -115,15 +115,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body
-        className="bg-gray-50 text-gray-800 min-h-screen flex flex-col font-outfit"
-        suppressHydrationWarning
-      >
+      <body className="bg-gray-50 text-gray-800 min-h-screen flex flex-col font-outfit" suppressHydrationWarning>
         <SpeedInsights />
         <ToastProvider>
           <AuthListener>
             <Navbar />
-            <main className="flex-grow">{children}</main>
+            <main className="flex-grow pt-20">{children}</main>
             <Footer />
           </AuthListener>
           <Toaster />

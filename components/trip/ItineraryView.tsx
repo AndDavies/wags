@@ -635,6 +635,11 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
 export default function ItineraryView({ session, onBackToPlanning, onTriggerSave }: ItineraryViewProps) {
   const { tripData, isSaving, error, clearTrip, addActivity, deleteActivity, setIsSaving, setError, setTripData } = useTripStore();
 
+  // Scroll to top when the component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -1082,7 +1087,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
 
         <div className="p-4 md:p-6 pt-0">
           {preDeparturePreparation && preDeparturePreparation.length > 0 && (
-              <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={true}>
+              <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
                   <div className="space-y-2.5 mt-1">
                       {preDeparturePreparation.map((activity, idx) => (
                           <div key={`prep-${idx}`} className="flex items-start p-3 bg-yellow-50/50 rounded-md border border-yellow-100">
@@ -1103,7 +1108,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
             <GeneralPreparationInfo items={generalPreparation} />
           </CollapsibleCard>
 
-          <Card className="mb-6 shadow-sm">
+          {/* <Card className="mb-6 shadow-sm">
             <CardHeader className="p-4">
               <CardTitle className="text-lg font-semibold text-gray-700">Quick Booking Links</CardTitle>
             </CardHeader>
@@ -1113,7 +1118,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
               <BookingOptionCard title="Cars" icon={<Car className="h-5 w-5"/>} url={`https://www.kayak.com/cars/${encodeURIComponent(tripData?.destination || '')}/${tripData?.startDate || 'anytime'}/${tripData?.endDate || 'anytime'}?sort=rank_a`} />
               <BookingOptionCard title="Vets" icon={<Stethoscope className="h-5 w-5"/>} url={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination || '')}`} />
             </CardContent>
-          </Card>
+          </Card> */}
 
           <Card className="mb-6 shadow-sm border border-amber-200 bg-amber-50/50">
             <CardHeader className="p-4 pb-2">

@@ -146,12 +146,17 @@ export default function TripBuilderClient({
   };
 
   if (isLoading) {
-    return <div className="p-6 pt-20 text-center text-gray-600">Loading trip data...</div>;
+    return <div className="p-6 text-center text-gray-600">Loading trip data...</div>;
   }
 
   let content;
   if (showForm) {
-    content = <TripCreationForm onClose={() => { setShowForm(false); }} session={session} />;
+    content = <TripCreationForm 
+      onClose={() => { 
+        setShowForm(false); 
+      }} 
+      session={session} 
+    />;
   } else if (tripData?.itinerary) {
     content = <ItineraryView session={session} onBackToPlanning={() => { setShowForm(true); }} />;
   } else {
@@ -198,7 +203,7 @@ export default function TripBuilderClient({
   }
 
   return (
-    <div className="p-6 px-8 pt-20 md:pt-24">
+    <div className="p-6 px-8">
       <Toast.Provider swipeDirection="right">
         <Toast.Root
           open={openToast}

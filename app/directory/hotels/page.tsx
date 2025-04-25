@@ -47,8 +47,6 @@ export default async function HotelsDirectoryPage() {
 
   return (
     <div className="container mx-auto p-4 space-y-8">
-      {/* Spacer for fixed navbar */}
-      <div className="mt-20" />
 
       {/* Directory Navigation Tabs */}
       <nav className="flex justify-center gap-8 mb-8">

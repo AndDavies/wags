@@ -28,7 +28,6 @@ async function AirlinesData() {
 export default function AirlinesDirectoryPage() {
   return (
     <div className="container mx-auto p-4 space-y-8">
-      <div className="mt-20" />
       <nav className="flex justify-center gap-8 mb-8">
         {Object.entries({
           airlines: { title: "Airlines", icon: Airplay },
@@ -70,18 +69,18 @@ export default function AirlinesDirectoryPage() {
         <AirlinesData />
       </Suspense>
 
-      <div className="text-center mt-16 p-8 bg-brand-pink rounded-2xl">
-        <h2 className="text-3xl font-display text-brand-teal mb-4">
-          Need Help Planning Your Flight?
-        </h2>
-        <p className="text-xl text-offblack mb-6 max-w-2xl mx-auto">
-          Our team can help you navigate the complex requirements for
-          international air travel with pets.
-        </p>
-        <Button asChild className="bg-brand-teal text-white hover:bg-white hover:text-brand-teal">
-          <Link href="/contact">Contact Us</Link>
-        </Button>
-      </div>
+        <div className="text-center mt-16 p-8 bg-brand-pink rounded-2xl">
+          <h2 className="text-3xl font-display text-brand-teal mb-4">
+            Need Help Planning Your Flight?
+          </h2>
+          <p className="text-xl text-offblack mb-6 max-w-2xl mx-auto">
+            Our team can help you navigate the complex requirements for
+            international air travel with pets.
+          </p>
+          <Button asChild className="bg-brand-teal text-white hover:bg-white hover:text-brand-teal">
+            <Link href="/contact">Contact Us</Link>
+          </Button>
+        </div>
     </div>
   );
 }

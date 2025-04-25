@@ -5,7 +5,7 @@ import { PawPrintIcon as Paw, Globe, CheckCircle } from "lucide-react"
 
 export default function AboutUs() {
   return (
-    <div className="min-h-screen bg-gradient-to-t from-brand-pink/20 to-white pt-24">
+    <div className="min-h-screen bg-gradient-to-t from-brand-pink/20 to-white">
       <div className="container mx-auto px-4">
         {/* Hero Section - Styled like Directory */}
         <div className="relative mb-12 bg-white rounded-xl shadow-md overflow-hidden">
