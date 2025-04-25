@@ -953,7 +953,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
           setOpenToast(true);
           return;
       }
-      console.log('[handleFinalSave] User not logged in. Showing auth modal.');
+      console.log('[ItineraryView] User not logged in. Showing auth modal.');
       setShowAuthModal(true);
       return;
     }
@@ -1290,6 +1290,36 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
           activity={selectedHotelActivity}
           tripData={tripData}
       />
+
+      {/* *** THIS IS THE AUTH MODAL *** */}
+      {/* Keep key for robustness */}
+      <Dialog key={showAuthModal ? 'auth-modal-open' : 'auth-modal-closed'} open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          {/* Restore Original Header and Description */}
+          <DialogHeader>
+            <DialogTitle>Save Your Trip</DialogTitle>
+            <DialogDescription>
+              Please log in or create an account to save your itinerary permanently. Your current progress will be preserved.
+            </DialogDescription>
+          </DialogHeader>
+          {/* Restore Original Footer */}
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => handleAuthRedirect('/signup')}
+              className="flex-1"
+            >
+              Sign Up
+            </Button>
+            <Button 
+              onClick={() => handleAuthRedirect('/login')}
+              className="bg-teal-600 hover:bg-teal-700 text-white flex-1"
+            >
+              Log In
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog> {/* *** END AUTH MODAL *** */}
 
     </div>
   );
