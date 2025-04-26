@@ -1106,6 +1106,19 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
           <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}>
             <PolicyRequirementsSteps steps={policyRequirements} />
             <GeneralPreparationInfo items={generalPreparation} />
+            {tripData?.destinationSlug && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <Link
+                  href={`/directory/policies/${tripData.destinationSlug}`}
+                  className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Full Destination Policy Details
+                  <ExternalLink className="h-4 w-4 ml-1.5" />
+                </Link>
+              </div>
+            )}
           </CollapsibleCard>
 
           {/* <Card className="mb-6 shadow-sm">

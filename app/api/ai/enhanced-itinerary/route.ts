@@ -232,31 +232,35 @@ export async function POST(request: NextRequest) {
     // --- Step 2b: Fetch External Data (Policies, Places) --- 
     console.log('[EnhancedItinerary API] Fetching pet policies...');
     const supabase = await createClient();
-    const { data: petPolicies, error: policyError } = await supabase
+    // Fetch only slug and entry_requirements
+    const { data: petPolicyData, error: policyError } = await supabase
       .from('pet_policies')
-      .select('*')
+      .select('slug, entry_requirements') // Select only necessary fields
       .eq('country_name', tripData.destinationCountry)
       .single();
 
-    if (policyError) {
-      //console.warn('[EnhancedItinerary API] Warning: Error querying pet_policies:', policyError);
-    } else if (petPolicies) {
-      //console.log('[EnhancedItinerary API] Fetched pet_policies data for:', tripData.destinationCountry);
+    if (policyError && policyError.code !== 'PGRST116') { // Allow 'No rows found'
+      console.warn('[EnhancedItinerary API] Warning: Error querying pet_policies:', policyError);
+      // Continue execution, but policy data will be missing
+    } else if (petPolicyData) {
+      console.log('[EnhancedItinerary API] Fetched pet_policies data (slug, requirements) for:', tripData.destinationCountry);
     } else {
-      //console.log('[EnhancedItinerary API] No specific pet policies found for:', tripData.destinationCountry);
+      console.log('[EnhancedItinerary API] No specific pet policies found for:', tripData.destinationCountry);
     }
 
     // Format preparation requirements and extract structured entry requirements
-    //console.log('[EnhancedItinerary API] Formatting preparation requirements...');
-    const preparation: Array<{ requirement: string; details: string }> = [];
+    console.log('[EnhancedItinerary API] Formatting preparation requirements...');
+    // Initialize generalPreparation with a default message if policies aren't found
+    const generalPreparation: Array<{ requirement: string; details: string | { url: string; title: string } }> = []; 
     let policyRequirements: Array<{ step: number; label: string; text: string }> = [];
+    let destinationSlug: string | undefined = undefined;
 
-    if (petPolicies) {
-      const policy: PetPolicy = petPolicies;
+    if (petPolicyData) {
+      destinationSlug = petPolicyData.slug; // Store the slug
 
-      if (policy.entry_requirements && Array.isArray(policy.entry_requirements)) {
-        //console.log('[EnhancedItinerary API] Extracting structured entry_requirements:', policy.entry_requirements.length, 'steps');
-        policyRequirements = policy.entry_requirements
+      if (petPolicyData.entry_requirements && Array.isArray(petPolicyData.entry_requirements)) {
+        console.log('[EnhancedItinerary API] Extracting structured entry_requirements:', petPolicyData.entry_requirements.length, 'steps');
+        policyRequirements = petPolicyData.entry_requirements
           .filter((item: any) =>
               typeof item === 'object' && item !== null &&
               typeof item.step === 'number' &&
@@ -269,60 +273,29 @@ export async function POST(request: NextRequest) {
               text: item.text,
           }))
           .sort((a, b) => a.step - b.step);
-          //console.log('[EnhancedItinerary API] Parsed policyRequirements:', policyRequirements);
-      } else if (policy.entry_requirements) {
-        //console.warn('[EnhancedItinerary API] entry_requirements field exists but is not a valid array:', typeof policy.entry_requirements);
-        preparation.push({
+          console.log('[EnhancedItinerary API] Parsed policyRequirements:', policyRequirements);
+      } else {
+        console.warn('[EnhancedItinerary API] entry_requirements field exists but is not a valid array or is missing.');
+        // Add a note to general preparation if steps couldn't be parsed
+        generalPreparation.push({
              requirement: 'Entry Requirements Note',
              details: 'Could not parse specific entry requirement steps. Please refer to official sources.'
          });
-      } else {
-         //console.log('[EnhancedItinerary API] No entry_requirements field found in policy data.');
       }
+      
+      // Remove processing of other policy fields like quarantine, additional_info, external_links into generalPreparation
+      // They are available on the full policy page via the slug link
 
-      if (policy.quarantine_info) {
-        //console.log('[EnhancedItinerary API] Adding quarantine_info:', policy.quarantine_info);
-        preparation.push({
-          requirement: 'Quarantine Info',
-          details: policy.quarantine_info,
-        });
-      }
-
-      if (policy.additional_info) {
-        //console.log('[EnhancedItinerary API] Parsing additional_info:', policy.additional_info);
-        Object.entries(policy.additional_info).forEach(([key, value]) => {
-          preparation.push({
-            requirement: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-            details: value,
-          });
-        });
-      }
-
-      if (policy.external_link) {
-        //console.log('[EnhancedItinerary API] Adding external_link:', policy.external_link);
-        preparation.push({
-          requirement: 'More Information',
-          details: `Official Resource: ${policy.external_link}`,
-        });
-      }
-      if (policy.external_links) {
-        //console.log('[EnhancedItinerary API] Parsing external_links:', policy.external_links);
-        Object.entries(policy.external_links).forEach(([key, value]) => {
-          preparation.push({
-            requirement: `Additional Resource (${key})`,
-            details: value,
-          });
-        });
-      }
     } else {
-      //console.log('[EnhancedItinerary API] No pet policies found, adding fallback general message');
-      preparation.push({
+      console.log('[EnhancedItinerary API] No pet policies found, adding fallback general message');
+      generalPreparation.push({
         requirement: 'Check Requirements',
-        details: `Please check the latest pet entry requirements for ${tripData.destinationCountry}.`,
+        details: `Please check the latest pet entry requirements for ${tripData.destinationCountry} via official sources.`,
       });
     }
-    //console.log('[EnhancedItinerary API] General preparation requirements:', preparation);
-    //console.log('[EnhancedItinerary API] Structured policy requirements:', policyRequirements);
+    console.log('[EnhancedItinerary API] Final general preparation requirements:', generalPreparation);
+    console.log('[EnhancedItinerary API] Final structured policy requirements:', policyRequirements);
+    console.log('[EnhancedItinerary API] Destination Slug:', destinationSlug);
 
     // --- Step 3: Fetch Richer Data from Google Places ---
 
@@ -1232,13 +1205,14 @@ Output ONLY a valid JSON array of the activity objects, in the scheduled order, 
     }
 
     // --- Step 6: Return Success Response --- 
-    //console.log('[EnhancedItinerary API] Successfully generated structured itinerary.');
+    console.log('[EnhancedItinerary API] Successfully generated structured itinerary.');
     return NextResponse.json(
       {
         itinerary: itinerary,
         policyRequirements: policyRequirements,
-        generalPreparation: preparation,
-        preDeparturePreparation: preDeparturePreparation // Include pre-departure steps
+        generalPreparation: generalPreparation,
+        preDeparturePreparation: preDeparturePreparation,
+        destinationSlug: destinationSlug 
       },
       { status: 200 }
     );

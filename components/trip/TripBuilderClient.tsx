@@ -116,7 +116,7 @@ export default function TripBuilderClient({
         endDate: undefined,
         adults: 1,
         children: 0,
-        pets: 0,
+        pets: 1,
         petDetails: [],
         additionalInfo: `Based on predefined trip: ${predefinedTrip.title}`,
         itinerary: undefined,

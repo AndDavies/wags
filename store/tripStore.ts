@@ -120,6 +120,7 @@ export interface TripData {
   originCountry?: string;
   destination?: string;
   destinationCountry?: string;
+  destinationSlug?: string;
   additionalCities?: string[];
   additionalCountries?: string[];
   startDate?: string | Date | null;
