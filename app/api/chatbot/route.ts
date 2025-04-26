@@ -382,17 +382,12 @@ export async function POST(req: NextRequest) {
 
               console.log(`[API Chatbot] Querying Supabase (Admin) for ${destination_country}...`);
 
-              // Use the admin client to select data
-              // Adjust column names if necessary
+              // Fetch only the necessary fields
               const query = supabaseAdmin
                   .from('pet_policies') // Your table name
                   .select(`
-                      country_name,
                       slug,
-                      quarantine_info,
-                      entry_requirements,
-                      additional_info,
-                      external_links
+                      entry_requirements
                   `)
                   .ilike('country_name', destination_country) // Case-insensitive match
                   .limit(1);
@@ -408,31 +403,30 @@ export async function POST(req: NextRequest) {
                   throw new Error(`Failed to fetch regulations from database: ${dbError.message}`);
               }
 
-              console.log('[API Chatbot] Raw Supabase dbResult:', JSON.stringify(dbResult, null, 2));
+              console.log('[API Chatbot] Raw Supabase dbResult (partial):', JSON.stringify(dbResult, null, 2));
 
-              if (dbResult) {
-                   const regulations = {
-                      destination_country: dbResult.country_name,
+              if (dbResult && dbResult.entry_requirements) {
+                   // Construct a minimal object for OpenAI
+                   const regulationsResult = {
+                      destination_country: destination_country, // Keep for context
                       country_slug: dbResult.slug,
-                      summary: `Regulations for ${dbResult.country_name}: `,
-                      quarantine: dbResult.quarantine_info,
-                      requirements: dbResult.entry_requirements,
-                      notes: dbResult.additional_info,
-                      links: dbResult.external_links
+                      entry_requirements_summary: dbResult.entry_requirements // Pass only this main text
+                      // Consider adding a very brief summary if needed, or let OpenAI summarize this text.
+                      // example: summary: `Here are the key entry requirements for ${destination_country}:`
                   };
-                  console.log('[API Chatbot] Constructed regulations object:', JSON.stringify(regulations, null, 2));
-                  functionResultContent = JSON.stringify(regulations);
+                  console.log('[API Chatbot] Constructed minimal regulations object:', JSON.stringify(regulationsResult, null, 2));
+                  functionResultContent = JSON.stringify(regulationsResult);
               } else {
                   console.log(`[API Chatbot] No regulations found in DB for ${destination_country}.`);
                   functionResultContent = JSON.stringify({ 
                       destination_country: destination_country, 
-                      message: `No specific regulations found for ${destination_country} in the database.` 
+                      message: `No specific entry requirements found for ${destination_country} in the database. Please check official sources.` 
                   });
               }
-              console.log('[API Chatbot] Stringified functionResultContent:', functionResultContent);
+              // console.log('[API Chatbot] Stringified functionResultContent:', functionResultContent); // Log moved for clarity
               needsSecondOpenAICall = true;
               break;
-            // --- END NEW TOOL DEFINITION ---
+            // --- END TOOL MODIFICATION ---
 
             default:
               console.warn(`[API Chatbot] Unknown function call requested: ${functionName}`);
