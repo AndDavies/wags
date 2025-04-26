@@ -230,8 +230,8 @@ function ItineraryDayAccordion({
   };
 
   return (
-    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      <button onClick={onToggle} className={cn("w-full text-left p-4 flex justify-between items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
+    <div className="mb-2 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <button onClick={onToggle} className={cn("w-full text-left p-3 flex justify-between items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
         <div>
           <h3 className="text-lg font-bold text-teal-700">Day {day.day}: {day.date}</h3>
           <p className="text-sm text-gray-600 mt-0.5">{day.city?.split(',')[0] || 'Unknown City'}</p> 
@@ -240,19 +240,19 @@ function ItineraryDayAccordion({
       </button>
       
       {isExpanded && (
-        <div className="p-4">
+        <div className="p-3">
           {day.narrative_intro && (
-            <p className="text-sm text-gray-700 italic mb-4 bg-teal-50 p-3 rounded-md border border-teal-100">{day.narrative_intro}</p>
+            <p className="text-sm text-gray-700 italic mb-3 bg-teal-50 p-2.5 rounded-md border border-teal-100">{day.narrative_intro}</p>
           )}
           
           {day.travel && (
-             <div className="mb-4 bg-blue-50 p-3 rounded-md border border-blue-200">
+             <div className="mb-3 bg-blue-50 p-2.5 rounded-md border border-blue-200">
                <h4 className="font-semibold flex items-center text-blue-700 text-sm"><Plane className="h-4 w-4 mr-1.5" /> Travel Details</h4>
                <p className="text-gray-700 mt-1 text-sm">{day.travel}</p>
              </div>
            )}
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             {validActivities.length > 0 ? (
               validActivities.map((activity, actIndex) => {
                 const isDetailsExpanded = expandedActivityIndex === actIndex;
@@ -299,7 +299,7 @@ function ItineraryDayAccordion({
 
                 return (
                   <Fragment key={`${activity.name}-${actIndex}`}>
-                    <div className="flex items-start space-x-3 group relative py-2">
+                    <div className="flex items-start space-x-3 group relative py-1.5">
                        <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
                             {imageUrl ? (
                                 <img src={imageUrl} alt={activity.name} className="object-cover w-full h-full" loading="lazy" />
@@ -318,13 +318,13 @@ function ItineraryDayAccordion({
                               {activity.startTime ? `${activity.startTime}${activity.endTime ? ` - ${activity.endTime}` : ''}` : 'Time not specified'}
                            </p>
                            {isDetailsExpanded && (
-                                <div className="mt-2 space-y-2 pr-4">
+                                <div className="mt-1.5 space-y-1.5 pr-4">
                                     <div className="text-gray-600 text-sm tracking-tight prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-a:text-teal-600 hover:prose-a:text-teal-700">
                                       <ReactMarkdown components={{ a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}>
                                         {activity.description || 'No description available.'}
                                       </ReactMarkdown>
                                     </div>
-                                    <div className="text-xs text-gray-500 space-y-1 pt-1">
+                                    <div className="text-xs text-gray-500 space-y-0.5 pt-1">
                                        <p className="flex items-center tracking-tight"><MapPin className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.location?.split(',')[0] || 'Location details missing'}</p>
                                         {activity.cost && activity.cost !== "$ - $" && activity.cost !== "Free" && (
                                           <p className="flex items-center tracking-tight"><DollarSign className="h-3 w-3 mr-1.5 flex-shrink-0 text-gray-400" /> {activity.cost}</p>
@@ -369,7 +369,7 @@ function ItineraryDayAccordion({
                        </button>
                     </div>
                     {actIndex < validActivities.length - 1 && (
-                       <div className="flex items-center my-1">
+                       <div className="flex items-center my-0.5">
                            <span className="text-xs text-gray-400 tracking-tight pl-20">{distance}</span>
                            <div className="flex-grow border-t border-dashed border-gray-200 ml-2"></div>
                        </div>
@@ -393,7 +393,7 @@ function ItineraryDayAccordion({
           </div>
 
           {day.narrative_outro && (
-            <p className="text-sm text-gray-700 italic mt-4 bg-teal-50 p-3 rounded-md border border-teal-100">{day.narrative_outro}</p>
+            <p className="text-sm text-gray-700 italic mt-3 bg-teal-50 p-2.5 rounded-md border border-teal-100">{day.narrative_outro}</p>
           )}
         </div>
       )}
@@ -667,10 +667,19 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   const [selectedHotelActivity, setSelectedHotelActivity] = useState<Activity | null>(null);
 
   useEffect(() => {
+    // Initialize expanded days: Only expand Day 1 if itinerary exists and has days
     if (itinerary?.days && itinerary.days.length > 0 && expandedDays.length === 0) {
-      setExpandedDays([itinerary.days[0].day]);
+      // Check if Day 1 exists before trying to access it
+      const firstDayExists = itinerary.days.some(day => day.day === 1);
+      if (firstDayExists) {
+         setExpandedDays([1]); // Expand only Day 1
+      } else if (itinerary.days.length > 0) {
+          // If Day 1 doesn't exist, expand the *actual* first day in the list
+          setExpandedDays([itinerary.days[0].day]);
+      }
     }
-  }, [itinerary, expandedDays]);
+    // Add dependencies: run only when itinerary data becomes available initially
+  }, [itinerary]); // Only depend on itinerary
 
   useEffect(() => {
     console.log('[ItineraryView] Checking for pending itinerary on mount...');
@@ -1032,21 +1041,21 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   }
 
   return (
-    <div className="flex flex-col md:flex-row relative font-sans h-screen overflow-hidden">
+    <div className="flex flex-col md:flex-row font-sans h-screen max-h-screen overflow-hidden">
       {showChatbot && (
-        <div className="w-full md:w-[35%] md:h-screen md:border-r border-gray-200 bg-white flex flex-col flex-shrink-0 mb-6 md:mb-0">
+        <div className="w-full md:w-[35%] h-1/2 md:h-full border-b md:border-b-0 md:border-r border-gray-200 bg-white flex flex-col flex-shrink-0">
           <Chatbot
             tripData={tripData}
             session={session}
             onClose={() => setShowChatbot(false)}
             onTriggerSave={onTriggerSave}
-            className="flex-grow overflow-y-auto"
+            className="flex-grow min-h-0"
           />
         </div>
       )}
 
-      <div className={cn("flex flex-col flex-grow", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
-        <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 gap-3">
+      <div className={cn("flex flex-col flex-grow h-1/2 md:h-full", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
+        <div className="sticky top-0 bg-white z-10 p-3 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 gap-3">
           <div className="flex items-center gap-3 flex-shrink-0">
             {onBackToPlanning && (
               <Button variant="outline" size="sm" onClick={onBackToPlanning}>
@@ -1084,15 +1093,15 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
           <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw] z-[2147483647] outline-none" />
         </Toast.Provider>
 
-        {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 mx-4" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
+        {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded m-4 flex-shrink-0" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
 
-        <div className="flex-grow overflow-y-auto p-4 md:p-6">
+        <div className="flex-grow overflow-y-auto p-3 md:p-4 space-y-3">
           {preDeparturePreparation && preDeparturePreparation.length > 0 && (
               <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
-                  <div className="space-y-2.5 mt-1">
+                  <div className="space-y-1.5 mt-1">
                       {preDeparturePreparation.map((activity, idx) => (
-                          <div key={`prep-${idx}`} className="flex items-start p-3 bg-yellow-50/50 rounded-md border border-yellow-100">
-                              <div className="mr-3 mt-1 flex-shrink-0">{getActivityIcon(activity)}</div>
+                          <div key={`prep-${idx}`} className="flex items-start p-2.5 bg-yellow-50/50 rounded-md border border-yellow-100">
+                              <div className="mr-2 mt-0.5 flex-shrink-0">{getActivityIcon(activity)}</div>
                               <div>
                                   <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
                                   <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
@@ -1108,7 +1117,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
             <PolicyRequirementsSteps steps={policyRequirements} />
             <GeneralPreparationInfo items={generalPreparation} />
             {tripData?.destinationSlug && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="mt-3 pt-3 border-t border-gray-200">
                 <Link
                   href={`/directory/policies/${tripData.destinationSlug}`}
                   className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
@@ -1122,25 +1131,13 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
             )}
           </CollapsibleCard>
 
-          {/* <Card className="mb-6 shadow-sm">
-            <CardHeader className="p-4">
-              <CardTitle className="text-lg font-semibold text-gray-700">Quick Booking Links</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
-              <BookingOptionCard title="Flights" icon={<Plane className="h-5 w-5"/>} url={`https://www.google.com/flights?hl=en#flt=${encodeURIComponent(tripData?.origin || '')}.${encodeURIComponent(tripData?.destination || '')}.${tripData?.startDate || 'anytime'}*${encodeURIComponent(tripData?.destination || '')}.${encodeURIComponent(tripData?.origin || '')}.${tripData?.endDate || 'anytime'};c:USD;e:1;sd:1;t:f`} />
-              <BookingOptionCard title="Hotels" icon={<Hotel className="h-5 w-5"/>} url={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(tripData?.destination || '')}&pets=1`} />
-              <BookingOptionCard title="Cars" icon={<Car className="h-5 w-5"/>} url={`https://www.kayak.com/cars/${encodeURIComponent(tripData?.destination || '')}/${tripData?.startDate || 'anytime'}/${tripData?.endDate || 'anytime'}?sort=rank_a`} />
-              <BookingOptionCard title="Vets" icon={<Stethoscope className="h-5 w-5"/>} url={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination || '')}`} />
-            </CardContent>
-          </Card> */}
-
-          <Card className="mb-6 shadow-sm border border-amber-200 bg-amber-50/50">
-            <CardHeader className="p-4 pb-2">
+          <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
+            <CardHeader className="p-3 pb-1.5">
               <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
                 <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0 text-sm text-amber-900 space-y-2">
+            <CardContent className="p-3 pt-0 text-sm text-amber-900 space-y-1.5">
                <p>
                   It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
                </p>
@@ -1156,7 +1153,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
           </Card>
 
           <div>
-            <h2 className="text-xl font-bold text-black tracking-tight mb-4">Daily Breakdown</h2>
+            <h2 className="text-xl font-bold text-black tracking-tight mb-3">Daily Breakdown</h2>
             {itinerary?.days?.map((day: ItineraryDay) => (
               <ItineraryDayAccordion
                 key={day.day}
@@ -1179,9 +1176,9 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
 
       <Drawer open={showMap} onOpenChange={setShowMap} direction="right">
         <DrawerContent className="h-screen top-0 right-0 left-auto mt-0 w-[700px] max-w-[90vw] rounded-none flex flex-col">
-          <DrawerHeader className="flex-shrink-0 border-b">
+          <DrawerHeader className="flex-shrink-0 border-b p-3">
             <DrawerTitle>Trip Activity Map</DrawerTitle>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               <Button
                 variant={mapFilterDay === 'all' ? 'default' : 'outline'}
                 size="sm"
@@ -1203,7 +1200,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
               ))}
             </div>
           </DrawerHeader>
-          <div className="flex-grow overflow-auto p-4">
+          <div className="flex-grow overflow-auto p-2">
             {(() => {
               const displayedMapActivities = mapFilterDay === 'all'
                 ? activitiesForMap
@@ -1215,7 +1212,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
               return <ItineraryMap activities={displayedMapActivities} />;
             })()}
           </div>
-           <DrawerFooter className="flex-shrink-0 border-t">
+           <DrawerFooter className="flex-shrink-0 border-t p-3">
             <DrawerClose asChild>
               <Button variant="outline">Close Map</Button>
             </DrawerClose>
@@ -1305,18 +1302,14 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
           tripData={tripData}
       />
 
-      {/* *** THIS IS THE AUTH MODAL *** */}
-      {/* Keep key for robustness */}
       <Dialog key={showAuthModal ? 'auth-modal-open' : 'auth-modal-closed'} open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent className="sm:max-w-[425px]">
-          {/* Restore Original Header and Description */}
           <DialogHeader>
             <DialogTitle>Save Your Trip</DialogTitle>
             <DialogDescription>
               Please log in or create an account to save your itinerary permanently. Your current progress will be preserved.
             </DialogDescription>
           </DialogHeader>
-          {/* Restore Original Footer */}
           <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
             <Button 
               variant="outline" 
@@ -1333,7 +1326,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog> {/* *** END AUTH MODAL *** */}
+      </Dialog>
 
     </div>
   );

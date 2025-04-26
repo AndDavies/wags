@@ -12,11 +12,12 @@ export default function HomePage() {
     <div className="flex flex-col">
 
       <Hero />     
-      <FeaturedDirectory />
+ 
       <FeaturedBlog />
-      <ServicesSection /> 
+      <FeaturedDirectory />
+      {/* <ServicesSection />  */}
       <AboutUs />
-      <HowItWorks />
+      {/* <HowItWorks /> */}
     </div>
   )
 }

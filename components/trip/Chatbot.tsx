@@ -176,11 +176,11 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
         </button>
       </div>
 
-      <div className="flex-grow overflow-y-auto mb-3 pr-2 space-y-3">
+      <div className="flex-grow overflow-y-auto mb-3 pr-2 space-y-2">
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`p-3 rounded-lg max-w-[85%] ${
+            className={`p-2.5 rounded-lg max-w-[85%] ${
               msg.role === 'user'
                 ? 'bg-teal-500 text-white ml-auto rounded-br-none'
                 : 'bg-gray-100 text-gray-800 mr-auto rounded-bl-none'

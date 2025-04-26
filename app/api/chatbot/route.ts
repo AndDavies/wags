@@ -406,16 +406,26 @@ export async function POST(req: NextRequest) {
               console.log('[API Chatbot] Raw Supabase dbResult (partial):', JSON.stringify(dbResult, null, 2));
 
               if (dbResult && Array.isArray(dbResult.entry_requirements) && dbResult.entry_requirements.length > 0) {
-                   // Extract only the labels from the requirements
-                   const requirementTopics = dbResult.entry_requirements.map((req: any) => req.label).filter(Boolean);
+                   // Extract truncated requirements
+                   const MAX_TEXT_LENGTH = 150; // Max characters per requirement text
+                   const truncatedRequirements = dbResult.entry_requirements.map((req: any) => {
+                       if (req.label && req.text) {
+                           const truncatedText = req.text.length > MAX_TEXT_LENGTH
+                               ? req.text.substring(0, MAX_TEXT_LENGTH) + '...'
+                               : req.text;
+                           return { label: req.label, text: truncatedText }; // Return label and truncated text
+                       } else {
+                           return null; // Skip if label or text is missing
+                       }
+                   }).filter(Boolean); // Remove null entries
 
-                   // Construct an even more minimal object for OpenAI
+                   // Construct an object with the truncated requirements
                    const regulationsResult = {
-                      destination_country: destination_country, // Keep for context
+                      destination_country: destination_country,
                       country_slug: dbResult.slug,
-                      requirement_topics: requirementTopics // Send only the list of topic labels
+                      requirements: truncatedRequirements // Send the array of {label, text}
                   };
-                  console.log('[API Chatbot] Constructed minimal regulations object (topics only):', JSON.stringify(regulationsResult, null, 2));
+                  console.log('[API Chatbot] Constructed regulations object with truncated text:', JSON.stringify(regulationsResult, null, 2));
                   functionResultContent = JSON.stringify(regulationsResult);
               } else {
                   console.log(`[API Chatbot] No valid entry requirements found in DB for ${destination_country}.`);
