@@ -405,19 +405,20 @@ export async function POST(req: NextRequest) {
 
               console.log('[API Chatbot] Raw Supabase dbResult (partial):', JSON.stringify(dbResult, null, 2));
 
-              if (dbResult && dbResult.entry_requirements) {
-                   // Construct a minimal object for OpenAI
+              if (dbResult && Array.isArray(dbResult.entry_requirements) && dbResult.entry_requirements.length > 0) {
+                   // Extract only the labels from the requirements
+                   const requirementTopics = dbResult.entry_requirements.map((req: any) => req.label).filter(Boolean);
+
+                   // Construct an even more minimal object for OpenAI
                    const regulationsResult = {
                       destination_country: destination_country, // Keep for context
                       country_slug: dbResult.slug,
-                      entry_requirements_summary: dbResult.entry_requirements // Pass only this main text
-                      // Consider adding a very brief summary if needed, or let OpenAI summarize this text.
-                      // example: summary: `Here are the key entry requirements for ${destination_country}:`
+                      requirement_topics: requirementTopics // Send only the list of topic labels
                   };
-                  console.log('[API Chatbot] Constructed minimal regulations object:', JSON.stringify(regulationsResult, null, 2));
+                  console.log('[API Chatbot] Constructed minimal regulations object (topics only):', JSON.stringify(regulationsResult, null, 2));
                   functionResultContent = JSON.stringify(regulationsResult);
               } else {
-                  console.log(`[API Chatbot] No regulations found in DB for ${destination_country}.`);
+                  console.log(`[API Chatbot] No valid entry requirements found in DB for ${destination_country}.`);
                   functionResultContent = JSON.stringify({ 
                       destination_country: destination_country, 
                       message: `No specific entry requirements found for ${destination_country} in the database. Please check official sources.` 
