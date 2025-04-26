@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { useTripStore, Activity } from '@/store/tripStore'; // Import store and Activity type
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
+import { cn } from '@/lib/utils'; // Import cn utility
 
 interface ChatbotProps {
   tripData: any;
   onClose: () => void;
   session: any | null;
   onTriggerSave?: () => Promise<void>;
+  className?: string; // <-- Add className prop
 }
 
 interface ChatMessage {
@@ -23,7 +25,7 @@ interface FrontendAction {
     payload: any; // Data needed for the action (e.g., day number, activity details)
 }
 
-export default function Chatbot({ tripData, onClose, session, onTriggerSave }: ChatbotProps) {
+export default function Chatbot({ tripData, onClose, session, onTriggerSave, className }: ChatbotProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -162,7 +164,7 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave }: C
   };
 
   return (
-    <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex flex-col h-full">
+    <div className={cn("bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex flex-col h-full", className)}>
       <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 flex-shrink-0">
         <h3 className="text-teal-700 font-bold text-lg">Baggo - Travel Assistant 🐾</h3>
         <button

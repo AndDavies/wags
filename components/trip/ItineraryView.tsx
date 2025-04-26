@@ -1032,20 +1032,21 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   }
 
   return (
-    <div className="flex flex-col md:flex-row relative font-sans">
+    <div className="flex flex-col md:flex-row relative font-sans h-screen overflow-hidden">
       {showChatbot && (
-        <div className="w-full md:w-[35%] md:sticky md:top-0 md:h-screen md:border-r border-gray-200 bg-white p-4 md:overflow-y-auto flex-shrink-0 mb-6 md:mb-0">
+        <div className="w-full md:w-[35%] md:h-screen md:border-r border-gray-200 bg-white flex flex-col flex-shrink-0 mb-6 md:mb-0">
           <Chatbot
             tripData={tripData}
             session={session}
             onClose={() => setShowChatbot(false)}
             onTriggerSave={onTriggerSave}
+            className="flex-grow overflow-y-auto"
           />
         </div>
       )}
 
-      <div className={cn("flex-grow", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
-        <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200 shadow-sm flex justify-between items-center mb-6 gap-3">
+      <div className={cn("flex flex-col flex-grow", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
+        <div className="sticky top-0 bg-white z-10 p-4 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 gap-3">
           <div className="flex items-center gap-3 flex-shrink-0">
             {onBackToPlanning && (
               <Button variant="outline" size="sm" onClick={onBackToPlanning}>
@@ -1085,7 +1086,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
 
         {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded mb-4 mx-4" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
 
-        <div className="p-4 md:p-6 pt-0">
+        <div className="flex-grow overflow-y-auto p-4 md:p-6">
           {preDeparturePreparation && preDeparturePreparation.length > 0 && (
               <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
                   <div className="space-y-2.5 mt-1">

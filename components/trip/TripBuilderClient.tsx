@@ -161,7 +161,7 @@ export default function TripBuilderClient({
     content = <ItineraryView session={session} onBackToPlanning={() => { setShowForm(true); }} />;
   } else {
     content = (
-      <div className="text-center pt-12 md:pt-16">
+      <div className="text-center md:pt-16">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-800 tracking-tight mb-4 font-outfit">
           Plan Your Next Adventure with Your Pet!
         </h1>
