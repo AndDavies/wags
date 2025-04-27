@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { ChatCompletionTool } from 'openai/resources/chat/completions';
 import { createClient } from '@supabase/supabase-js'; // Import the standard Supabase client
+import { TripData } from '@/store/tripStore'; // <-- Import TripData type
 
 // Ensure your OpenAI API key is set in environment variables
 const openai = new OpenAI({
@@ -21,7 +22,7 @@ const supabaseAdmin = supabaseUrl && supabaseServiceKey
 // Define expected request structure
 interface ChatRequestBody {
   messages: OpenAI.Chat.ChatCompletionMessageParam[]; // Full conversation history
-  tripData?: any; // Optional: Pass relevant trip context
+  tripData?: TripData; // <-- Use imported TripData type
 }
 
 // --- Define Baggo's Tools (Functions) ---
@@ -39,7 +40,7 @@ const tools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'add_activity_to_day',
-      description: 'Adds a new activity to a specific day in the user\'s itinerary. Requires confirmation from the user before calling.',
+      description: 'Adds a user-confirmed activity to a specific day in the user\'s itinerary.',
       parameters: {
         type: 'object',
         properties: {
@@ -69,8 +70,8 @@ const tools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'suggest_pet_friendly_activity',
-      description: 'Suggests pet-friendly activities (like parks, cafes, trails, attractions) based on location, interests, and optional day.',
+      name: 'suggest_places_of_interest',
+      description: 'Suggests activities, attractions, cafes, restaurants, parks, etc., based on location and interests. Considers pet context if available.',
       parameters: {
         type: 'object',
         properties: {
@@ -166,8 +167,8 @@ const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
  * @param activity_type Optional specific type (e.g., "park", "cafe").
  * @returns Array of simplified place results or throws an error.
  */
-async function suggestActivity(location: string, interests?: string[], activity_type?: string): Promise<any[]> {
-  console.log(`[Function suggestActivity] Called with location: ${location}, interests: ${interests}, type: ${activity_type}`);
+async function suggestPlacesOfInterest(location: string, interests?: string[], activity_type?: string): Promise<any[]> {
+  console.log(`[Function suggestPlacesOfInterest] Called with location: ${location}, interests: ${interests}, type: ${activity_type}`);
   if (!GOOGLE_PLACES_API_KEY) {
     console.error('[API Chatbot] Error: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.');
     throw new Error('Server configuration error: Missing Google Maps API key.');
@@ -185,14 +186,14 @@ async function suggestActivity(location: string, interests?: string[], activity_
   const fields = 'name,formatted_address,vicinity,place_id,rating,types,geometry'; // Add geometry for coordinates
   const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}&fields=${fields}`;
 
-  console.log(`[Function suggestActivity] Fetching URL: ${url}`);
+  console.log(`[Function suggestPlacesOfInterest] Fetching URL: ${url}`);
 
   try {
     const response = await fetch(url);
     const data = await response.json();
 
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      console.error('[Function suggestActivity] Google Places API Error:', data.status, data.error_message);
+      console.error('[Function suggestPlacesOfInterest] Google Places API Error:', data.status, data.error_message);
       throw new Error(`Google Places API error: ${data.status} - ${data.error_message || 'Unknown error'}`);
     }
 
@@ -216,7 +217,7 @@ async function suggestActivity(location: string, interests?: string[], activity_
     return mappedResults;
 
   } catch (error: any) {
-    console.error('[Function suggestActivity] Fetch Error:', error);
+    console.error('[Function suggestPlacesOfInterest] Fetch Error:', error);
     throw new Error(`Failed to fetch activity suggestions: ${error.message}`);
   }
 }
@@ -281,7 +282,7 @@ async function findService(location: string, service_type: string): Promise<any[
 // --- API Route Handler ---
 
 export async function POST(req: NextRequest) {
-  let currentTripData = null; // Variable to hold tripData if fetched
+  let currentTripData: TripData | null | undefined = null; // <-- Explicitly type currentTripData
 
   try {
     const body: ChatRequestBody = await req.json();
@@ -294,18 +295,24 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt: OpenAI.Chat.ChatCompletionSystemMessageParam = {
        role: 'system',
-       content: `You are Baggo, a friendly and highly knowledgeable pet travel assistant for the Wags and Wanders application. Your goal is to help users plan the best possible pet-friendly trips.
-       - Be concise and helpful.
-       - Use get_trip_details function if you need context about the trip plan (destination, dates, pets, itinerary) that isn't in the recent chat history.
-       - Use add_activity_to_day function to add activities. ALWAYS ask for user confirmation before calling this.
-       - Use suggest_pet_friendly_activity to find relevant activity ideas.
-       - Use find_nearby_service for vets, pet stores etc.
-       - Use check_travel_regulations to look up pet import rules for specific countries. Use the user's destination country from trip details if available, otherwise ask.
-       - When presenting regulations from check_travel_regulations, if a 'country_slug' is provided in the function result, ALWAYS include a Markdown link like '[View Full Details](/directory/policies/[country_slug])' at the end of your summary.
-       - Use save_trip_progress when the user asks to save.
-       - Prioritize pet safety, comfort, and local regulations.
-       - When asked to add an activity, extract details like name, description, location, pet-friendliness. If details are missing, ask the user.
-       - Be conversational and empathetic.`,
+       content: `You are Baggo, a friendly and highly knowledgeable pet travel assistant for the Wags and Wanders application. Your goal is to help users plan the best possible pet-friendly trips using the available tools and context.
+
+       Core Instructions:
+       - Be concise, helpful, and conversational.
+       - Use the conversation history and the provided \`tripData\` context (which includes destination, dates, interests, pet info, and potentially itinerary structure) to understand the user's request and provide relevant answers or actions.
+       - **VERY IMPORTANT:** When the user asks for suggestions relative to their plan (e.g., \"near my hotel on day 1\", \"around the park we're visiting on day 3\"), you *must* first consult the \`tripData\` itinerary context provided with the message. Find the location (city, address, or coordinates) of the referenced item (hotel, park, etc.) for the specified day. Then, use *that specific location* when calling \`suggest_places_of_interest\` or \`find_nearby_service\`. If the referenced item or its location isn't found in the context for that day, inform the user you couldn't find the reference point.
+       - If crucial context (like destination or dates) needed to fulfill a request is missing from the conversation and \`tripData\`, use the \`get_trip_details\` tool to retrieve it. Use the result of that tool to answer the user's original query in your next turn.
+       - Choose the most appropriate tool based on the user's request and the tool descriptions. Clearly present information returned by tools.
+
+       Tool Specific Notes:
+       - \`add_activity_to_day\`: Before calling, present the extracted activity details to the user for verification (e.g., \"Okay, adding [Activity] on Day X. Is that correct?\"). If they confirm positively, call the function directly.
+       - \`check_travel_regulations\`: When presenting regulations, if a \`country_slug\` is provided in the function result, include a Markdown link like \'[View Full Details](/directory/policies/[country_slug])\'.
+
+       General Guidance:
+       - Prioritize pet safety, comfort, and understanding local regulations.
+       - If a user request is ambiguous, ask clarifying questions.
+       - Summarize actions taken when appropriate.
+       - Be empathetic to the user's pet travel needs.`,
     };
 
     const messagesWithSystemPrompt: OpenAI.Chat.ChatCompletionMessageParam[] = [systemPrompt, ...messages];
@@ -331,6 +338,7 @@ export async function POST(req: NextRequest) {
     const actionsForFrontend: { action: string; payload: any }[] = [];
     const tool_results: OpenAI.Chat.Completions.ChatCompletionToolMessageParam[] = [];
     let needsSecondOpenAICall = false;
+    let isFrontendAction = false; // Flag to track if the action is handled by frontend
 
     if (toolCalls) {
       console.log('[API Chatbot] Initial response requires tool calls:', toolCalls.length);
@@ -344,8 +352,8 @@ export async function POST(req: NextRequest) {
         try {
           switch (functionName) {
             // --- Backend Execution Cases ---
-            case 'suggest_pet_friendly_activity':
-              const suggestions = await suggestActivity(functionArgs.location, functionArgs.interests, functionArgs.activity_type);
+            case 'suggest_places_of_interest':
+              const suggestions = await suggestPlacesOfInterest(functionArgs.location, functionArgs.interests, functionArgs.activity_type);
               functionResultContent = JSON.stringify(suggestions);
               needsSecondOpenAICall = true;
               break;
@@ -357,16 +365,34 @@ export async function POST(req: NextRequest) {
 
             // --- Frontend Delegation Cases ---
             case 'get_trip_details':
-              actionsForFrontend.push({ action: functionName, payload: {} });
-              functionResultContent = '{"status": "delegated_to_frontend", "action": "get_trip_details"}';
+              // Instead of just delegating, return the current trip data as the result
+              // Trim down the data to essential context if it's very large
+              const contextData = currentTripData ? {
+                  destination: currentTripData.destination,
+                  destinationCountry: currentTripData.destinationCountry,
+                  startDate: currentTripData.startDate,
+                  endDate: currentTripData.endDate,
+                  interests: currentTripData.interests,
+                  // Add other key fields AI might need, avoid sending full huge itinerary unless necessary
+                  hasItinerary: !!currentTripData.itinerary?.days?.length
+              } : { message: "No current trip data available." };
+              functionResultContent = JSON.stringify(contextData);
+              // No longer purely a frontend action in terms of AI flow
+              // We want the AI to process this result
+              needsSecondOpenAICall = true; 
+              isFrontendAction = false; // Set to false as AI needs to process the result
+              // We don't need actionsForFrontend here anymore, AI will respond based on the data
+              // actionsForFrontend.push({ action: functionName, payload: {} }); 
               break;
             case 'add_activity_to_day':
               actionsForFrontend.push({ action: functionName, payload: functionArgs });
-              functionResultContent = '{"status": "delegated_to_frontend", "action": "add_activity"}'; // Signal frontend action
+              functionResultContent = '{\"status\": \"delegated_to_frontend\", \"action\": \"add_activity\"}'; // Signal frontend action
+              isFrontendAction = true;
               break;
             case 'save_trip_progress':
                  actionsForFrontend.push({ action: functionName, payload: {} });
-                 functionResultContent = '{"status": "delegated_to_frontend", "action": "save_trip"}';
+                 functionResultContent = '{\"status\": \"delegated_to_frontend\", \"action\": \"save_trip\"}';
+                 isFrontendAction = true;
                  break;
 
             // --- NEW TOOL DEFINITION ---
@@ -494,11 +520,26 @@ export async function POST(req: NextRequest) {
       }
     } // End if(toolCalls)
 
-    // Fallback message logic (only if finalReply is still null/empty after potential tool calls)
-    if (!finalReply && actionsForFrontend.length > 0 && !needsSecondOpenAICall) {
-        finalReply = "Okay, I'll take care of that for you.";
-        console.log('[API Chatbot] Using fallback message.');
+    // Fallback message logic update
+    if (!finalReply && actionsForFrontend.length > 0 && isFrontendAction) {
+        // Provide specific feedback for actions handled by the frontend
+        const lastAction = actionsForFrontend[actionsForFrontend.length - 1]?.action;
+        switch (lastAction) {
+            case 'add_activity_to_day':
+                finalReply = "Okay, adding that to your itinerary now.";
+                break;
+            case 'save_trip_progress':
+                finalReply = "Okay, initiating the save process.";
+                break;
+            case 'get_trip_details': // Should be rare if context is passed
+                finalReply = "Getting the latest trip details...";
+                break;
+            default:
+                 finalReply = "Okay, I'll take care of that."; // Keep a generic fallback
+        }
+        console.log(`[API Chatbot] Using frontend action fallback message for: ${lastAction}`);
     } else if (!finalReply) {
+        // Existing fallback for when no content could be generated
         finalReply = "Sorry, I couldn't generate a response. Could you try rephrasing?";
         console.log('[API Chatbot] Using generic error/rephrase message.');
     }

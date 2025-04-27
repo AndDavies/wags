@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTripStore, TripData } from '@/store/tripStore';
 import * as Toast from '@radix-ui/react-toast';
 import TripCreationForm from './TripCreationForm';
@@ -22,13 +22,15 @@ export default function TripBuilderClient({
   const [showForm, setShowForm] = useState(!initialDraft);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const initialCheckDone = useRef(false);
   
   useEffect(() => {
+    if (initialCheckDone.current && !initialDraft) return;
+
     setIsLoading(true);
     let draftToUse: TripData | null = null;
 
     if (initialDraft) {
-      
       draftToUse = initialDraft;
     } else {
       const guestDraftString = sessionStorage.getItem('tripData');
@@ -45,17 +47,22 @@ export default function TripBuilderClient({
     if (draftToUse) {
       setTripData(draftToUse);
 
-      if (draftToUse.itinerary && draftToUse.itinerary.days && draftToUse.itinerary.days.length > 0) {
+      if (!initialCheckDone.current && draftToUse.itinerary && draftToUse.itinerary.days && draftToUse.itinerary.days.length > 0) {
         setShowModal(true);
         setShowForm(false);
-      } else {
+      } else if (!draftToUse.itinerary || draftToUse.itinerary.days.length === 0) {
         setShowModal(false);
         setShowForm(true);
+      } else {
+        setShowModal(false);
+        setShowForm(false);
       }
     } else {
       setShowModal(false);
       setShowForm(false);
     }
+    
+    initialCheckDone.current = true;
     setIsLoading(false);
   }, [initialDraft, setTripData]);
 
@@ -203,7 +210,12 @@ export default function TripBuilderClient({
   }
 
   return (
-    <div className="p-6 px-8">
+    <div className={cn(
+      "w-full",
+      (tripData?.itinerary && !showForm)
+        ? "h-screen"
+        : "p-6 px-8"
+    )}>
       <Toast.Provider swipeDirection="right">
         <Toast.Root
           open={openToast}

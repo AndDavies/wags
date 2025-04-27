@@ -1043,7 +1043,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   return (
     <div className="flex flex-col md:flex-row font-sans h-screen max-h-screen overflow-hidden">
       {showChatbot && (
-        <div className="w-full md:w-[35%] h-1/2 md:h-full border-b md:border-b-0 md:border-r border-gray-200 bg-white flex flex-col flex-shrink-0">
+        <div className="w-full md:w-[35%] h-1/2 md:h-full border-b md:border-b-0 md:border-r border-gray-200 bg-white flex flex-col flex-shrink-0 pt-20">
           <Chatbot
             tripData={tripData}
             session={session}
@@ -1054,8 +1054,8 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
         </div>
       )}
 
-      <div className={cn("flex flex-col flex-grow h-1/2 md:h-full", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
-        <div className="sticky top-0 bg-white z-10 p-3 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 gap-3">
+      <div className={cn("flex flex-col flex-grow h-1/2 md:h-full pt-20", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
+        <div className="sticky top-20 bg-white z-10 p-3 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 gap-3">
           <div className="flex items-center gap-3 flex-shrink-0">
             {onBackToPlanning && (
               <Button variant="outline" size="sm" onClick={onBackToPlanning}>

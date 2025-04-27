@@ -27,7 +27,12 @@ interface FrontendAction {
 
 export default function Chatbot({ tripData, onClose, session, onTriggerSave, className }: ChatbotProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+      {
+          role: 'assistant',
+          content: "Hi there! I'm Baggo, your pet travel planning assistant. Ask me anything about your trip, like \"suggest dog parks near my hotel\" or \"what are the pet rules for France?\""
+      }
+  ]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +59,15 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
   }, [session]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Slightly delay the scrollIntoView on message updates to prevent jumpiness on load
+    // Only scroll if the component has messages and the ref is available
+    if (messages.length > 0 && messagesEndRef.current) {
+        const timer = setTimeout(() => {
+            // Use 'nearest' to avoid aggressive scrolling if already partially visible
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100); // Small delay (100ms)
+        return () => clearTimeout(timer); // Cleanup timer on unmount or if messages change again quickly
+    }
   }, [messages]);
 
   const handleSend = async () => {

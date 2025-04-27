@@ -120,7 +120,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ToastProvider>
           <AuthListener>
             <Navbar />
-            <main className="flex-grow pt-20">{children}</main>
+            <main className="flex-grow">{children}</main>
             <Footer />
           </AuthListener>
           <Toaster />
