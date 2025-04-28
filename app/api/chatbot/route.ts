@@ -5,6 +5,9 @@ import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js'; // Import the standard Supabase client
 import { TripData } from '@/store/tripStore'; // Keep TripData type
 
+// Vercel: Increase max duration for Assistants API polling
+export const maxDuration = 60; // Allow 60 seconds (adjust as needed up to 300 on Pro)
+
 // Ensure your OpenAI API key is set in environment variables
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

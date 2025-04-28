@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@/lib/supabase-server';
 
+// Vercel: Increase max duration for complex itinerary generation
+export const maxDuration = 300; // Allow full 5 minutes (adjust if needed)
+
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
