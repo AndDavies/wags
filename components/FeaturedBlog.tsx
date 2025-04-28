@@ -42,10 +42,10 @@ export default async function FeaturedBlog() {
   }
 
   return (
-    <section className="py-24 bg-gray-50">
+    <section className="py-10 bg-gradient-to-r from-[#93dcec]/10 to-[#FFA9DE]/10">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto mb-16 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Insights for Pet Travelers</h2>
+          <h2 className="text-3xl font-bold text-[#30B8C4] mb-4">Insights for Pet Travelers</h2>
           <p className="text-gray-600 text-lg">Expert advice and stories from our community of pet-loving travelers</p>
         </div>
 
@@ -71,7 +71,7 @@ export default async function FeaturedBlog() {
                 <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
                 <Link
                   href={`/blog/${post.slug}`}
-                  className="inline-flex items-center text-[#249ab4] hover:text-[#1a7a8f] font-medium"
+                  className="inline-flex items-center text-[#30B8C4] hover:text-[#FFA9DE] font-medium"
                 >
                   Read Article
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -84,7 +84,7 @@ export default async function FeaturedBlog() {
         <div className="mt-16 text-center">
           <Link
             href="/blog"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#249ab4] hover:bg-[#1a7a8f] shadow-sm transition-colors duration-200"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#30B8C4] hover:bg-[#FFA9DE] shadow-sm transition-colors duration-200"
           >
             View All Articles
           </Link>
@@ -93,4 +93,3 @@ export default async function FeaturedBlog() {
     </section>
   )
 }
-

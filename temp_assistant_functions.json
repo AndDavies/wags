@@ -1,0 +1,126 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "get_trip_details",
+      "description": "Retrieves the current user's trip plan details, including destination, dates, travelers, pet info, and any existing itinerary. Should be called if context is missing.",
+      "parameters": { "type": "object", "properties": {} }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "add_activity_to_day",
+      "description": "Adds a user-confirmed activity to a specific day in the user's itinerary.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "day_number": {
+            "type": "number",
+            "description": "The day number (e.g., 1, 2, 3) to add the activity to."
+          },
+          "activity": {
+            "type": "object",
+            "description": "Details of the activity to add.",
+            "properties": {
+              "name": { "type": "string", "description": "Name of the activity (e.g., \"Visit Central Park\")." },
+              "description": { "type": "string", "description": "Brief description of the activity." },
+              "location": { "type": "string", "description": "Location name or address (e.g., \"Central Park, New York, NY\")." },
+              "start_time": { "type": "string", "description": "Optional start time (e.g., \"10:00 AM\")." },
+              "duration_minutes": { "type": "number", "description": "Optional estimated duration in minutes." },
+              "pet_friendly_status": { "type": "string", "enum": ["yes", "no", "unknown"], "description": "Whether the activity is known to be pet-friendly."},
+              "pet_friendliness_details": { "type": "string", "description": "Optional specific details about pet policies (e.g., \"Leashed dogs allowed on trails\")."}
+            },
+            "required": ["name", "description", "location", "pet_friendly_status"]
+          }
+        },
+        "required": ["day_number", "activity"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "suggest_places_of_interest",
+      "description": "Suggests activities, attractions, cafes, restaurants, parks, etc., based on location and interests. Considers pet context if available.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "The city or area to search for activities (e.g., \"Paris, France\", \"Near Golden Gate Bridge\")."
+          },
+          "interests": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Optional list of user interests (e.g., [\"Outdoor Adventures\", \"Food Tours\"])."
+          },
+          "activity_type": {
+              "type": "string",
+              "description": "Optional specific type of activity to search for (e.g., \"park\", \"cafe\", \"hike\", \"hotel\")."
+          },
+           "day_number": {
+            "type": "number",
+            "description": "Optional day number of the trip to provide context for the suggestion."
+          }
+        },
+        "required": ["location"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+        "name": "find_nearby_service",
+        "description": "Finds nearby pet-related services like vets, pet stores, or groomers.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "type": "string",
+                    "description": "The city or area to search within (e.g., \"Downtown Denver\")."
+                },
+                "service_type": {
+                    "type": "string",
+                    "enum": ["veterinary_care", "pet_store", "grooming", "dog_park"],
+                    "description": "The specific type of service to find."
+                }
+            },
+            "required": ["location", "service_type"]
+        }
+    }
+  },
+   {
+    "type": "function",
+    "function": {
+      "name": "save_trip_progress",
+      "description": "Saves the current trip itinerary progress. Should be called when the user asks to save.",
+      "parameters": { "type": "object", "properties": {} }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+        "name": "check_travel_regulations",
+        "description": "Checks the pet import regulations for a specific destination country, optionally considering the origin country and pet type.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "destination_country": {
+                    "type": "string",
+                    "description": "The destination country for which to check regulations (e.g., \"France\", \"Japan\")."
+                },
+                "origin_country": {
+                    "type": "string",
+                    "description": "Optional: The country the pet is traveling from."
+                },
+                "pet_type": {
+                    "type": "string",
+                    "description": "Optional: The type of pet (e.g., \"Dog\", \"Cat\"). Filters results if provided."
+                }
+            },
+            "required": ["destination_country"]
+        }
+    }
+  }
+] 

@@ -14,11 +14,11 @@ const AboutUs = () => {
   ]
 
   return (
-    <section className="py-24 bg-white">
+    <section className="py-10 bg-white">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Our Story</h2>
-          <div className="w-20 h-1 bg-[#249ab4] mx-auto mb-6"></div>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#30B8C4] mb-4">Our Story</h2>
+          <div className="w-20 h-1 bg-[#FFA9DE] mx-auto mb-6"></div>
           <p className="text-lg text-gray-600">We're transforming pet travel with technology and expertise</p>
         </div>
 
@@ -26,8 +26,8 @@ const AboutUs = () => {
           <div className="order-2 lg:order-1">
             <div className="space-y-8">
               <div className="flex items-start space-x-4">
-                <div className="bg-[#249ab4]/10 p-3 rounded-full">
-                  <PawPrint className="w-6 h-6 text-[#249ab4]" />
+                <div className="bg-[#30B8C4]/10 p-3 rounded-full">
+                  <PawPrint className="w-6 h-6 text-[#30B8C4]" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Our Journey</h3>
@@ -40,8 +40,8 @@ const AboutUs = () => {
               </div>
 
               <div className="flex items-start space-x-4">
-                <div className="bg-[#249ab4]/10 p-3 rounded-full">
-                  <Globe className="w-6 h-6 text-[#249ab4]" />
+                <div className="bg-[#30B8C4]/10 p-3 rounded-full">
+                  <Globe className="w-6 h-6 text-[#30B8C4]" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Our Mission</h3>
@@ -53,7 +53,7 @@ const AboutUs = () => {
               </div>
 
               <div className="mt-8">
-                <Button asChild className="bg-[#249ab4] hover:bg-[#249ab4]/90 text-white rounded-full px-6">
+                <Button asChild className="bg-[#30B8C4] hover:bg-[#FFA9DE] text-white rounded-full px-6">
                   <Link href="/about">Learn More About Us</Link>
                 </Button>
               </div>
@@ -79,7 +79,7 @@ const AboutUs = () => {
                   key={index}
                   className="bg-gray-50 rounded-lg p-4 flex items-center space-x-3 shadow-sm border border-gray-100 transition-all hover:shadow-md"
                 >
-                  <div className="text-[#249ab4]">{item.icon}</div>
+                  <div className="text-[#30B8C4]">{item.icon}</div>
                   <span className="text-sm font-medium text-gray-700">{item.text}</span>
                 </div>
               ))}
@@ -92,4 +92,3 @@ const AboutUs = () => {
 }
 
 export default AboutUs
-

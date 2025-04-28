@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plane, Hotel, FileText, Compass, ArrowRight, Search, CheckCircle, Globe, ChevronRight } from "lucide-react"
+import { Plane, Hotel, FileText, ArrowRight, Search, CheckCircle, Globe, ChevronRight } from "lucide-react"
 
 const FeaturedDirectory = () => {
   const [activeTab, setActiveTab] = useState<string>("airlines")
@@ -15,7 +15,7 @@ const FeaturedDirectory = () => {
       id: "airlines",
       title: "Pet-Friendly Airlines",
       description: "Comprehensive guide to airline policies for pet travel.",
-      icon: <Plane className="h-6 w-6 text-[#249ab4]" />,
+      icon: <Plane className="h-6 w-6 text-[#30B8C4]" />,
       image: "/placeholders/Pet_Friendly_Airlines.png",
       link: "/directory/airlines",
       features: ["Cabin policies", "Cargo regulations", "Breed restrictions"],
@@ -30,7 +30,7 @@ const FeaturedDirectory = () => {
       id: "hotels",
       title: "Pet-Friendly Hotels",
       description: "Find accommodations that welcome your furry companions.",
-      icon: <Hotel className="h-6 w-6 text-[#249ab4]" />,
+      icon: <Hotel className="h-6 w-6 text-[#30B8C4]" />,
       image: "/placeholders/Pet_Friendly_Hotels.png",
       link: "/directory/hotels",
       features: ["Pet amenities", "Size restrictions", "Additional fees"],
@@ -45,7 +45,7 @@ const FeaturedDirectory = () => {
       id: "policies",
       title: "Country Import Policies",
       description: "Navigate international pet travel requirements with ease.",
-      icon: <FileText className="h-6 w-6 text-[#249ab4]" />,
+      icon: <FileText className="h-6 w-6 text-[#30B8C4]" />,
       image: "/placeholders/Pet_Travel_Policies.png",
       link: "/directory/policies",
       features: ["Vaccination requirements", "Quarantine info", "Necessary paperwork"],
@@ -56,42 +56,27 @@ const FeaturedDirectory = () => {
       ],
       stats: "190+ Countries",
     },
-    {
-      id: "activities",
-      title: "Pet-Friendly Activities",
-      description: "Discover experiences you can enjoy together with your pet.",
-      icon: <Compass className="h-6 w-6 text-[#249ab4]" />,
-      image: "/placeholder.svg?height=400&width=600",
-      link: "/directory/activities",
-      features: ["Parks & trails", "Outdoor dining", "Tourist attractions"],
-      benefits: [
-        "Find activities where pets are welcome",
-        "Discover pet-friendly beaches and parks",
-        "Plan your itinerary with your pet in mind",
-      ],
-      stats: "500+ Activities",
-    },
   ]
 
   const activeDirectory = directories.find((dir) => dir.id === activeTab) || directories[0]
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-10 bg-gradient-to-r from-[#93dcec]/10 to-[#FFA9DE]/10">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Travel Resources</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#30B8C4] mb-4">Travel Resources</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Comprehensive directories to help you plan every aspect of traveling with your pet.
           </p>
         </div>
 
         {/* Directory Cards - Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
           {directories.map((directory) => (
             <Card
               key={directory.id}
               className={`overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 ${
-                activeTab === directory.id ? "ring-2 ring-[#249ab4] ring-opacity-50" : ""
+                activeTab === directory.id ? "ring-2 ring-[#30B8C4] ring-opacity-50" : ""
               }`}
               onClick={() => setActiveTab(directory.id)}
             >
@@ -110,13 +95,13 @@ const FeaturedDirectory = () => {
               </div>
               <CardHeader className="p-4 pb-2">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-gray-50 rounded-md text-[#249ab4]">{directory.icon}</div>
+                  <div className="p-2 bg-gray-50 rounded-md text-[#30B8C4]">{directory.icon}</div>
                   <CardTitle className="text-lg font-semibold text-gray-900">{directory.title}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-gray-600 text-sm mb-3">{directory.description}</p>
-                <div className="flex items-center text-xs text-[#249ab4] font-medium">
+                <div className="flex items-center text-xs text-[#30B8C4] font-medium">
                   <span>View directory</span>
                   <ChevronRight className="h-3 w-3 ml-1" />
                 </div>
@@ -126,7 +111,7 @@ const FeaturedDirectory = () => {
         </div>
 
         {/* Selected Directory Details */}
-        <div className="bg-gray-50 rounded-xl overflow-hidden">
+        <div className="bg-white rounded-xl overflow-hidden shadow-md">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
             {/* Featured Image */}
             <div className="relative h-[300px] lg:h-auto order-1 lg:order-2">
@@ -144,7 +129,7 @@ const FeaturedDirectory = () => {
                   </div>
                   <p className="mb-6 text-white/90">{activeDirectory.description}</p>
                   <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-[#249ab4]" />
+                    <Globe className="h-4 w-4 text-[#30B8C4]" />
                     <span className="font-medium text-white">{activeDirectory.stats}</span>
                   </div>
                 </div>
@@ -186,7 +171,7 @@ const FeaturedDirectory = () => {
                   </ul>
                 </div>
 
-                <Button asChild className="mt-6 bg-[#249ab4] hover:bg-[#1c7a8f] text-white rounded-md">
+                <Button asChild className="mt-6 bg-[#30B8C4] hover:bg-[#FFA9DE] text-white rounded-md">
                   <Link href={activeDirectory.link} className="flex items-center gap-2">
                     Explore {activeDirectory.title}
                     <ArrowRight className="h-4 w-4" />
@@ -208,7 +193,7 @@ const FeaturedDirectory = () => {
           <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
             Our comprehensive directories provide everything you need for a stress-free travel experience with your pet.
           </p>
-          <Button asChild className="bg-[#249ab4] hover:bg-[#1c7a8f] text-white px-6 py-2.5 rounded-md">
+          <Button asChild className="bg-[#30B8C4] hover:bg-[#FFA9DE] text-white px-6 py-2.5 rounded-md">
             <Link href="/directory">View All Directories</Link>
           </Button>
         </div>
@@ -218,4 +203,3 @@ const FeaturedDirectory = () => {
 }
 
 export default FeaturedDirectory
-

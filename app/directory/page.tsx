@@ -79,16 +79,7 @@ export default function DirectoryHomePage() {
       count: "190+ Countries",
       color: "bg-[#fddada]/20 border-[#fddada]",
       iconColor: "text-[#FFA9DE]",
-    },
-    {
-      href: "/directory/activities",
-      icon: MapIcon,
-      title: "Activities",
-      description: "Explore pet-friendly activities and attractions",
-      count: "500+ Activities",
-      color: "bg-[#FFA9DE]/20 border-[#FFA9DE]",
-      iconColor: "text-[#493f40]",
-    },
+    }
   ]
 
   const featuredDestinations = [
@@ -153,7 +144,7 @@ export default function DirectoryHomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-t from-brand-pink/20 to-white">
+    <div className="min-h-screen bg-gradient-to-t from-brand-pink/20 to-white pt-20">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#249ab4] to-[#249ab4]/80 py-20 text-white">
         <div className="absolute inset-0 overflow-hidden">
@@ -168,7 +159,7 @@ export default function DirectoryHomePage() {
             transition={{ duration: 0.6 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <h1 className="mb-6 text-4xl font-bold md:text-5xl lg:text-6xl">Pet Travel Directory</h1>
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 tracking-tight leading-tight text-white drop-shadow-lg">Pet Travel Directory</h1>
             <p className="mb-8 text-lg text-white/90 md:text-xl">
               Your comprehensive resource for pet-friendly travel information worldwide.
             </p>
@@ -257,7 +248,7 @@ export default function DirectoryHomePage() {
             variants={staggerContainerVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {mainDirectories.map((directory, index) => (
               <motion.div key={index} variants={fadeInUpVariants} custom={index}>
@@ -357,83 +348,6 @@ export default function DirectoryHomePage() {
           </div>
         </div>
 
-        {/* Quick Links & Resources */}
-        <div className="mb-20">
-          <div className="flex flex-col md:flex-row gap-8 items-center">
-            <div className="w-full md:w-1/3">
-              <h2 className="text-2xl font-bold text-[#249ab4] mb-4">Quick Resources</h2>
-              <p className="text-gray-600 mb-6">
-                Essential information to help you plan your pet's travel journey with confidence.
-              </p>
-              <Button asChild className="bg-[#249ab4] hover:bg-[#249ab4]/90">
-                <Link href="/create-trip">
-                  Start Planning <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-
-            <div className="w-full md:w-2/3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="bg-white hover:shadow-md transition-all border border-gray-100">
-                <CardContent className="p-5">
-                  <div className="flex items-start">
-                    <div className="p-2 bg-[#93dcec]/20 rounded-full mr-3">
-                      <Globe className="h-5 w-5 text-[#249ab4]" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-1">International Travel</h3>
-                      <p className="text-sm text-[#493f40] mb-2">
-                        Learn about pet passports and international requirements
-                      </p>
-                      <Link
-                        href="/blog/international-pet-travel"
-                        className="text-sm text-[#249ab4] hover:underline flex items-center"
-                      >
-                        Read guide <ChevronRight className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white hover:shadow-md transition-all border border-gray-100">
-                <CardContent className="p-5">
-                  <div className="flex items-start">
-                    <div className="p-2 bg-[#9fc7aa]/20 rounded-full mr-3">
-                      <Filter className="h-5 w-5 text-[#9fc7aa]" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-1">Compare Airlines</h3>
-                      <p className="text-sm text-[#493f40] mb-2">Side-by-side comparison of pet policies</p>
-                      <Link
-                        href="/directory/airlines/compare"
-                        className="text-sm text-[#249ab4] hover:underline flex items-center"
-                      >
-                        Compare now <ChevronRight className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white hover:shadow-md transition-all border border-gray-100">
-                <CardContent className="p-5">
-                  <div className="flex items-start">
-                    <div className="p-2 bg-[#fddada]/20 rounded-full mr-3">
-                      <MapPin className="h-5 w-5 text-[#FFA9DE]" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-1">Plan Your Trip</h3>
-                      <p className="text-sm text-[#493f40] mb-2">Create a custom itinerary with your pet</p>
-                      <Link href="/create-trip" className="text-sm text-[#249ab4] hover:underline flex items-center">
-                        Start planning <ChevronRight className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
 
         {/* Call to Action */}
         <div className="rounded-2xl bg-gradient-to-r from-[#249ab4] to-[#249ab4]/80 p-12 text-white text-center mb-12">
@@ -445,9 +359,6 @@ export default function DirectoryHomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild className="bg-white text-[#249ab4] hover:bg-white/90">
                 <Link href="/create-trip">Create Your Pet Travel Plan</Link>
-              </Button>
-              <Button asChild variant="outline" className="border-white text-white hover:bg-white/10">
-                <Link href="/directory/all">Browse All Resources</Link>
               </Button>
             </div>
           </div>

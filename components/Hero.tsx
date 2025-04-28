@@ -51,7 +51,7 @@ export default function Hero() {
 
   const handleSuggestion = (text: string) => {
     setIsLoading(true);
-    router.push(`/chat?input=${encodeURIComponent(text)}`);
+    router.push(`/create-trip`);
   };
 
   // Loader animation variants
@@ -105,8 +105,7 @@ export default function Hero() {
             <span className={cn("text-[#FFE5E5]", pacifico.className)}>With Your Pet</span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg sm:text-xl md:text-2xl font-light text-white drop-shadow-md leading-relaxed">
-            From personal experience to professional guidance - we help you navigate pet-friendly travel across the
-            globe.
+            Wags & Wanders brings the world to you and empowers you to experience confidently, together with your furry friends.
           </p>
         </motion.div>
 
@@ -118,7 +117,7 @@ export default function Hero() {
           className="w-full max-w-4xl mx-auto mb-8 relative"
         >
           <div className="relative">
-            <Input
+            {/* <Input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -155,7 +154,7 @@ export default function Hero() {
               ) : (
                 <Send className="h-5 w-5" />
               )}
-            </Button>
+            </Button> */}
           </div>
         </motion.form>
 

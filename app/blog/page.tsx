@@ -76,7 +76,7 @@ export default async function BlogIndexPage() {
     const tertiaryPosts = posts.slice(6)
 
     return (
-      <div className="min-h-screen bg-white pt-48">
+      <div className="min-h-screen bg-white pt-20">
         {/* Hero Banner - Full-width Featured Image */}
         <div className="relative w-full h-[60vh] min-h-[400px] mb-16">
           {featuredPost && (
@@ -94,17 +94,7 @@ export default async function BlogIndexPage() {
               </div>
               <div className="container mx-auto px-4 h-full flex flex-col justify-end pb-16 relative z-10">
                 <div className="max-w-3xl">
-                  <div className="mb-3 flex gap-2">
-                    {featuredPost.tags && featuredPost.tags.map((tag: string, idx: number) => (
-                      <Link 
-                        key={`${tag}-${idx}`} 
-                        href={`/blog/tag/${tag}`}
-                        className="text-white bg-[#249ab4]/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium hover:bg-[#249ab4] transition-colors"
-                      >
-                        #{tag}
-                      </Link>
-                    ))}
-                  </div>
+
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-4">
                     {featuredPost.title}
                   </h1>

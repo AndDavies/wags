@@ -5,6 +5,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AuthListener from '@/components/AuthListener';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import CookieConsentBanner from '@/components/CookieConsentBanner';
+import { NewsletterPopup } from "@/components/NewsletterPopup";
 
 import { ToastProvider } from '@/components/ui/toast';
 import { Toaster } from '@/components/ui/toaster';
@@ -125,6 +127,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </AuthListener>
           <Toaster />
         </ToastProvider>
+        <CookieConsentBanner />
+        <NewsletterPopup />
       </body>
     </html>
   );

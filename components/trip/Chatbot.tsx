@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, X } from 'lucide-react';
-import { useTripStore, Activity } from '@/store/tripStore'; // Import store and Activity type
+import { Loader2, X, AlertTriangle } from 'lucide-react';
+import { useTripStore, Activity, TripData } from '@/store/tripStore'; // Import store, Activity type, and TripData
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
 import { cn } from '@/lib/utils'; // Import cn utility
 
 interface ChatbotProps {
-  tripData: any;
+  tripData: TripData | null; // Use TripData type
   onClose: () => void;
   session: any | null;
   onTriggerSave?: () => Promise<void>;
-  className?: string; // <-- Add className prop
+  className?: string;
 }
 
 interface ChatMessage {
@@ -25,6 +25,13 @@ interface FrontendAction {
     payload: any; // Data needed for the action (e.g., day number, activity details)
 }
 
+// Structure expected from the new Assistant API endpoint
+interface AssistantApiResponse {
+    reply: string | null;
+    actions?: FrontendAction[];
+    threadId: string; // Thread ID is always expected now
+}
+
 export default function Chatbot({ tripData, onClose, session, onTriggerSave, className }: ChatbotProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -35,6 +42,7 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
   ]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null); // <-- Add state for threadId
 
   // Get actions from the Zustand store
   const addActivity = useTripStore((state) => state.addActivity);
@@ -53,8 +61,11 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
 
   useEffect(() => {
     if (session) {
-      console.log('[Chatbot] Ready to potentially fetch conversation history (not implemented yet)');
+      console.log('[Chatbot] User session available.');
+      // Reset thread ID if user changes?
+      // setCurrentThreadId(null); // Optional: Start new thread if user logs in/out during session
     } else {
+      console.log('[Chatbot] No user session.');
     }
   }, [session]);
 
@@ -73,21 +84,28 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: ChatMessage = { role: 'user', content: input };
-    const newMessages: ChatMessage[] = [...messages, userMessage];
-    setMessages(newMessages);
+    const userMessageContent = input.trim();
+    const userMessage: ChatMessage = { role: 'user', content: userMessageContent };
+    // Display user message immediately
+    const currentDisplayMessages = [...messages, userMessage];
+    setMessages(currentDisplayMessages);
     setInput('');
     setIsLoading(true);
 
-    let finalMessages = newMessages; // Keep track of messages for error display
+    // Store display messages separately in case of API error
+    let displayMessagesOnError = currentDisplayMessages;
 
     try {
+      console.log(`[Chatbot] Sending message to API. Thread ID: ${currentThreadId}`);
       const response = await fetch('/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: newMessages,
-          tripData: tripData
+          // --- Send only required data for Assistant API ---
+          messageContent: userMessageContent, // Send only the new message text
+          threadId: currentThreadId,      // Send current thread ID (null if first message)
+          tripData: tripData              // Send current trip context
+          // --- Do NOT send the messages array anymore ---
         }),
       });
 
@@ -96,20 +114,30 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
         throw new Error(errorData.error || `API Error: ${response.status}`);
       }
 
-      // Expect { reply: string | null, actions: FrontendAction[] }
-      const result: { reply: string | null; actions?: FrontendAction[] } = await response.json();
-      const { reply, actions } = result;
+      // Expect { reply: string | null, actions?: FrontendAction[], threadId: string }
+      const result: AssistantApiResponse = await response.json();
+      const { reply, actions, threadId } = result;
+
+      // --- Store the thread ID for subsequent calls ---
+      if (threadId) {
+        console.log(`[Chatbot] Received thread ID: ${threadId}`);
+        setCurrentThreadId(threadId);
+      }
 
       // Add the assistant's text reply if it exists
       if (reply) {
         const assistantMessage: ChatMessage = { role: 'assistant', content: reply };
-        finalMessages = [...newMessages, assistantMessage]; // Update finalMessages to include reply
-        setMessages(finalMessages);
+        // Update display messages with assistant's reply
+        setMessages([...currentDisplayMessages, assistantMessage]);
+        displayMessagesOnError = [...currentDisplayMessages, assistantMessage]; // Update error fallback messages
       } else {
-          finalMessages = newMessages; // No reply, keep messages as they were before assistant response
+          // If no reply, keep messages as they were (just user message added)
+          setMessages(currentDisplayMessages);
+          displayMessagesOnError = currentDisplayMessages;
+          console.log('[Chatbot] No text reply received from assistant.');
       }
 
-      // Process actions requested by the backend
+      // Process actions requested by the backend (same logic as before)
       if (actions && actions.length > 0) {
         console.log('[Chatbot] Processing actions:', actions);
         actions.forEach(action => {
@@ -166,9 +194,9 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
            role: 'assistant',
            content: `Sorry, I encountered an error: ${error.message}. Please try again.`
        };
-       // Use finalMessages which might include the user's message even if API failed early
+       // Use displayMessagesOnError which includes the user's message & potentially the reply before error
       setMessages([
-        ...finalMessages,
+        ...displayMessagesOnError,
         errorMessage
       ]);
     } finally {
@@ -190,30 +218,48 @@ export default function Chatbot({ tripData, onClose, session, onTriggerSave, cla
       </div>
 
       <div className="flex-grow overflow-y-auto mb-3 pr-2 space-y-2">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-2.5 rounded-lg max-w-[85%] ${
-              msg.role === 'user'
-                ? 'bg-teal-500 text-white ml-auto rounded-br-none'
-                : 'bg-gray-100 text-gray-800 mr-auto rounded-bl-none'
-            }`}
-          >
-            <div className="text-sm tracking-tight prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-a:text-teal-600 hover:prose-a:text-teal-700">
-              <ReactMarkdown
-                components={{
-                    a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />
-                }}
-              >
-                {msg.content}
-               </ReactMarkdown>
-            </div>
-          </div>
-        ))}
+        {messages.map((msg, index) => {
+           // Check if the message content indicates an error
+           const isError = msg.role === 'assistant' && 
+                         (msg.content.startsWith("Sorry, I encountered an error") || 
+                          msg.content.startsWith("Sorry, something went wrong") || 
+                          msg.content.startsWith("Sorry, there was an issue") || 
+                          msg.content.startsWith("Sorry, the process didn't complete"));
+           return (
+             <div
+               key={index}
+               // Use cn utility for conditional classes
+               className={cn( 
+                 "p-2.5 rounded-lg max-w-[85%]",
+                 msg.role === 'user'
+                   ? 'bg-teal-500 text-white ml-auto rounded-br-none'
+                   : 'bg-gray-100 text-gray-800 mr-auto rounded-bl-none',
+                 // Apply error specific styles if isError is true
+                 isError && 'bg-red-50 border border-red-200 text-red-800' 
+               )}
+             >
+               {/* Conditionally render an error icon */}
+               {isError && <AlertTriangle className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-red-600" />}
+               <div className={cn(
+                   "text-sm tracking-tight prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5", 
+                   // Ensure links in normal assistant messages are styled, but not in error messages
+                   msg.role === 'assistant' && !isError && "prose-a:text-teal-600 hover:prose-a:text-teal-700"
+               )}>
+                 <ReactMarkdown
+                   components={{
+                       a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />
+                   }}
+                 >
+                   {msg.content}
+                 </ReactMarkdown>
+               </div>
+             </div>
+           );
+        })}
         {isLoading && (
           <div className="flex items-center justify-start p-3">
             <Loader2 className="h-5 w-5 text-teal-600 animate-spin mr-2" />
-            <span className="text-sm text-gray-500 italic">Baggo is thinking...</span>
+            <span className="text-sm text-gray-500 italic">Baggo is working on that...</span>
           </div>
         )}
         <div ref={messagesEndRef} />

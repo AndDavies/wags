@@ -1,233 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { ChatCompletionTool } from 'openai/resources/chat/completions';
+// Keep ChatCompletionTool for type reference if needed, but primary interaction changes
+// import { ChatCompletionTool } from 'openai/resources/chat/completions';
 import { createClient } from '@supabase/supabase-js'; // Import the standard Supabase client
-import { TripData } from '@/store/tripStore'; // <-- Import TripData type
+import { TripData } from '@/store/tripStore'; // Keep TripData type
 
 // Ensure your OpenAI API key is set in environment variables
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Supabase Service Client (for direct DB access in API route)
-// IMPORTANT: Ensure these are set in your server environment, NOT exposed client-side
+// Supabase Service Client setup (Keep as is)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Initialize Supabase client only if keys are available
-const supabaseAdmin = supabaseUrl && supabaseServiceKey 
+const supabaseAdmin = supabaseUrl && supabaseServiceKey
     ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
     : null;
 
-// Define expected request structure
-interface ChatRequestBody {
-  messages: OpenAI.Chat.ChatCompletionMessageParam[]; // Full conversation history
-  tripData?: TripData; // <-- Use imported TripData type
+// --- Define expected request structure for Assistant API ---
+interface AssistantChatRequestBody {
+  messageContent: string; // Just the user's new message
+  threadId?: string;     // Optional ID of the existing conversation thread
+  tripData?: TripData;   // Current trip context
 }
 
-// --- Define Baggo's Tools (Functions) ---
-
-const tools: ChatCompletionTool[] = [
-  {
-    type: 'function',
-    function: {
-      name: 'get_trip_details',
-      description: 'Retrieves the current user\'s trip plan details, including destination, dates, travelers, pet info, and any existing itinerary. Should be called if context is missing.',
-      parameters: { type: 'object', properties: {} }, // No parameters needed
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'add_activity_to_day',
-      description: 'Adds a user-confirmed activity to a specific day in the user\'s itinerary.',
-      parameters: {
-        type: 'object',
-        properties: {
-          day_number: {
-            type: 'number',
-            description: 'The day number (e.g., 1, 2, 3) to add the activity to.',
-          },
-          activity: {
-            type: 'object',
-            description: 'Details of the activity to add.',
-            properties: {
-              name: { type: 'string', description: 'Name of the activity (e.g., "Visit Central Park").' },
-              description: { type: 'string', description: 'Brief description of the activity.' },
-              location: { type: 'string', description: 'Location name or address (e.g., "Central Park, New York, NY").' },
-              start_time: { type: 'string', description: 'Optional start time (e.g., "10:00 AM").' },
-              duration_minutes: { type: 'number', description: 'Optional estimated duration in minutes.' },
-              pet_friendly_status: { type: 'string', enum: ['yes', 'no', 'unknown'], description: 'Whether the activity is known to be pet-friendly.'},
-              pet_friendliness_details: { type: 'string', description: 'Optional specific details about pet policies (e.g., "Leashed dogs allowed on trails").'}
-            },
-            required: ['name', 'description', 'location', 'pet_friendly_status'],
-          },
-        },
-        required: ['day_number', 'activity'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'suggest_places_of_interest',
-      description: 'Suggests activities, attractions, cafes, restaurants, parks, etc., based on location and interests. Considers pet context if available.',
-      parameters: {
-        type: 'object',
-        properties: {
-          location: {
-            type: 'string',
-            description: 'The city or area to search for activities (e.g., "Paris, France", "Near Golden Gate Bridge").',
-          },
-          interests: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Optional list of user interests (e.g., ["Outdoor Adventures", "Food Tours"]).',
-          },
-          activity_type: {
-              type: 'string',
-              description: 'Optional specific type of activity to search for (e.g., "park", "cafe", "hike", "hotel").'
-          },
-           day_number: {
-            type: 'number',
-            description: 'Optional day number of the trip to provide context for the suggestion.',
-          },
-        },
-        required: ['location'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-        name: 'find_nearby_service',
-        description: 'Finds nearby pet-related services like vets, pet stores, or groomers.',
-        parameters: {
-            type: 'object',
-            properties: {
-                location: {
-                    type: 'string',
-                    description: 'The city or area to search within (e.g., "Downtown Denver").',
-                },
-                service_type: {
-                    type: 'string',
-                    enum: ['veterinary_care', 'pet_store', 'grooming', 'dog_park'],
-                    description: 'The specific type of service to find.',
-                },
-            },
-            required: ['location', 'service_type'],
-        },
-    },
-  },
-   {
-    type: 'function',
-    function: {
-      name: 'save_trip_progress',
-      description: 'Saves the current trip itinerary progress. Should be called when the user asks to save.',
-      parameters: { type: 'object', properties: {} }, // No parameters needed
-    },
-  },
-  {
-    type: 'function',
-    function: {
-        name: 'check_travel_regulations',
-        description: 'Checks the pet import regulations for a specific destination country, optionally considering the origin country and pet type.',
-        parameters: {
-            type: 'object',
-            properties: {
-                destination_country: {
-                    type: 'string',
-                    description: 'The destination country for which to check regulations (e.g., "France", "Japan").',
-                },
-                origin_country: {
-                    type: 'string',
-                    description: 'Optional: The country the pet is traveling from.',
-                },
-                pet_type: {
-                    type: 'string',
-                    description: 'Optional: The type of pet (e.g., "Dog", "Cat"). Filters results if provided.'
-                },
-            },
-            required: ['destination_country'],
-        },
-    },
-  },
-  // --- Add more functions here (e.g., check_travel_regulations) ---
-];
-
-// --- Google Places API Implementations ---
-
-// Use the correct environment variable name provided by the user
+// --- Keep Tool Implementation Functions (suggestPlacesOfInterest, findService) ---
 const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-/**
- * Uses Google Places Text Search API to find pet-friendly activities.
- * @param location Text string describing the location (e.g., "parks in Paris, France").
- * @param interests Optional array of interests to potentially refine search keywords.
- * @param activity_type Optional specific type (e.g., "park", "cafe").
- * @returns Array of simplified place results or throws an error.
- */
 async function suggestPlacesOfInterest(location: string, interests?: string[], activity_type?: string): Promise<any[]> {
   console.log(`[Function suggestPlacesOfInterest] Called with location: ${location}, interests: ${interests}, type: ${activity_type}`);
   if (!GOOGLE_PLACES_API_KEY) {
     console.error('[API Chatbot] Error: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.');
     throw new Error('Server configuration error: Missing Google Maps API key.');
   }
-
-  // Construct a search query
-  // Prioritize activity_type if provided, otherwise use interests or generic terms.
   let query = `pet friendly ${activity_type || 'attractions'} in ${location}`;
   if (!activity_type && interests && interests.length > 0) {
       query = `pet friendly ${interests.join(' or ')} in ${location}`;
   }
-  // Basic sanitization
   query = query.replace(/[^a-zA-Z0-9\s]/g, '');
-
-  const fields = 'name,formatted_address,vicinity,place_id,rating,types,geometry'; // Add geometry for coordinates
+  const fields = 'name,formatted_address,vicinity,place_id,rating,types,geometry';
   const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}&fields=${fields}`;
-
   console.log(`[Function suggestPlacesOfInterest] Fetching URL: ${url}`);
-
   try {
     const response = await fetch(url);
     const data = await response.json();
-
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
       console.error('[Function suggestPlacesOfInterest] Google Places API Error:', data.status, data.error_message);
       throw new Error(`Google Places API error: ${data.status} - ${data.error_message || 'Unknown error'}`);
     }
-
-    if (!data.results || data.results.length === 0) {
-      return []; // No results found
-    }
-
-    // Map results to a simpler format for the AI
+    if (!data.results || data.results.length === 0) return [];
     const mappedResults = data.results.slice(0, 5).map((place: any) => ({
       name: place.name,
       location: place.formatted_address || place.vicinity,
       rating: place.rating,
       place_id: place.place_id,
       types: place.types,
-      // Extract coordinates if needed, handle potential absence
-      coordinates: place.geometry?.location // { lat: number, lng: number }
-      // Note: Determining actual pet-friendliness often requires more than just the API query.
-      // This provides candidates that *might* be pet-friendly.
+      coordinates: place.geometry?.location
     }));
-
     return mappedResults;
-
   } catch (error: any) {
     console.error('[Function suggestPlacesOfInterest] Fetch Error:', error);
     throw new Error(`Failed to fetch activity suggestions: ${error.message}`);
   }
 }
 
-/**
- * Uses Google Places Nearby Search API to find specific pet services.
- * @param location Text string describing the location (e.g., "Downtown Denver").
- * @param service_type The type of service (e.g., 'veterinary_care').
- * @returns Array of simplified place results or throws an error.
- */
 async function findService(location: string, service_type: string): Promise<any[]> {
   console.log(`[Function findService] Called with location: ${location}, type: ${service_type}`);
    if (!GOOGLE_PLACES_API_KEY) {
@@ -235,319 +71,354 @@ async function findService(location: string, service_type: string): Promise<any[
     throw new Error('Server configuration error: Missing Google Maps API key.');
   }
 
-  // Use Nearby Search - requires a location bias or coordinates.
-  // For simplicity, we'll use the location text query, but rankby distance might be better with coordinates.
-  // Map service_type to Google Places type
-  const googleType = service_type; // Types often match directly, but mapping might be needed
-
-  const fields = 'name,vicinity,formatted_phone_number,place_id,rating,geometry';
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?keyword=${encodeURIComponent(googleType)}&location=${encodeURIComponent(location)}&radius=5000&key=${GOOGLE_PLACES_API_KEY}&fields=${fields}`;
-  // Note: Nearby Search without explicit lat/lng and using text `location` can be inaccurate.
-  // Ideally, geocode the location first or use lat/lng from tripData if available.
-  // Using radius=5000 (5km) as an example.
-
-   console.log(`[Function findService] Fetching URL: ${url}`);
-
+  // Map service type to a query string
+  // Replace underscores for better search results, e.g., veterinary_care -> veterinary care
+  const query = `${service_type.replace(/_/g, ' ')} in ${location}`;
+  
+  // Use Text Search API endpoint
+  const fields = 'name,formatted_address,vicinity,place_id,rating,geometry,formatted_phone_number'; // Keep relevant fields
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}&fields=${fields}`;
+  
+  console.log(`[Function findService] Fetching URL (Text Search): ${url}`);
   try {
     const response = await fetch(url);
     const data = await response.json();
-
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
       console.error('[Function findService] Google Places API Error:', data.status, data.error_message);
-      throw new Error(`Google Places API error: ${data.status} - ${data.error_message || 'Unknown error'}`);
+      // Provide a slightly more informative error message if possible
+      const errorMessage = data.error_message ? `${data.status} - ${data.error_message}` : `${data.status} - Unknown error`;
+      throw new Error(`Google Places API error: ${errorMessage}`);
     }
-
-    if (!data.results || data.results.length === 0) {
-      return [];
-    }
-
-    // Map results
+    if (!data.results || data.results.length === 0) return [];
+    // Map results (vicinity might be less useful now, formatted_address might be better)
     const mappedResults = data.results.slice(0, 5).map((place: any) => ({
       name: place.name,
-      location: place.vicinity, // Vicinity is often better for nearby search
+      location: place.formatted_address || place.vicinity, // Prefer formatted_address
       phone: place.formatted_phone_number,
       rating: place.rating,
       place_id: place.place_id,
       coordinates: place.geometry?.location
     }));
-
     return mappedResults;
-
   } catch (error: any) {
       console.error('[Function findService] Fetch Error:', error);
+      // Pass the original error message up
       throw new Error(`Failed to find nearby services: ${error.message}`);
   }
 }
 
+// Keep checkTravelRegulations function (assuming it will be called as a tool)
+async function checkTravelRegulations(destination_country: string, origin_country?: string, pet_type?: string): Promise<any> {
+    if (!supabaseAdmin) {
+        console.error('[API Chatbot] Supabase Admin client not initialized.');
+        throw new Error('Database connection is not configured on the server.');
+    }
+    if (!destination_country) {
+        throw new Error('Destination country is required for checking regulations.');
+    }
+    console.log(`[Function checkTravelRegulations] Querying Supabase for ${destination_country}...`);
+    const query = supabaseAdmin
+        .from('pet_policies')
+        .select('slug, entry_requirements')
+        .ilike('country_name', destination_country)
+        .limit(1);
+    // Add potential filters for origin/pet_type here if schema supports
+    const { data: dbResult, error: dbError } = await query.single();
+
+    if (dbError && dbError.code !== 'PGRST116') {
+        console.error('[API Chatbot] Supabase query error:', dbError);
+        throw new Error(`Failed to fetch regulations from database: ${dbError.message}`);
+    }
+
+    if (dbResult && Array.isArray(dbResult.entry_requirements) && dbResult.entry_requirements.length > 0) {
+        const MAX_TEXT_LENGTH = 150;
+        const truncatedRequirements = dbResult.entry_requirements.map((req: any) => {
+            if (req.label && req.text) {
+                const truncatedText = req.text.length > MAX_TEXT_LENGTH
+                    ? req.text.substring(0, MAX_TEXT_LENGTH) + '...'
+                    : req.text;
+                return { label: req.label, text: truncatedText };
+            }
+            return null;
+        }).filter(Boolean);
+        const regulationsResult = {
+            destination_country: destination_country,
+            country_slug: dbResult.slug,
+            requirements: truncatedRequirements
+        };
+        return regulationsResult;
+    } else {
+        return {
+            destination_country: destination_country,
+            message: `No specific entry requirements found for ${destination_country} in the database. Please check official sources.`
+        };
+    }
+}
+
+
 // --- API Route Handler ---
 
 export async function POST(req: NextRequest) {
-  let currentTripData: TripData | null | undefined = null; // <-- Explicitly type currentTripData
+  const assistantId = process.env.OPENAI_ASSISTANT_ID;
+  if (!assistantId) {
+      console.error('[API Chatbot] Error: OPENAI_ASSISTANT_ID is not set.');
+      return NextResponse.json({ error: 'Server configuration error: Assistant ID missing.' }, { status: 500 });
+  }
+
+  // Declare finalReply at the start of the main try block
+  let finalReply: string | null = null; 
 
   try {
-    const body: ChatRequestBody = await req.json();
-    const { messages, tripData } = body;
-    currentTripData = tripData; // Store tripData passed from the client
-
-    if (!messages || messages.length === 0) {
-      return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
-    }
-
-    const systemPrompt: OpenAI.Chat.ChatCompletionSystemMessageParam = {
-       role: 'system',
-       content: `You are Baggo, a friendly and highly knowledgeable pet travel assistant for the Wags and Wanders application. Your goal is to help users plan the best possible pet-friendly trips using the available tools and context.
-
-       Core Instructions:
-       - Be concise, helpful, and conversational.
-       - Use the conversation history and the provided \`tripData\` context (which includes destination, dates, interests, pet info, and potentially itinerary structure) to understand the user's request and provide relevant answers or actions.
-       - **VERY IMPORTANT:** When the user asks for suggestions relative to their plan (e.g., \"near my hotel on day 1\", \"around the park we're visiting on day 3\"), you *must* first consult the \`tripData\` itinerary context provided with the message. Find the location (city, address, or coordinates) of the referenced item (hotel, park, etc.) for the specified day. Then, use *that specific location* when calling \`suggest_places_of_interest\` or \`find_nearby_service\`. If the referenced item or its location isn't found in the context for that day, inform the user you couldn't find the reference point.
-       - If crucial context (like destination or dates) needed to fulfill a request is missing from the conversation and \`tripData\`, use the \`get_trip_details\` tool to retrieve it. Use the result of that tool to answer the user's original query in your next turn.
-       - Choose the most appropriate tool based on the user's request and the tool descriptions. Clearly present information returned by tools.
-
-       Tool Specific Notes:
-       - \`add_activity_to_day\`: Before calling, present the extracted activity details to the user for verification (e.g., \"Okay, adding [Activity] on Day X. Is that correct?\"). If they confirm positively, call the function directly.
-       - \`check_travel_regulations\`: When presenting regulations, if a \`country_slug\` is provided in the function result, include a Markdown link like \'[View Full Details](/directory/policies/[country_slug])\'.
-
-       General Guidance:
-       - Prioritize pet safety, comfort, and understanding local regulations.
-       - If a user request is ambiguous, ask clarifying questions.
-       - Summarize actions taken when appropriate.
-       - Be empathetic to the user's pet travel needs.`,
-    };
-
-    const messagesWithSystemPrompt: OpenAI.Chat.ChatCompletionMessageParam[] = [systemPrompt, ...messages];
-
-    console.log('[API Chatbot] Sending initial request to OpenAI...');
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: messagesWithSystemPrompt,
-      tools: tools,
-      tool_choice: 'auto',
-    });
-
-    const responseMessage = completion.choices[0]?.message;
-    console.log('[API Chatbot] Received initial response:', responseMessage);
-
-    if (!responseMessage) {
-      throw new Error('No response message received from OpenAI.');
-    }
-
-    const toolCalls = responseMessage.tool_calls;
-    let finalReply = responseMessage.content;
+    const body: AssistantChatRequestBody = await req.json();
+    const { messageContent, threadId: existingThreadId, tripData } = body;
     const actionsForFrontend: { action: string; payload: any }[] = [];
-    const tool_results: OpenAI.Chat.Completions.ChatCompletionToolMessageParam[] = [];
-    let needsSecondOpenAICall = false;
-    let isFrontendAction = false; // Flag to track if the action is handled by frontend
 
-    if (toolCalls) {
-      console.log('[API Chatbot] Initial response requires tool calls:', toolCalls.length);
-
-      await Promise.all(toolCalls.map(async (call) => {
-        const functionName = call.function.name;
-        const functionArgs = JSON.parse(call.function.arguments || '{}');
-        let functionResultContent = '';
-        console.log(`[API Chatbot] Processing tool call: ${functionName}`, functionArgs);
-
-        try {
-          switch (functionName) {
-            // --- Backend Execution Cases ---
-            case 'suggest_places_of_interest':
-              const suggestions = await suggestPlacesOfInterest(functionArgs.location, functionArgs.interests, functionArgs.activity_type);
-              functionResultContent = JSON.stringify(suggestions);
-              needsSecondOpenAICall = true;
-              break;
-            case 'find_nearby_service':
-              const services = await findService(functionArgs.location, functionArgs.service_type);
-              functionResultContent = JSON.stringify(services);
-              needsSecondOpenAICall = true;
-              break;
-
-            // --- Frontend Delegation Cases ---
-            case 'get_trip_details':
-              // Instead of just delegating, return the current trip data as the result
-              // Trim down the data to essential context if it's very large
-              const contextData = currentTripData ? {
-                  destination: currentTripData.destination,
-                  destinationCountry: currentTripData.destinationCountry,
-                  startDate: currentTripData.startDate,
-                  endDate: currentTripData.endDate,
-                  interests: currentTripData.interests,
-                  // Add other key fields AI might need, avoid sending full huge itinerary unless necessary
-                  hasItinerary: !!currentTripData.itinerary?.days?.length
-              } : { message: "No current trip data available." };
-              functionResultContent = JSON.stringify(contextData);
-              // No longer purely a frontend action in terms of AI flow
-              // We want the AI to process this result
-              needsSecondOpenAICall = true; 
-              isFrontendAction = false; // Set to false as AI needs to process the result
-              // We don't need actionsForFrontend here anymore, AI will respond based on the data
-              // actionsForFrontend.push({ action: functionName, payload: {} }); 
-              break;
-            case 'add_activity_to_day':
-              actionsForFrontend.push({ action: functionName, payload: functionArgs });
-              functionResultContent = '{\"status\": \"delegated_to_frontend\", \"action\": \"add_activity\"}'; // Signal frontend action
-              isFrontendAction = true;
-              break;
-            case 'save_trip_progress':
-                 actionsForFrontend.push({ action: functionName, payload: {} });
-                 functionResultContent = '{\"status\": \"delegated_to_frontend\", \"action\": \"save_trip\"}';
-                 isFrontendAction = true;
-                 break;
-
-            // --- NEW TOOL DEFINITION ---
-            case 'check_travel_regulations':
-              if (!supabaseAdmin) {
-                  console.error('[API Chatbot] Supabase Admin client not initialized. Check environment variables SUPABASE_SERVICE_ROLE_KEY.');
-                  throw new Error('Database connection is not configured on the server.');
-              }
-              const { destination_country, origin_country, pet_type } = functionArgs;
-              if (!destination_country) {
-                  throw new Error('Destination country is required for checking regulations.');
-              }
-
-              console.log(`[API Chatbot] Querying Supabase (Admin) for ${destination_country}...`);
-
-              // Fetch only the necessary fields
-              const query = supabaseAdmin
-                  .from('pet_policies') // Your table name
-                  .select(`
-                      slug,
-                      entry_requirements
-                  `)
-                  .ilike('country_name', destination_country) // Case-insensitive match
-                  .limit(1);
-              
-              // TODO: Add .eq() or other filters for origin_country, pet_type if schema supports
-              // if (origin_country) query = query.eq('origin_column', origin_country);
-              // if (pet_type) query = query.eq('pet_type_column', pet_type);
-              
-              const { data: dbResult, error: dbError } = await query.single(); // Use .single() if expecting one row
-
-              if (dbError && dbError.code !== 'PGRST116') { // Ignore 'PGRST116' (No rows found) error
-                  console.error('[API Chatbot] Supabase query error:', dbError);
-                  throw new Error(`Failed to fetch regulations from database: ${dbError.message}`);
-              }
-
-              console.log('[API Chatbot] Raw Supabase dbResult (partial):', JSON.stringify(dbResult, null, 2));
-
-              if (dbResult && Array.isArray(dbResult.entry_requirements) && dbResult.entry_requirements.length > 0) {
-                   // Extract truncated requirements
-                   const MAX_TEXT_LENGTH = 150; // Max characters per requirement text
-                   const truncatedRequirements = dbResult.entry_requirements.map((req: any) => {
-                       if (req.label && req.text) {
-                           const truncatedText = req.text.length > MAX_TEXT_LENGTH
-                               ? req.text.substring(0, MAX_TEXT_LENGTH) + '...'
-                               : req.text;
-                           return { label: req.label, text: truncatedText }; // Return label and truncated text
-                       } else {
-                           return null; // Skip if label or text is missing
-                       }
-                   }).filter(Boolean); // Remove null entries
-
-                   // Construct an object with the truncated requirements
-                   const regulationsResult = {
-                      destination_country: destination_country,
-                      country_slug: dbResult.slug,
-                      requirements: truncatedRequirements // Send the array of {label, text}
-                  };
-                  console.log('[API Chatbot] Constructed regulations object with truncated text:', JSON.stringify(regulationsResult, null, 2));
-                  functionResultContent = JSON.stringify(regulationsResult);
-              } else {
-                  console.log(`[API Chatbot] No valid entry requirements found in DB for ${destination_country}.`);
-                  functionResultContent = JSON.stringify({ 
-                      destination_country: destination_country, 
-                      message: `No specific entry requirements found for ${destination_country} in the database. Please check official sources.` 
-                  });
-              }
-              // console.log('[API Chatbot] Stringified functionResultContent:', functionResultContent); // Log moved for clarity
-              needsSecondOpenAICall = true;
-              break;
-            // --- END TOOL MODIFICATION ---
-
-            default:
-              console.warn(`[API Chatbot] Unknown function call requested: ${functionName}`);
-              functionResultContent = JSON.stringify({ error: `Unknown function: ${functionName}` });
-          }
-        } catch (error: any) {
-             console.error(`[API Chatbot] Error executing function ${functionName}:`, error);
-             functionResultContent = JSON.stringify({ error: error.message || 'An error occurred during function execution' });
-        }
-
-        tool_results.push({
-          tool_call_id: call.id,
-          role: 'tool',
-          content: functionResultContent,
-        });
-      })); // End Promise.all
-
-      if (needsSecondOpenAICall && tool_results.length > 0) {
-        console.log('[API Chatbot] Sending function results back to OpenAI:', JSON.stringify(tool_results, null, 2));
-
-        const secondCompletionMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-            ...messagesWithSystemPrompt,
-            responseMessage, // Include the initial assistant message with tool_calls
-            ...tool_results, // Include the results from the tool calls
-        ];
-
-        try {
-            const secondCompletion = await openai.chat.completions.create({
-                model: 'gpt-4-turbo', // Or your chosen model
-                messages: secondCompletionMessages,
-                tools: tools,
-                tool_choice: 'auto',
-            });
-
-            const secondResponseMessage = secondCompletion.choices[0]?.message;
-            console.log('[API Chatbot] Raw response from second OpenAI call:', JSON.stringify(secondResponseMessage, null, 2));
-
-            if (secondResponseMessage?.content) {
-                finalReply = secondResponseMessage.content;
-                console.log('[API Chatbot] Received final response after tool call:', finalReply);
-            } else {
-                console.log('[API Chatbot] Second OpenAI call did NOT return content.');
-                 // Potentially handle cases where the second call results in another tool call (though less likely here)
-                if (secondResponseMessage?.tool_calls) {
-                     console.log('[API Chatbot] Second OpenAI call resulted in another tool call (unexpected for regulations).');
-                     // Handle further tool calls if necessary, or set a fallback
-                }
-                // If finalReply is still null/empty AND no further action is needed, the fallback below might trigger
-            }
-         } catch (error: any) {
-            console.error('[API Chatbot] Error during second OpenAI call:', error);
-             finalReply = 'Sorry, I encountered an issue while processing the information.'; // Set an error reply
-         }
-      }
-    } // End if(toolCalls)
-
-    // Fallback message logic update
-    if (!finalReply && actionsForFrontend.length > 0 && isFrontendAction) {
-        // Provide specific feedback for actions handled by the frontend
-        const lastAction = actionsForFrontend[actionsForFrontend.length - 1]?.action;
-        switch (lastAction) {
-            case 'add_activity_to_day':
-                finalReply = "Okay, adding that to your itinerary now.";
-                break;
-            case 'save_trip_progress':
-                finalReply = "Okay, initiating the save process.";
-                break;
-            case 'get_trip_details': // Should be rare if context is passed
-                finalReply = "Getting the latest trip details...";
-                break;
-            default:
-                 finalReply = "Okay, I'll take care of that."; // Keep a generic fallback
-        }
-        console.log(`[API Chatbot] Using frontend action fallback message for: ${lastAction}`);
-    } else if (!finalReply) {
-        // Existing fallback for when no content could be generated
-        finalReply = "Sorry, I couldn't generate a response. Could you try rephrasing?";
-        console.log('[API Chatbot] Using generic error/rephrase message.');
+    if (!messageContent) {
+      return NextResponse.json({ error: 'messageContent is required' }, { status: 400 });
     }
 
-    return NextResponse.json({ reply: finalReply, actions: actionsForFrontend });
+    // --- 1. Thread Management ---
+    let threadId: string;
+    if (existingThreadId) {
+        console.log(`[API Chatbot] Using existing thread: ${existingThreadId}`);
+        threadId = existingThreadId;
+        // Potentially check if thread still exists using openai.beta.threads.retrieve(existingThreadId), but skip for brevity
+    } else {
+        console.log('[API Chatbot] Creating new thread...');
+        const thread = await openai.beta.threads.create();
+        threadId = thread.id;
+        console.log(`[API Chatbot] New thread created: ${threadId}`);
+    }
+
+    // --- 2. Add Messages (User + Context) ---
+    // Add the actual user message
+    await openai.beta.threads.messages.create(threadId, {
+      role: "user",
+      content: messageContent,
+    });
+    console.log('[API Chatbot] User message added to thread.');
+
+    // Add TripData as context - IMPORTANT: Assistant Instructions must tell it to use this!
+    if (tripData) {
+         // Limit the size/depth of tripData if necessary
+
+         // --- Create a simplified itinerary summary --- 
+         let itinerarySummary = null;
+         if (tripData.itinerary && tripData.itinerary.days && tripData.itinerary.days.length > 0) {
+             itinerarySummary = tripData.itinerary.days.map(day => ({
+                 day: day.day,
+                 date: day.date, // Keep date for temporal reference
+                 city: day.city,
+                 // Extract names of key activities (e.g., accommodation, flights, transfers, maybe first/last activity)
+                 keyActivities: day.activities
+                     ?.filter(act => 
+                         act.type === 'accommodation' || 
+                         act.type === 'flight' || 
+                         act.type === 'transfer' ||
+                         act === day.activities[0] || // Include first activity
+                         act === day.activities[day.activities.length - 1] // Include last activity
+                     )
+                     .map(act => ({ name: act.name, type: act.type, location: act.location })) // Include name, type, and location
+                     ?? [], // Handle case where activities might be null/undefined
+                 activityCount: day.activities?.length ?? 0,
+             }));
+         }
+         // --- End simplified itinerary summary ---
+
+         const contextTripData = {
+            destination: tripData.destination,
+            destinationCountry: tripData.destinationCountry,
+            startDate: tripData.startDate,
+            endDate: tripData.endDate,
+            interests: tripData.interests,
+            pets: tripData.pets,
+            petDetails: tripData.petDetails,
+            itinerarySummary: itinerarySummary, // <-- Include the summary here
+         };
+
+        await openai.beta.threads.messages.create(threadId, {
+          role: "user",
+          // Use a clear prefix so the assistant knows this is context, not a direct user query
+          content: `CONTEXT UPDATE:\nCurrent trip data: ${JSON.stringify(contextTripData)}\nRefer to this context when answering the latest user message.`,
+          // Consider message attachments if supported and useful for large contexts
+        });
+        console.log('[API Chatbot] TripData context added to thread.');
+    }
+
+    // --- 3. Create and Run ---
+    console.log(`[API Chatbot] Creating run for thread ${threadId} with assistant ${assistantId}`);
+    let run = await openai.beta.threads.runs.create(threadId, {
+      assistant_id: assistantId,
+      // Instructions could be overridden here if needed, but usually set on the Assistant
+    });
+    console.log(`[API Chatbot] Run created: ${run.id}, Status: ${run.status}`);
+
+    // --- 4. Polling Loop ---
+    const terminalStates = ["completed", "failed", "cancelled", "expired"];
+    const actionState = "requires_action";
+    const pollingIntervalMs = 1000; // Check status every 1 second
+    const maxWaitTimeMs = 120000; // Max 2 minutes wait
+    let elapsedTimeMs = 0;
+
+    while (!terminalStates.includes(run.status) && run.status !== actionState && elapsedTimeMs < maxWaitTimeMs) {
+      await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
+      elapsedTimeMs += pollingIntervalMs;
+      console.log(`[API Chatbot] Polling Run Status... (${elapsedTimeMs / 1000}s)`);
+      run = await openai.beta.threads.runs.retrieve(threadId, run.id);
+      console.log(`[API Chatbot] Run ${run.id} Status: ${run.status}`);
+    }
+
+    // --- 5. Handle requires_action ---
+    if (run.status === actionState) {
+      console.log(`[API Chatbot] Run requires action: ${run.id}`);
+      const toolOutputs: OpenAI.Beta.Threads.Runs.RunSubmitToolOutputsParams.ToolOutput[] = [];
+      const requiredActions = run.required_action?.submit_tool_outputs.tool_calls;
+
+      if (requiredActions) {
+         console.log(`[API Chatbot] Required actions: ${requiredActions.length}`);
+        // Use Promise.all to run tools in parallel
+        await Promise.all(requiredActions.map(async (call) => {
+          const functionName = call.function.name;
+          const functionArgs = JSON.parse(call.function.arguments || '{}');
+          let output: any = null;
+          console.log(`[API Chatbot] Executing tool: ${functionName}`, functionArgs);
+
+          try {
+             switch (functionName) {
+                case 'suggest_places_of_interest':
+                  output = await suggestPlacesOfInterest(functionArgs.location, functionArgs.interests, functionArgs.activity_type);
+                  break;
+                case 'find_nearby_service':
+                  output = await findService(functionArgs.location, functionArgs.service_type);
+                  break;
+                case 'check_travel_regulations':
+                   output = await checkTravelRegulations(functionArgs.destination_country, functionArgs.origin_country, functionArgs.pet_type);
+                  break;
+
+                // --- Frontend Delegation ---
+                case 'add_activity_to_day':
+                    actionsForFrontend.push({ action: functionName, payload: functionArgs });
+                    // Submit confirmation back to Assistant
+                    output = { status: "success", message: `Delegated '${functionName}' to frontend.` };
+                    break;
+                 case 'save_trip_progress':
+                     actionsForFrontend.push({ action: functionName, payload: {} });
+                     output = { status: "success", message: `Delegated '${functionName}' to frontend.` };
+                     break;
+                 case 'get_trip_details': // If Assistant asks for it explicitly
+                    // Provide the tripData context it should already have (or relevant parts)
+                    const contextData = tripData ? {
+                       destination: tripData.destination,
+                       destinationCountry: tripData.destinationCountry,
+                       startDate: tripData.startDate,
+                       endDate: tripData.endDate,
+                       interests: tripData.interests,
+                       hasItinerary: !!tripData.itinerary?.days?.length
+                    } : { message: "No current trip data available from client." };
+                    output = contextData;
+                    break;
+                // --- Add other tool cases here ---
+
+                default:
+                  console.warn(`[API Chatbot] Unknown function call requested: ${functionName}`);
+                  output = { error: `Unknown function: ${functionName}` };
+              }
+              console.log(`[API Chatbot] Tool ${functionName} output generated.`);
+          } catch (error: any) {
+             console.error(`[API Chatbot] Error executing tool ${functionName}:`, error);
+             // Only set the output for the tool submission, don't set finalReply here
+             output = { error: `Tool ${functionName} failed. Please inform the user.` };
+          }
+
+          toolOutputs.push({
+            tool_call_id: call.id,
+            output: JSON.stringify(output), // Output MUST be a string
+          });
+        })); // End Promise.all map
+
+        // Submit outputs if any were generated
+        if (toolOutputs.length > 0) {
+            console.log('[API Chatbot] Submitting tool outputs...');
+            try {
+                 run = await openai.beta.threads.runs.submitToolOutputs(threadId, run.id, {
+                    tool_outputs: toolOutputs,
+                });
+                console.log(`[API Chatbot] Tool outputs submitted. Run Status: ${run.status}`);
+
+                // Continue polling after submitting outputs
+                elapsedTimeMs = 0; // Reset timer for the post-tool-submission wait
+                while (!terminalStates.includes(run.status) && elapsedTimeMs < maxWaitTimeMs) {
+                    await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
+                    elapsedTimeMs += pollingIntervalMs;
+                    console.log(`[API Chatbot] Polling Run Status after tool submission... (${elapsedTimeMs / 1000}s)`);
+                    run = await openai.beta.threads.runs.retrieve(threadId, run.id);
+                    console.log(`[API Chatbot] Run ${run.id} Status: ${run.status}`);
+                }
+            } catch(submitError: any) {
+                 console.error(`[API Chatbot] Error submitting tool outputs for run ${run.id}:`, submitError);
+                 // Don't try to cancel or set finalReply here. Let the final status check handle it.
+                 // We just log the error and let the run likely proceed to a failed state.
+            }
+        } else {
+             console.warn(`[API Chatbot] Run ${run.id} required actions but no tool outputs were generated.`);
+             // Handle this case - maybe cancel the run?
+        }
+      } else {
+           console.warn(`[API Chatbot] Run ${run.id} status is 'requires_action' but no tool calls found.`);
+            // Handle this unexpected state
+      }
+    } // End if (run.status === actionState)
+
+    // --- 6. Handle Final Run Status ---
+    // Now check the definitive final status after all polling and potential tool submissions
+    if (run.status === "completed") {
+      console.log(`[API Chatbot] Run ${run.id} completed.`);
+      const messages = await openai.beta.threads.messages.list(threadId, { order: 'desc', limit: 1 });
+      const assistantMessage = messages.data.find(m => m.role === 'assistant');
+
+      if (assistantMessage && assistantMessage.content.length > 0) {
+          // Handle different content types (e.g., text)
+          const firstContent = assistantMessage.content[0];
+          if (firstContent?.type === 'text') {
+              finalReply = firstContent.text.value;
+              console.log('[API Chatbot] Final reply:', finalReply);
+          } else {
+              console.warn('[API Chatbot] Assistant message content is not text:', firstContent);
+               finalReply = "I received a response, but couldn't display it.";
+          }
+      } else {
+          console.warn('[API Chatbot] Run completed but no assistant message found or content empty.');
+          finalReply = "I finished processing, but didn't generate a message.";
+      }
+    } else { 
+       // --- Handle ALL non-completed final states (failed, cancelled, expired, etc.) ---
+       console.error(`[API Chatbot] Run ${run.id} did not complete. Final status: ${run.status}`);
+       let userFriendlyError = "Sorry, I encountered an issue processing your request.";
+       if (run.last_error) {
+           console.error(`[API Chatbot] Run ${run.id} failed detail: ${run.last_error.code} - ${run.last_error.message}`);
+           if (run.last_error.code === 'rate_limit_exceeded') {
+               userFriendlyError = "I'm experiencing high traffic right now. Please try again in a moment.";
+           } else {
+               userFriendlyError = `Sorry, something went wrong on my end (Status: ${run.status}). Please try again.`; // Include status
+           }
+       } else {
+           userFriendlyError = `Sorry, the process didn't complete successfully (Status: ${run.status}). Please try again.`; // Include status
+       }
+       finalReply = userFriendlyError;
+    }
+
+    // --- 7. Construct Response ---
+    return NextResponse.json({
+        reply: finalReply,
+        actions: actionsForFrontend,
+        threadId: threadId
+    });
 
   } catch (error: any) {
     console.error('[API Chatbot] Unhandled error in POST handler:', error);
-    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
+    // Check for specific OpenAI API errors if needed
+    // if (error instanceof OpenAI.APIError) { ... }
+    // Avoid exposing detailed internal errors to the client
+    return NextResponse.json({ error: 'Sorry, an unexpected error occurred on the server. Please try again later.' }, { status: 500 });
   }
 }

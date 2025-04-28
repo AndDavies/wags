@@ -110,7 +110,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Blog", href: "/blog" }, { label: post.title }];
 
   return (
-    <div className="min-h-screen bg-offwhite">
+    <div className="min-h-screen bg-offwhite pt-20">
       {post.featured_image && (
         <div className="relative w-full h-[40vh] md:h-[50vh] lg:h-[60vh]">
           <Image
