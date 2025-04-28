@@ -130,15 +130,18 @@ async function checkTravelRegulations(destination_country: string, origin_countr
 
     if (dbError && dbError.code !== 'PGRST116') {
         console.error('[API Chatbot] Supabase query error in checkTravelRegulations:', dbError); // Enhanced log
+        // Log the error before throwing
         throw new Error(`Failed to fetch regulations from database: ${dbError.message}`);
     }
 
     if (!dbResult) {
        console.log(`[API Chatbot] No specific pet policies found for: ${destination_country}`);
-        return {
+       const result = { // Create result object first
             destination_country: destination_country,
             message: `No specific entry requirements found for ${destination_country} in the database. Please check official sources.`
         };
+       console.log('[API Chatbot][checkTravelRegulations] Returning (not found):', JSON.stringify(result)); // Log before returning
+       return result;
     }
 
     if (dbResult && Array.isArray(dbResult.entry_requirements) && dbResult.entry_requirements.length > 0) {
@@ -157,15 +160,18 @@ async function checkTravelRegulations(destination_country: string, origin_countr
             country_slug: dbResult.slug,
             requirements: truncatedRequirements
         };
+        console.log('[API Chatbot][checkTravelRegulations] Returning (found):', JSON.stringify(regulationsResult)); // Log before returning
         return regulationsResult;
     } else {
         // This case might be hit if entry_requirements is not an array or empty
         console.log(`[API Chatbot] Policy found for ${destination_country}, but no structured entry requirements.`);
-        return {
+        const result = { // Create result object first
             destination_country: destination_country,
-            country_slug: dbResult.slug, // Still return slug if available
+            country_slug: dbResult.slug,
             message: `No specific entry requirements listed for ${destination_country} in the database, but a policy entry exists. Please check official sources or the country page.`
         };
+        console.log('[API Chatbot][checkTravelRegulations] Returning (no reqs):', JSON.stringify(result)); // Log before returning
+        return result;
     }
 }
 
@@ -358,14 +364,25 @@ export async function POST(req: NextRequest) {
               console.log(`[API Chatbot] Tool ${functionName} successful output:`, output);
           } catch (error: any) {
              console.error(`[API Chatbot] Error executing tool ${functionName}:`, error);
-             // Only set the output for the tool submission, don't set finalReply here
              output = { error: `Tool ${functionName} failed. Error: ${error.message}` }; // Include error message
-             console.error(`[API Chatbot] Tool ${functionName} error output:`, output); // Log error output
+             console.error(`[API Chatbot] Tool ${functionName} error output (pre-stringify):`, output); // Log error output *before* stringify
+          }
+
+          // Add logging right before stringifying the output for submission
+          console.log(`[API Chatbot] Attempting to stringify output for tool ${functionName}:`, output);
+          let stringifiedOutput: string;
+          try {
+              stringifiedOutput = JSON.stringify(output);
+              console.log(`[API Chatbot] Successfully stringified output for ${functionName}.`);
+          } catch (stringifyError: any) {
+              console.error(`[API Chatbot] !!! FAILED to stringify output for tool ${functionName}:`, stringifyError);
+              console.error('[API Chatbot] Original output that failed stringify:', output); // Log the problematic object
+              stringifiedOutput = JSON.stringify({ error: `Tool ${functionName} produced output that could not be serialized.` });
           }
 
           toolOutputs.push({
-          tool_call_id: call.id,
-            output: JSON.stringify(output), // Output MUST be a string
+            tool_call_id: call.id,
+            output: stringifiedOutput, // Use the safely stringified version
           });
         })); // End Promise.all map
 
