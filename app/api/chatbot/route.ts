@@ -13,7 +13,7 @@ const openai = new OpenAI({
 // Supabase Service Client setup (Keep as is)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = supabaseUrl && supabaseServiceKey
+const supabaseAdmin = supabaseUrl && supabaseServiceKey 
     ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
     : null;
 
@@ -28,7 +28,7 @@ interface AssistantChatRequestBody {
 const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 async function suggestPlacesOfInterest(location: string, interests?: string[], activity_type?: string): Promise<any[]> {
-  console.log(`[Function suggestPlacesOfInterest] Called with location: ${location}, interests: ${interests}, type: ${activity_type}`);
+  //console.log(`[Function suggestPlacesOfInterest] Called with location: ${location}, interests: ${interests}, type: ${activity_type}`);
   if (!GOOGLE_PLACES_API_KEY) {
     console.error('[API Chatbot] Error: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.');
     throw new Error('Server configuration error: Missing Google Maps API key.');
@@ -116,7 +116,7 @@ async function checkTravelRegulations(destination_country: string, origin_countr
     if (!destination_country) {
         throw new Error('Destination country is required for checking regulations.');
     }
-    console.log(`[Function checkTravelRegulations] Querying Supabase for ${destination_country}...`);
+    //console.log(`[Function checkTravelRegulations] Querying Supabase for ${destination_country}...`);
     const query = supabaseAdmin
         .from('pet_policies')
         .select('slug, entry_requirements')
@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
       role: "user",
       content: messageContent,
     });
-    console.log('[API Chatbot] User message added to thread.');
+    //console.log('[API Chatbot] User message added to thread.');
 
     // Add TripData as context - IMPORTANT: Assistant Instructions must tell it to use this!
     if (tripData) {
@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
     }
 
     // --- 3. Create and Run ---
-    console.log(`[API Chatbot] Creating run for thread ${threadId} with assistant ${assistantId}`);
+    //console.log(`[API Chatbot] Creating run for thread ${threadId} with assistant ${assistantId}`);
     let run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: assistantId,
       // Instructions could be overridden here if needed, but usually set on the Assistant
@@ -278,33 +278,33 @@ export async function POST(req: NextRequest) {
          console.log(`[API Chatbot] Required actions: ${requiredActions.length}`);
         // Use Promise.all to run tools in parallel
         await Promise.all(requiredActions.map(async (call) => {
-          const functionName = call.function.name;
-          const functionArgs = JSON.parse(call.function.arguments || '{}');
+        const functionName = call.function.name;
+        const functionArgs = JSON.parse(call.function.arguments || '{}');
           let output: any = null;
           console.log(`[API Chatbot] Executing tool: ${functionName}`, functionArgs);
 
-          try {
-             switch (functionName) {
-                case 'suggest_places_of_interest':
+        try {
+          switch (functionName) {
+            case 'suggest_places_of_interest':
                   output = await suggestPlacesOfInterest(functionArgs.location, functionArgs.interests, functionArgs.activity_type);
-                  break;
-                case 'find_nearby_service':
+              break;
+            case 'find_nearby_service':
                   output = await findService(functionArgs.location, functionArgs.service_type);
                   break;
                 case 'check_travel_regulations':
                    output = await checkTravelRegulations(functionArgs.destination_country, functionArgs.origin_country, functionArgs.pet_type);
-                  break;
+              break;
 
                 // --- Frontend Delegation ---
-                case 'add_activity_to_day':
-                    actionsForFrontend.push({ action: functionName, payload: functionArgs });
+            case 'add_activity_to_day':
+              actionsForFrontend.push({ action: functionName, payload: functionArgs });
                     // Submit confirmation back to Assistant
                     output = { status: "success", message: `Delegated '${functionName}' to frontend.` };
-                    break;
-                 case 'save_trip_progress':
-                     actionsForFrontend.push({ action: functionName, payload: {} });
+              break;
+            case 'save_trip_progress':
+                 actionsForFrontend.push({ action: functionName, payload: {} });
                      output = { status: "success", message: `Delegated '${functionName}' to frontend.` };
-                     break;
+                 break;
                  case 'get_trip_details': // If Assistant asks for it explicitly
                     // Provide the tripData context it should already have (or relevant parts)
                     const contextData = tripData ? {
@@ -316,11 +316,11 @@ export async function POST(req: NextRequest) {
                        hasItinerary: !!tripData.itinerary?.days?.length
                     } : { message: "No current trip data available from client." };
                     output = contextData;
-                    break;
+              break;
                 // --- Add other tool cases here ---
 
-                default:
-                  console.warn(`[API Chatbot] Unknown function call requested: ${functionName}`);
+            default:
+              console.warn(`[API Chatbot] Unknown function call requested: ${functionName}`);
                   output = { error: `Unknown function: ${functionName}` };
               }
               console.log(`[API Chatbot] Tool ${functionName} output generated.`);
@@ -331,7 +331,7 @@ export async function POST(req: NextRequest) {
           }
 
           toolOutputs.push({
-            tool_call_id: call.id,
+          tool_call_id: call.id,
             output: JSON.stringify(output), // Output MUST be a string
           });
         })); // End Promise.all map
