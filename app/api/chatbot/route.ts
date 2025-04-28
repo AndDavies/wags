@@ -126,8 +126,16 @@ async function checkTravelRegulations(destination_country: string, origin_countr
     const { data: dbResult, error: dbError } = await query.single();
 
     if (dbError && dbError.code !== 'PGRST116') {
-        console.error('[API Chatbot] Supabase query error:', dbError);
+        console.error('[API Chatbot] Supabase query error in checkTravelRegulations:', dbError); // Enhanced log
         throw new Error(`Failed to fetch regulations from database: ${dbError.message}`);
+    }
+
+    if (!dbResult) {
+       console.log(`[API Chatbot] No specific pet policies found for: ${destination_country}`);
+        return {
+            destination_country: destination_country,
+            message: `No specific entry requirements found for ${destination_country} in the database. Please check official sources.`
+        };
     }
 
     if (dbResult && Array.isArray(dbResult.entry_requirements) && dbResult.entry_requirements.length > 0) {
@@ -148,9 +156,12 @@ async function checkTravelRegulations(destination_country: string, origin_countr
         };
         return regulationsResult;
     } else {
+        // This case might be hit if entry_requirements is not an array or empty
+        console.log(`[API Chatbot] Policy found for ${destination_country}, but no structured entry requirements.`);
         return {
             destination_country: destination_country,
-            message: `No specific entry requirements found for ${destination_country} in the database. Please check official sources.`
+            country_slug: dbResult.slug, // Still return slug if available
+            message: `No specific entry requirements listed for ${destination_country} in the database, but a policy entry exists. Please check official sources or the country page.`
         };
     }
 }
@@ -166,7 +177,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Declare finalReply at the start of the main try block
-  let finalReply: string | null = null; 
+  let finalReply: string | null = null;
+  let threadId: string | undefined = undefined; // Initialize threadId
 
   try {
     const body: AssistantChatRequestBody = await req.json();
@@ -178,7 +190,7 @@ export async function POST(req: NextRequest) {
     }
 
     // --- 1. Thread Management ---
-    let threadId: string;
+    // Assign to the outer scope threadId
     if (existingThreadId) {
         console.log(`[API Chatbot] Using existing thread: ${existingThreadId}`);
         threadId = existingThreadId;
@@ -202,7 +214,7 @@ export async function POST(req: NextRequest) {
     if (tripData) {
          // Limit the size/depth of tripData if necessary
 
-         // --- Create a simplified itinerary summary --- 
+         // --- Create a simplified itinerary summary ---
          let itinerarySummary = null;
          if (tripData.itinerary && tripData.itinerary.days && tripData.itinerary.days.length > 0) {
              itinerarySummary = tripData.itinerary.days.map(day => ({
@@ -211,9 +223,9 @@ export async function POST(req: NextRequest) {
                  city: day.city,
                  // Extract names of key activities (e.g., accommodation, flights, transfers, maybe first/last activity)
                  keyActivities: day.activities
-                     ?.filter(act => 
-                         act.type === 'accommodation' || 
-                         act.type === 'flight' || 
+                     ?.filter(act =>
+                         act.type === 'accommodation' ||
+                         act.type === 'flight' ||
                          act.type === 'transfer' ||
                          act === day.activities[0] || // Include first activity
                          act === day.activities[day.activities.length - 1] // Include last activity
@@ -257,16 +269,32 @@ export async function POST(req: NextRequest) {
     const terminalStates = ["completed", "failed", "cancelled", "expired"];
     const actionState = "requires_action";
     const pollingIntervalMs = 1000; // Check status every 1 second
-    const maxWaitTimeMs = 120000; // Max 2 minutes wait
+    const maxWaitTimeMs = 120000; // Max 2 minutes wait (Adjust if needed, but Vercel Hobby timeout is ~10s)
     let elapsedTimeMs = 0;
 
     while (!terminalStates.includes(run.status) && run.status !== actionState && elapsedTimeMs < maxWaitTimeMs) {
       await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
       elapsedTimeMs += pollingIntervalMs;
-      console.log(`[API Chatbot] Polling Run Status... (${elapsedTimeMs / 1000}s)`);
+      // Only log polling every 5 seconds to reduce noise
+      if (elapsedTimeMs % 5000 === 0) {
+         console.log(`[API Chatbot] Polling Run Status... (${elapsedTimeMs / 1000}s)`);
+      }
       run = await openai.beta.threads.runs.retrieve(threadId, run.id);
-      console.log(`[API Chatbot] Run ${run.id} Status: ${run.status}`);
+      // Log status only if it changes or requires action
+      // if (run.status !== /* previousStatus */ || run.status === actionState || terminalStates.includes(run.status)) {
+          console.log(`[API Chatbot] Run ${run.id} Status: ${run.status}`);
+          // previousStatus = run.status; // Need to track previous status if only logging changes
+      // }
     }
+
+     // Check for timeout
+    if (!terminalStates.includes(run.status) && run.status !== actionState) {
+        console.error(`[API Chatbot] Run polling timed out after ${elapsedTimeMs / 1000}s for run ${run.id}. Status: ${run.status}`);
+        // Potentially try to cancel the run?
+        // await openai.beta.threads.runs.cancel(threadId, run.id);
+        return NextResponse.json({ error: 'Processing your request took too long. Please try again.' }, { status: 504 }); // Gateway Timeout
+    }
+
 
     // --- 5. Handle requires_action ---
     if (run.status === actionState) {
@@ -323,11 +351,13 @@ export async function POST(req: NextRequest) {
               console.warn(`[API Chatbot] Unknown function call requested: ${functionName}`);
                   output = { error: `Unknown function: ${functionName}` };
               }
-              console.log(`[API Chatbot] Tool ${functionName} output generated.`);
+              // Log successful tool output *before* stringifying
+              console.log(`[API Chatbot] Tool ${functionName} successful output:`, output);
           } catch (error: any) {
              console.error(`[API Chatbot] Error executing tool ${functionName}:`, error);
              // Only set the output for the tool submission, don't set finalReply here
-             output = { error: `Tool ${functionName} failed. Please inform the user.` };
+             output = { error: `Tool ${functionName} failed. Error: ${error.message}` }; // Include error message
+             console.error(`[API Chatbot] Tool ${functionName} error output:`, output); // Log error output
           }
 
           toolOutputs.push({
@@ -347,21 +377,30 @@ export async function POST(req: NextRequest) {
 
                 // Continue polling after submitting outputs
                 elapsedTimeMs = 0; // Reset timer for the post-tool-submission wait
-                while (!terminalStates.includes(run.status) && elapsedTimeMs < maxWaitTimeMs) {
+                 while (!terminalStates.includes(run.status) && elapsedTimeMs < maxWaitTimeMs) { // Use same max wait time
                     await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
                     elapsedTimeMs += pollingIntervalMs;
-                    console.log(`[API Chatbot] Polling Run Status after tool submission... (${elapsedTimeMs / 1000}s)`);
+                     // Only log polling every 5 seconds to reduce noise
+                    if (elapsedTimeMs % 5000 === 0) {
+                       console.log(`[API Chatbot] Polling Run Status after tool submission... (${elapsedTimeMs / 1000}s)`);
+                    }
                     run = await openai.beta.threads.runs.retrieve(threadId, run.id);
-                    console.log(`[API Chatbot] Run ${run.id} Status: ${run.status}`);
+                     console.log(`[API Chatbot] Run ${run.id} Status after tool submission: ${run.status}`);
                 }
+
+                 // Check for timeout again after tool submission polling
+                 if (!terminalStates.includes(run.status)) {
+                    console.error(`[API Chatbot] Run polling timed out after tool submission (${elapsedTimeMs / 1000}s) for run ${run.id}. Status: ${run.status}`);
+                    return NextResponse.json({ error: 'Processing your request took too long after tool execution. Please try again.' }, { status: 504 });
+                 }
+
             } catch(submitError: any) {
                  console.error(`[API Chatbot] Error submitting tool outputs for run ${run.id}:`, submitError);
-                 // Don't try to cancel or set finalReply here. Let the final status check handle it.
-                 // We just log the error and let the run likely proceed to a failed state.
+                 // Let the final status check handle it.
             }
         } else {
              console.warn(`[API Chatbot] Run ${run.id} required actions but no tool outputs were generated.`);
-             // Handle this case - maybe cancel the run?
+             // Handle this case - maybe cancel the run? Could cause run to fail.
         }
       } else {
            console.warn(`[API Chatbot] Run ${run.id} status is 'requires_action' but no tool calls found.`);
@@ -372,42 +411,56 @@ export async function POST(req: NextRequest) {
     // --- 6. Handle Final Run Status ---
     // Now check the definitive final status after all polling and potential tool submissions
     if (run.status === "completed") {
-      console.log(`[API Chatbot] Run ${run.id} completed.`);
-      const messages = await openai.beta.threads.messages.list(threadId, { order: 'desc', limit: 1 });
-      const assistantMessage = messages.data.find(m => m.role === 'assistant');
+        console.log(`[API Chatbot] Run ${run.id} completed. Fetching messages...`); // ++ LOGGING
+        const messages = await openai.beta.threads.messages.list(threadId, { order: 'desc', limit: 1 });
+        console.log(`[API Chatbot] Fetched messages for ${threadId}. Message count: ${messages.data.length}`); // ++ LOGGING
 
-      if (assistantMessage && assistantMessage.content.length > 0) {
-          // Handle different content types (e.g., text)
-          const firstContent = assistantMessage.content[0];
-          if (firstContent?.type === 'text') {
-              finalReply = firstContent.text.value;
-              console.log('[API Chatbot] Final reply:', finalReply);
-          } else {
-              console.warn('[API Chatbot] Assistant message content is not text:', firstContent);
-               finalReply = "I received a response, but couldn't display it.";
-          }
-      } else {
-          console.warn('[API Chatbot] Run completed but no assistant message found or content empty.');
-          finalReply = "I finished processing, but didn't generate a message.";
-      }
-    } else { 
+        const assistantMessage = messages.data.find(m => m.role === 'assistant');
+
+        if (assistantMessage && assistantMessage.content.length > 0) {
+            // Handle different content types (e.g., text)
+            const firstContent = assistantMessage.content[0];
+            if (firstContent?.type === 'text') {
+                finalReply = firstContent.text.value;
+                console.log('[API Chatbot] Extracted final reply text.', { length: finalReply.length }); // ++ LOGGING (Avoid logging full potentially long reply)
+            } else {
+                console.warn('[API Chatbot] Assistant message content is not text:', firstContent);
+                 finalReply = "I received a response, but couldn't display it.";
+            }
+        } else {
+            console.warn('[API Chatbot] Run completed but no assistant message found or content empty.');
+            finalReply = "I finished processing, but didn't generate a message.";
+        }
+    } else {
        // --- Handle ALL non-completed final states (failed, cancelled, expired, etc.) ---
-       console.error(`[API Chatbot] Run ${run.id} did not complete. Final status: ${run.status}`);
+       console.error(`[API Chatbot] Run ${run.id} did not complete successfully. Final status: ${run.status}`); // ++ LOGGING
        let userFriendlyError = "Sorry, I encountered an issue processing your request.";
        if (run.last_error) {
            console.error(`[API Chatbot] Run ${run.id} failed detail: ${run.last_error.code} - ${run.last_error.message}`);
+           // Provide more specific user feedback if possible based on code
            if (run.last_error.code === 'rate_limit_exceeded') {
                userFriendlyError = "I'm experiencing high traffic right now. Please try again in a moment.";
+           } else if (run.last_error.code === 'server_error') {
+                userFriendlyError = `An internal error occurred on the AI provider's side (Status: ${run.status}). Please try again later.`;
            } else {
-               userFriendlyError = `Sorry, something went wrong on my end (Status: ${run.status}). Please try again.`; // Include status
+               userFriendlyError = `Sorry, something went wrong on my end (Status: ${run.status}). Please try again.`; // Generic fallback
            }
        } else {
-           userFriendlyError = `Sorry, the process didn't complete successfully (Status: ${run.status}). Please try again.`; // Include status
+            // Handle cases like 'cancelled' or 'expired' which might not have last_error
+           userFriendlyError = `Sorry, the process didn't complete successfully (Status: ${run.status}). Please try again.`;
        }
        finalReply = userFriendlyError;
+       // IMPORTANT: Still need to return JSON even on error
+       console.log(`[API Chatbot] Sending error JSON response for thread ${threadId}...`); // ++ LOGGING
+       return NextResponse.json({
+            reply: finalReply, // Send the user-friendly error message
+            actions: actionsForFrontend, // Usually empty here, but send anyway
+            threadId: threadId // Send thread ID if available
+        }, { status: 500 }); // Internal Server Error status
     }
 
-    // --- 7. Construct Response ---
+    // --- 7. Construct Success Response ---
+    console.log(`[API Chatbot] Attempting to send final success JSON response for thread ${threadId}...`); // ++ LOGGING
     return NextResponse.json({
         reply: finalReply,
         actions: actionsForFrontend,
@@ -415,10 +468,17 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('[API Chatbot] Unhandled error in POST handler:', error);
+    console.error('[API Chatbot] Unhandled error in POST handler:', error); // ++ LOGGING (Log the actual error object)
     // Check for specific OpenAI API errors if needed
     // if (error instanceof OpenAI.APIError) { ... }
-    // Avoid exposing detailed internal errors to the client
-    return NextResponse.json({ error: 'Sorry, an unexpected error occurred on the server. Please try again later.' }, { status: 500 });
+
+    // Ensure this critical catch block ALWAYS returns valid JSON
+    console.log(`[API Chatbot] Sending critical error JSON response for thread ${threadId}...`); // ++ LOGGING
+    return NextResponse.json({
+        error: 'Sorry, an unexpected error occurred on the server. Please try again later.',
+        reply: null, // Explicitly null reply on critical failure
+        actions: [],
+        threadId: threadId // Include threadId if available
+     }, { status: 500 });
   }
 }
