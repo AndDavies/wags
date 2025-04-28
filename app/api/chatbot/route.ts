@@ -31,40 +31,96 @@ interface AssistantChatRequestBody {
 const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 async function suggestPlacesOfInterest(location: string, interests?: string[], activity_type?: string): Promise<any[]> {
-  //console.log(`[Function suggestPlacesOfInterest] Called with location: ${location}, interests: ${interests}, type: ${activity_type}`);
-  if (!GOOGLE_PLACES_API_KEY) {
-    console.error('[API Chatbot] Error: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.');
-    throw new Error('Server configuration error: Missing Google Maps API key.');
-  }
-  let query = `pet friendly ${activity_type || 'attractions'} in ${location}`;
-  if (!activity_type && interests && interests.length > 0) {
-      query = `pet friendly ${interests.join(' or ')} in ${location}`;
-  }
-  query = query.replace(/[^a-zA-Z0-9\s]/g, '');
-  const fields = 'name,formatted_address,vicinity,place_id,rating,types,geometry';
-  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}&fields=${fields}`;
-  console.log(`[Function suggestPlacesOfInterest] Fetching URL: ${url}`);
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      console.error('[Function suggestPlacesOfInterest] Google Places API Error:', data.status, data.error_message);
-      throw new Error(`Google Places API error: ${data.status} - ${data.error_message || 'Unknown error'}`);
+    //console.log(`[Function suggestPlacesOfInterest] Called with location: ${location}, interests: ${interests}, type: ${activity_type}`);
+    if (!GOOGLE_PLACES_API_KEY) {
+        console.error('[API Chatbot] Error: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.');
+        // Return an empty array or a user-friendly error object instead of throwing
+        return [{ error: 'Server configuration error preventing suggestions.' }];
     }
-    if (!data.results || data.results.length === 0) return [];
-    const mappedResults = data.results.slice(0, 5).map((place: any) => ({
-      name: place.name,
-      location: place.formatted_address || place.vicinity,
-      rating: place.rating,
-      place_id: place.place_id,
-      types: place.types,
-      coordinates: place.geometry?.location
-    }));
+
+    let queries: string[] = [];
+    const baseLocation = `in ${location}`;
+
+    if (activity_type) {
+        // Prioritize specific type if given
+        queries.push(`pet friendly ${activity_type} ${baseLocation}`);
+    } else if (interests && interests.length > 0) {
+        // If interests, create a query for the combination, maybe one specific type?
+        queries.push(`pet friendly ${interests.join(' or ')} ${baseLocation}`);
+        // Add a query for a common pet-friendly type like parks
+        if (!interests.some(i => i.toLowerCase().includes('park'))) {
+           queries.push(`pet friendly park ${baseLocation}`);
+        }
+    } else {
+        // Default broad query
+        queries.push(`pet friendly attractions ${baseLocation}`);
+        queries.push(`pet friendly park ${baseLocation}`); // Add park query as default too
+    }
+
+    // Limit queries to avoid excessive API calls
+    queries = queries.slice(0, 2); // Max 2 queries for now
+
+    const allResults: any[] = [];
+    const fetchedPlaceIds = new Set<string>();
+
+    console.log(`[Function suggestPlacesOfInterest] Using queries:`, queries);
+
+    for (const query of queries) {
+        const cleanedQuery = query.replace(/[^a-zA-Z0-9\s]/g, ''); // Basic sanitization
+        const fields = 'name,formatted_address,vicinity,place_id,rating,types,geometry,photos'; // Add photos
+        const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(cleanedQuery)}&key=${GOOGLE_PLACES_API_KEY}&fields=${fields}`;
+        console.log(`[Function suggestPlacesOfInterest] Fetching URL: ${url}`);
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+                console.error('[Function suggestPlacesOfInterest] Google Places API Error:', data.status, data.error_message);
+                // Don't throw, just log and continue to next query or return what we have
+                continue;
+            }
+
+            if (data.results && data.results.length > 0) {
+                data.results.forEach((place: any) => {
+                   // Add only if place_id is valid and not already added
+                   if (place.place_id && !fetchedPlaceIds.has(place.place_id)) {
+                       allResults.push(place);
+                       fetchedPlaceIds.add(place.place_id);
+                   }
+                });
+            }
+        } catch (error: any) {
+            console.error(`[Function suggestPlacesOfInterest] Fetch Error for query "${query}":`, error);
+            // Don't throw, just log and continue
+            continue;
+        }
+    }
+
+    // Process and map the combined results
+    const mappedResults = allResults
+        .slice(0, 5) // Limit total results sent back
+        .map((place: any) => {
+            const placeTypes = place.types || [];
+            // Simple heuristic: Parks are generally pet friendly
+            const isLikelyPetFriendly = placeTypes.includes('park') || placeTypes.includes('dog_park');
+            // Get first photo reference if available
+            const photoReference = place.photos?.[0]?.photo_reference;
+
+            return {
+                name: place.name,
+                location: place.formatted_address || place.vicinity,
+                rating: place.rating,
+                place_id: place.place_id,
+                types: placeTypes, // Include the types array
+                coordinates: place.geometry?.location,
+                petFriendlyGuess: isLikelyPetFriendly, // Add simple heuristic flag
+                photoReference: photoReference // Add photo reference
+            };
+        });
+
+     console.log(`[Function suggestPlacesOfInterest] Returning ${mappedResults.length} mapped results.`);
     return mappedResults;
-  } catch (error: any) {
-    console.error('[Function suggestPlacesOfInterest] Fetch Error:', error);
-    throw new Error(`Failed to fetch activity suggestions: ${error.message}`);
-  }
 }
 
 async function findService(location: string, service_type: string): Promise<any[]> {
