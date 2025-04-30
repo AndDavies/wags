@@ -1,31 +1,18 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react"; // Fixed FormEvent import
+import { useState, useEffect, FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Outfit, Pacifico } from "next/font/google";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ScrollIndicator from "./ScrollIndicator";
-import { Send, Globe, ChevronRight, MapPin, Users, PawPrint } from "lucide-react"; // Added PawPrint
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-});
-
-const pacifico = Pacifico({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-pacifico",
-});
+import { Send, Globe, ChevronRight, MapPin, Users, PawPrint } from "lucide-react";
 
 export default function Hero() {
   const [isMobile, setIsMobile] = useState(false);
   const [isZoomingIn, setIsZoomingIn] = useState(true);
-  const [inputValue, setInputValue] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -41,20 +28,11 @@ export default function Hero() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (inputValue.trim()) {
-      setIsLoading(true);
-      router.push(`/chat?input=${encodeURIComponent(inputValue.trim())}`);
-    }
-  };
-
   const handleSuggestion = (text: string) => {
     setIsLoading(true);
     router.push(`/create-trip`);
   };
 
-  // Loader animation variants
   const pawVariants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: (i: number) => ({
@@ -71,7 +49,7 @@ export default function Hero() {
   };
 
   return (
-    <div className={`relative w-full min-h-screen overflow-hidden ${outfit.variable}`} style={{ zIndex: 1 }}>
+    <div className="relative w-full min-h-screen overflow-hidden font-sans tracking-tight" style={{ zIndex: 1 }}>
       <div className="absolute inset-0 w-full h-full">
         <motion.div
           className="w-full h-full"
@@ -80,7 +58,7 @@ export default function Hero() {
         >
           <Image
             src="/placeholders/hero-landscape_5.png"
-            alt="Hero background"
+            alt="Hero background: Scenic landscape view suitable for pet travel inspiration."
             fill
             priority
             className="object-cover object-center"
@@ -90,72 +68,24 @@ export default function Hero() {
       </div>
 
       <div
-        className="relative container mx-auto px-4 py-32 flex flex-col items-center justify-center min-h-screen"
+        className="relative container mx-auto px-4 py-32 flex flex-col items-center justify-center min-h-screen text-center"
         style={{ zIndex: 50 }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-center mb-8"
+          className="mb-8"
         >
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 tracking-tight leading-tight text-white drop-shadow-lg">
-            <span className="inline-block">Travel Confidently</span>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-4 tracking-tight leading-tight text-white drop-shadow-lg">
+            Travel Confidently
             <br />
-            <span className={cn("text-[#FFE5E5]", pacifico.className)}>With Your Pet</span>
+            <span className="text-teal-300">With Your Pet</span>
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg sm:text-xl md:text-2xl font-light text-white drop-shadow-md leading-relaxed">
-          Baggo, our AI powered assistant builds your perfect pet-friendly itinerary in seconds, tackling airline rules and country policies with ease!          </p>
+          <p className="mx-auto mb-8 max-w-2xl text-lg sm:text-xl md:text-2xl font-normal text-white/90 drop-shadow-md leading-relaxed">
+            Baggo, our AI powered assistant builds your perfect pet-friendly itinerary in seconds, tackling airline rules and country policies with ease!
+          </p>
         </motion.div>
-
-        <motion.form
-          onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="w-full max-w-4xl mx-auto mb-8 relative"
-        >
-          <div className="relative">
-            {/* <Input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Create a weekend getaway..."
-              className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full py-6 px-6 pr-16 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-pink-500 shadow-sm disabled:opacity-75"
-              disabled={isLoading}
-            />
-            <Button
-              type="submit"
-              className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-full p-3 transition-all shadow-sm flex items-center justify-center",
-                inputValue.trim()
-                  ? "hover:shadow-md hover:from-pink-600 hover:to-pink-700 active:scale-95"
-                  : "opacity-75 cursor-not-allowed"
-              )}
-              aria-label="Send message"
-              disabled={isLoading || !inputValue.trim()}
-            >
-              {isLoading ? (
-                <div className="flex space-x-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      variants={pawVariants}
-                      initial="hidden"
-                      animate="visible"
-                      custom={i}
-                      className="w-2 h-2"
-                    >
-                      <PawPrint className="w-4 h-4 text-white" />
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button> */}
-          </div>
-        </motion.form>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -164,32 +94,34 @@ export default function Hero() {
           className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
         >
           <Button
-  className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-3.5 px-6 transition-all flex items-center gap-3 border border-slate-200 shadow-md hover:shadow-lg group disabled:opacity-75 text-lg font-semibold"
-  onClick={() => handleSuggestion("Create a new Trip")}
-  disabled={isLoading}
->
-  <Globe className="h-5 w-5 text-pink-500 group-hover:text-pink-600 transition-colors" />
-  <span>Create a New Trip</span>
-  <ChevronRight className="h-4.5 w-4.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-1 transform duration-200" />
-</Button>
-          {/* <Button
-            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
-            onClick={() => handleSuggestion("Inspire me where to go")}
+            className="bg-teal-500 hover:bg-teal-600 text-white rounded-lg py-2 px-6 transition-all flex items-center gap-2 shadow hover:shadow-md group disabled:opacity-75 text-base font-medium"
+            onClick={() => handleSuggestion("Create a new Trip")}
             disabled={isLoading}
+            aria-label="Create a new trip itinerary"
           >
-            <MapPin className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
-            <span>Inspire me where to go</span>
-            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
+            {isLoading ? (
+              <div className="flex space-x-1 items-center justify-center h-5">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    variants={pawVariants}
+                    initial="hidden"
+                    animate="visible"
+                    custom={i}
+                    className="w-2 h-2"
+                  >
+                    <PawPrint className="w-4 h-4 text-white" />
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <Globe className="h-5 w-5" />
+                <span>Create a New Trip</span>
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1 transform duration-200" />
+              </>
+            )}
           </Button>
-          <Button
-            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
-            onClick={() => handleSuggestion("Find pet-friendly hotels")}
-            disabled={isLoading}
-          >
-            <Users className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
-            <span>Find pet-friendly hotels</span>
-            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
-          </Button> */}
         </motion.div>
 
         <motion.div

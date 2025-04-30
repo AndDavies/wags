@@ -15,7 +15,7 @@ export default function HomePage() {
 
       <Hero />     
       <ChatWithBaggo />
-      <GetInspired />
+      {/* <GetInspired /> */}
       <FeaturedBlog />
 
       <PolicyCard />

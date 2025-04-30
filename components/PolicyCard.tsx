@@ -2,10 +2,8 @@ import Link from "next/link"
 import { ArrowRight, Airplay, FileTextIcon } from "lucide-react"
 import React from "react"
 
-// This component now displays both Airline and Country policies side-by-side.
-// It no longer takes props for variant or content.
+// Displays Airline and Country policies side-by-side, styled like GetInspired/ChatWithBaggo
 export default function PolicyCard() {
-  // Define content directly within the component
   const airlineContent = {
     title: "Airline Policies",
     IconComponent: Airplay,
@@ -38,25 +36,32 @@ export default function PolicyCard() {
       "Prepare for quarantine or health checks",
       "Build a checklist for smooth border crossings",
     ],
-    buttonText: "Explore Country Policies", // Updated button text based on image
+    buttonText: "Explore Country Policies",
     buttonLink: "/directory/policies",
-    iconBgColor: "bg-pink-100",
-    iconTextColor: "text-pink-600",
+    iconBgColor: "bg-mustard-100",
+    iconTextColor: "text-mustard-600",
   };
 
-  // Helper function to render a policy section
-  const renderPolicySection = (content: typeof airlineContent) => (
-    <div className="flex flex-col items-center w-full">
-      {/* Render Lucide Icon */}
-      <div className={`rounded-full p-6 w-40 h-40 flex items-center justify-center mb-6 ${content.iconBgColor}`}>
-        <content.IconComponent className={`w-20 h-20 ${content.iconTextColor}`} />
+  // Renders one side of the policy card
+  const renderPolicySection = (content: typeof airlineContent | typeof countryContent) => (
+    // Use flex-1 to allow columns to grow, adjust padding
+    <div className="flex flex-col items-start w-full flex-1 p-4 md:p-8">
+      {/* Icon remains centered above text */}      
+      <div className="flex justify-center w-full mb-6">
+        <div className={`rounded-full p-4 w-24 h-24 flex items-center justify-center ${content.iconBgColor}`}>
+          <content.IconComponent className={`w-12 h-12 ${content.iconTextColor}`} />
+        </div>
       </div>
 
-      <h2 className="text-3xl md:text-4xl font-bold text-black mb-6 text-center leading-tight">{content.title}</h2>
+      {/* Left-aligned text content */}      
+      <div className="w-full text-left">
+        {/* Adjusted title size, weight, color, and alignment */}
+        <h2 className="text-3xl font-bold text-black mb-6 text-left leading-tight">{content.title}</h2>
 
-      <div className="w-full max-w-md">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">What You&apos;ll Find</h3>
-        <ul className="list-disc pl-6 mb-6 text-gray-700">
+        {/* Adjusted subheading styles, left-aligned */}        
+        <h3 className="text-xl font-semibold text-black mb-2 text-left">What You&apos;ll Find</h3>
+        {/* Adjusted list styles, left-aligned */}
+        <ul className="list-disc list-outside pl-5 mb-6 text-gray-700 text-base">
           {content.bulletPoints.map((point, index) => (
             <li key={index} className="mb-1">
               {point}
@@ -64,8 +69,10 @@ export default function PolicyCard() {
           ))}
         </ul>
 
-        <h3 className="text-xl font-bold text-gray-800 mb-2">How This Helps Your Journey</h3>
-        <ol className="list-decimal pl-6 mb-8 text-gray-700">
+        {/* Adjusted subheading styles, left-aligned */}        
+        <h3 className="text-xl font-semibold text-black mb-2 text-left">How This Helps Your Journey</h3>
+        {/* Adjusted list styles, left-aligned */}
+        <ol className="list-decimal list-outside pl-5 mb-8 text-gray-700 text-base">
           {content.helpPoints.map((point, index) => (
             <li key={index} className="mb-1">
               {point}
@@ -73,24 +80,29 @@ export default function PolicyCard() {
           ))}
         </ol>
 
-        <Link
-          href={content.buttonLink}
-          className="flex items-center justify-center gap-2 bg-teal-500 text-white font-medium py-3 px-6 rounded-lg text-center hover:bg-teal-600 transition-colors w-full"
-        >
-          {content.buttonText}
-          <ArrowRight className="h-5 w-5" />
-        </Link>
+        {/* Adjusted button padding, remains centered below text block */}        
+        <div className="text-center mt-4">
+          <Link
+            href={content.buttonLink}
+            className="inline-flex items-center justify-center gap-2 bg-teal-500 text-white font-medium py-3 px-8 rounded-lg hover:bg-teal-600 transition-colors shadow hover:shadow-md"
+            aria-label={`${content.buttonText}`}
+          >
+            {content.buttonText}
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+        </div>
       </div>
     </div>
   );
 
   return (
-    // Main container for side-by-side layout
-    <div className="flex flex-col md:flex-row gap-8 lg:gap-16 justify-center p-6 md:p-8 font-sans tracking-tight bg-[#bdb5ef] rounded-lg shadow border border-gray-200">
-      {/* Airline Policies Section */}
+    // Main container - white background, shadow, standard padding
+    <div className="flex flex-col md:flex-row gap-8 justify-center p-8 md:p-12 font-sans tracking-tight bg-white shadow-md">
       {renderPolicySection(airlineContent)}
       
-      {/* Country Policies Section */}
+      {/* Vertical Divider for medium screens and up */}      
+      <div className="hidden md:block border-l border-gray-200"></div>
+
       {renderPolicySection(countryContent)}
     </div>
   )
