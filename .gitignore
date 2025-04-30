@@ -15,6 +15,9 @@
 # testing
 /coverage
 
+# Development
+/app/api/ai/
+/app/api/chat/
 # next.js
 /.next/
 /out/

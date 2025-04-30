@@ -1,15 +1,13 @@
 import type React from 'react';
 import './globals.css';
 import { Outfit } from 'next/font/google';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import AuthListener from '@/components/AuthListener';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import { NewsletterPopup } from "@/components/NewsletterPopup";
+import LayoutClientWrapper from './LayoutClientWrapper';
 
 import { ToastProvider } from '@/components/ui/toast';
-import { Toaster } from '@/components/ui/toaster';
 import Script from 'next/script';
 
 const outfit = Outfit({
@@ -121,11 +119,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SpeedInsights />
         <ToastProvider>
           <AuthListener>
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-            <Footer />
+            <LayoutClientWrapper>
+              {children}
+            </LayoutClientWrapper>
           </AuthListener>
-          <Toaster />
         </ToastProvider>
         <CookieConsentBanner />
         <NewsletterPopup />

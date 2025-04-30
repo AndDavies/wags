@@ -58,7 +58,7 @@ const Footer = () => {
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Making pet travel stress-free and tail-waginly easy for pet owners around the globe.
           </p>
-          <div className="flex space-x-6 mt-6">
+          {/* <div className="flex space-x-6 mt-6">
             <a href="#" className="text-brand-teal hover:text-brand-pink transition-colors" aria-label="Facebook">
               <Facebook className="h-6 w-6" />
             </a>
@@ -71,7 +71,7 @@ const Footer = () => {
             <a href="#" className="text-brand-teal hover:text-brand-pink transition-colors" aria-label="LinkedIn">
               <Linkedin className="h-6 w-6" />
             </a>
-          </div>
+          </div> */}
         </div>
 
         {/* Main footer content */}
@@ -140,12 +140,12 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold text-brand-teal mb-4">Support</h3>
             <ul className="space-y-3">
-              <li>
+              {/* <li>
                 <Link href="/faq" className="text-gray-600 hover:text-brand-teal transition-colors flex items-center">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
                   FAQ
                 </Link>
-              </li>
+              </li> */}
               <li>
                 <Link
                   href="/contact"
@@ -164,12 +164,12 @@ const Footer = () => {
                   Privacy Policy
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link href="/terms" className="text-gray-600 hover:text-brand-teal transition-colors flex items-center">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-teal mr-2"></span>
                   Terms of Service
                 </Link>
-              </li>
+              </li> */}
             </ul>
           </div>
         </div>

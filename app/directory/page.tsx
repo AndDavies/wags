@@ -63,15 +63,6 @@ export default function DirectoryHomePage() {
       iconColor: "text-[#249ab4]",
     },
     {
-      href: "/directory/hotels",
-      icon: BedIcon,
-      title: "Hotels",
-      description: "Discover accommodations that welcome your furry friends",
-      count: "1,000+ Hotels",
-      color: "bg-[#9fc7aa]/20 border-[#9fc7aa]",
-      iconColor: "text-[#9fc7aa]",
-    },
-    {
       href: "/directory/policies",
       icon: FileTextIcon,
       title: "Policies",
@@ -117,7 +108,7 @@ export default function DirectoryHomePage() {
     },
   ]
 
-  const popularSearches = ["Dog-friendly airlines", "No quarantine countries", "EU pet passport", "Pet hotels in NYC"]
+  const popularSearches = ["Dog-friendly airlines", "No quarantine countries", "EU pet passport"]
 
   const fadeInUpVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -170,7 +161,7 @@ export default function DirectoryHomePage() {
                   <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/70" />
                   <input
                     type="text"
-                    placeholder="Search airlines, hotels, or countries..."
+                    placeholder="Search airlines or countries..."
                     className="w-full rounded-full border-none bg-white/10 py-3 pl-12 pr-4 text-white placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-white/30"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -190,10 +181,6 @@ export default function DirectoryHomePage() {
                       <SelectItem value="airlines" className="flex items-center gap-2">
                         <Airplay className="h-4 w-4" />
                         <span>Airlines</span>
-                      </SelectItem>
-                      <SelectItem value="hotels" className="flex items-center gap-2">
-                        <BedIcon className="h-4 w-4" />
-                        <span>Hotels</span>
                       </SelectItem>
                       <SelectItem value="policies" className="flex items-center gap-2">
                         <FileTextIcon className="h-4 w-4" />
@@ -248,7 +235,7 @@ export default function DirectoryHomePage() {
             variants={staggerContainerVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="flex flex-wrap justify-center gap-6 max-w-4xl mx-auto"
           >
             {mainDirectories.map((directory, index) => (
               <motion.div key={index} variants={fadeInUpVariants} custom={index}>
@@ -443,10 +430,6 @@ export default function DirectoryHomePage() {
                 <div className="flex flex-col items-center">
                   <div className="text-3xl font-bold text-[#249ab4]">100+</div>
                   <div className="text-sm text-gray-600">Airlines</div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="text-3xl font-bold text-[#249ab4]">1,000+</div>
-                  <div className="text-sm text-gray-600">Hotels</div>
                 </div>
                 <div className="flex flex-col items-center">
                   <div className="text-3xl font-bold text-[#249ab4]">190+</div>

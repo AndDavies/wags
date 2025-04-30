@@ -754,7 +754,7 @@ export default function TripCreationForm({
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 font-sans">
+    <div className="max-w-4xl mx-auto w-full p-10 sm:p-6 font-sans">
       <Toast.Provider swipeDirection="right">
         <Toast.Root
           open={toastOpen}
@@ -786,7 +786,7 @@ export default function TripCreationForm({
         </div>
       )}
 
-      <h1 className="text-4xl font-bold text-gray-800 tracking-tight mb-4 text-center font-outfit">Tell Us About Your Trip!</h1>
+      <h1 className="pt-6 text-4xl font-bold text-gray-800 tracking-tight mb-4 text-center font-outfit">Tell Us About Your Trip!</h1>
       <p className="text-lg text-gray-600 mb-8 text-center">Help us create the perfect pet-friendly itinerary for you.</p>
 
       {errors.general && (
@@ -852,61 +852,68 @@ export default function TripCreationForm({
                 <Label className="text-base font-medium text-gray-700 flex items-center gap-2 mb-2">
                   <CalendarDays className="h-5 w-5 text-teal-600" /> Trip Dates
                 </Label>
-                <div className="relative flex gap-4">
-                   {/* Start Date Input */}
-                   <div className="flex-1 relative">
-                     <Input
-                       value={dateInput.start}
-                       onChange={(e) => handleDateInputChange('start', e.target.value)}
-                       placeholder="Start date"
-                       className={cn(
-                         "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
-                         validationState.interacted.has('startDate') && !validationState.startDate && "border-amber-300"
-                       )}
-                     />
-                     {renderError('startDate')}
+                <div className="relative flex flex-col gap-2">
+                   {/* Container for Inputs */}
+                   <div className="flex gap-4">
+                       {/* Start Date Input */}
+                       <div className="flex-1 relative">
+                         <Input
+                           value={dateInput.start}
+                           onChange={(e) => handleDateInputChange('start', e.target.value)}
+                           placeholder="Start date"
+                           className={cn(
+                             "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
+                             validationState.interacted.has('startDate') && !validationState.startDate && "border-amber-300"
+                           )}
+                         />
+                         {renderError('startDate')}
+                       </div>
+                       {/* End Date Input */}
+                       <div className="flex-1 relative">
+                         <Input
+                           value={dateInput.end}
+                           onChange={(e) => handleDateInputChange('end', e.target.value)}
+                           placeholder="End date"
+                           className={cn(
+                             "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
+                             validationState.interacted.has('endDate') && !validationState.endDate && "border-amber-300"
+                           )}
+                         />
+                         {renderError('endDate')}
+                       </div>
                    </div>
-                   {/* End Date Input */}
-                   <div className="flex-1 relative">
-                     <Input
-                       value={dateInput.end}
-                       onChange={(e) => handleDateInputChange('end', e.target.value)}
-                       placeholder="End date"
-                       className={cn(
-                         "w-full h-12 p-3 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500",
-                         validationState.interacted.has('endDate') && !validationState.endDate && "border-amber-300"
-                       )}
-                     />
-                     {renderError('endDate')}
+
+                   {/* Moved Calendar Popover */}
+                   <div className="flex items-center gap-2 mt-1">
+                       <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                         <PopoverTrigger asChild>
+                           <Button
+                             variant="outline"
+                             className="h-10 w-10 p-0 flex-shrink-0"
+                           >
+                             <CalendarDays className="h-5 w-5" />
+                           </Button>
+                         </PopoverTrigger>
+                         <PopoverContent className="w-auto p-0" align="end">
+                           <Calendar
+                             initialFocus
+                             mode="range"
+                             defaultMonth={formData.startDate ?? new Date()}
+                             selected={{
+                               from: formData.startDate ?? undefined,
+                               to: formData.endDate ?? undefined,
+                             }}
+                             onSelect={handleDateRangeChange}
+                             numberOfMonths={2}
+                             pagedNavigation
+                             disabled={{ before: new Date() }}
+                             showOutsideDays={false}
+                             className="rounded-md border p-2"
+                           />
+                         </PopoverContent>
+                       </Popover>
+                       <p className="text-xs text-gray-500">Click to select dates</p>
                    </div>
-                   {/* Calendar Popover */}
-                   <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                     <PopoverTrigger asChild>
-                       <Button
-                         variant="outline"
-                         className="h-12 w-12 p-0 flex-shrink-0"
-                       >
-                         <CalendarDays className="h-5 w-5" />
-                       </Button>
-                     </PopoverTrigger>
-                     <PopoverContent className="w-auto p-0" align="end">
-                       <Calendar
-                         initialFocus
-                         mode="range"
-                         defaultMonth={formData.startDate ?? new Date()}
-                         selected={{
-                           from: formData.startDate ?? undefined,
-                           to: formData.endDate ?? undefined,
-                         }}
-                         onSelect={handleDateRangeChange}
-                         numberOfMonths={2}
-                         pagedNavigation
-                         disabled={{ before: new Date() }}
-                         showOutsideDays={false}
-                         className="rounded-md border p-2"
-                       />
-                     </PopoverContent>
-                   </Popover>
                 </div>
                 {(renderError('startDate') || renderError('endDate')) && (validationState.interacted.has('startDate') || validationState.interacted.has('endDate')) && (
                    <p className="text-sm text-red-600 mt-1">

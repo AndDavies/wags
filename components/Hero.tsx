@@ -105,8 +105,7 @@ export default function Hero() {
             <span className={cn("text-[#FFE5E5]", pacifico.className)}>With Your Pet</span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg sm:text-xl md:text-2xl font-light text-white drop-shadow-md leading-relaxed">
-            Wags & Wanders brings the world to you and empowers you to experience confidently, together with your furry friends.
-          </p>
+          Baggo, our AI powered assistant builds your perfect pet-friendly itinerary in seconds, tackling airline rules and country policies with ease!          </p>
         </motion.div>
 
         <motion.form
@@ -165,15 +164,15 @@ export default function Hero() {
           className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
         >
           <Button
-            className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
-            onClick={() => handleSuggestion("Create a new Trip")}
-            disabled={isLoading}
-          >
-            <Globe className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
-            <span>Create a new Trip</span>
-            <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
-          </Button>
-          <Button
+  className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-3.5 px-6 transition-all flex items-center gap-3 border border-slate-200 shadow-md hover:shadow-lg group disabled:opacity-75 text-lg font-semibold"
+  onClick={() => handleSuggestion("Create a new Trip")}
+  disabled={isLoading}
+>
+  <Globe className="h-5 w-5 text-pink-500 group-hover:text-pink-600 transition-colors" />
+  <span>Create a New Trip</span>
+  <ChevronRight className="h-4.5 w-4.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-1 transform duration-200" />
+</Button>
+          {/* <Button
             className="bg-white hover:bg-slate-50 text-slate-700 rounded-full py-2.5 px-4 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow group disabled:opacity-75"
             onClick={() => handleSuggestion("Inspire me where to go")}
             disabled={isLoading}
@@ -190,7 +189,7 @@ export default function Hero() {
             <Users className="h-4 w-4 text-pink-500 group-hover:text-pink-600 transition-colors" />
             <span>Find pet-friendly hotels</span>
             <ChevronRight className="h-3.5 w-3.5 text-pink-500 group-hover:text-pink-600 transition-colors group-hover:translate-x-0.5 transform duration-200" />
-          </Button>
+          </Button> */}
         </motion.div>
 
         <motion.div
