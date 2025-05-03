@@ -79,25 +79,73 @@ const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const tripData = useTripStore((state) => state.tripData);
 
-  // Format Dates - handle different types safely
-  const formatDate = (date: string | Date | null | undefined): string | null => {
-    if (!date) return null;
+  // Enhanced Format Dates function
+  const formatDate = (dateString: string | null | undefined): string | null => {
+    if (!dateString) return null;
+
+    const yyyyMmDdRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const yyyyMmRegex = /^\d{4}-\d{2}$/;
+
     try {
-      // If it's already a string, assume YYYY-MM-DD. Otherwise, parse the Date object.
-      const dateObj = typeof date === 'string' ? new Date(date + 'T00:00:00') : date;
-      // Use short format like Sep 21
-      return format(dateObj, 'LLL dd');
+      // 1. Check for YYYY-MM format
+      if (yyyyMmRegex.test(dateString)) {
+        // Create a date object for the first of the month to format
+        const dateObj = new Date(dateString + '-01T00:00:00');
+        return format(dateObj, 'LLL yyyy'); // Format as "Jun 2024"
+      }
+
+      // 2. Check for YYYY-MM-DD format or attempt general parsing
+      if (yyyyMmDdRegex.test(dateString) || !isNaN(new Date(dateString).getTime())) {
+         // Add T00:00:00 to ensure correct timezone handling for YYYY-MM-DD strings
+         const dateObj = new Date(yyyyMmDdRegex.test(dateString) ? dateString + 'T00:00:00' : dateString);
+          // Check for validity again after parsing
+         if (!isNaN(dateObj.getTime()) && dateObj.getFullYear() > 1970) {
+             return format(dateObj, 'LLL dd'); // Format as "Jun 10"
+         }
+      }
+
+      // 3. If it doesn't match known formats and isn't parsable, return original string
+      // (This catches things like "June", "next summer" returned by the enhanced parseDate)
+      console.log(`[TopBar] Date string "${dateString}" not formatted, returning as is.`);
+      return dateString; 
+
     } catch (error) {
-      console.error('[TopBar] Error formatting date:', date, error);
-      return typeof date === 'string' ? date : 'Invalid Date'; // Fallback
+      console.error('[TopBar] Error formatting date:', dateString, error);
+      return dateString; // Fallback to original string on error
     }
   };
 
-  const formattedStartDate = formatDate(tripData?.startDate);
-  const formattedEndDate = formatDate(tripData?.endDate);
-  const dateDisplay = formattedStartDate && formattedEndDate 
-                      ? `${formattedStartDate} - ${formattedEndDate}` 
-                      : formattedStartDate || formattedEndDate || null;
+  // Ensure dates from store are strings before formatting
+  const getIsoDateString = (date: string | Date | null | undefined): string | null | undefined => {
+      if (date instanceof Date) {
+          try {
+              return date.toISOString().split('T')[0]; // Convert Date object to YYYY-MM-DD string
+          } catch { 
+              return undefined; // Handle invalid Date object
+          }
+      }
+      return date; // Pass through string, null, or undefined
+  };
+
+  const startDateString = getIsoDateString(tripData?.startDate);
+  const endDateString = getIsoDateString(tripData?.endDate);
+
+  const formattedStartDate = formatDate(startDateString);
+  const formattedEndDate = formatDate(endDateString);
+
+  // Improved Date Display Logic
+  let dateDisplay: string | null = null;
+  if (formattedStartDate && formattedEndDate) {
+    if (formattedStartDate === formattedEndDate) {
+      dateDisplay = formattedStartDate; // Show only one if they are the same
+    } else {
+      dateDisplay = `${formattedStartDate} - ${formattedEndDate}`;
+    }
+  } else if (formattedStartDate) {
+    dateDisplay = formattedStartDate; // Show start date if only it exists
+  } else if (formattedEndDate) {
+    dateDisplay = formattedEndDate; // Show end date if only it exists
+  }
 
   // Format Travelers
   const travelersDisplay = [

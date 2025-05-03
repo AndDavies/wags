@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea'; // Use Textarea for potentially longer input
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatBuilderProps {
   // session might be needed later for auth-related actions
@@ -65,6 +66,9 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
   const setTripData = useTripStore((state) => state.setTripData);
   const setError = useTripStore((state) => state.setError);
   const setIsStoreLoading = useTripStore((state) => state.setIsLoading);
+
+  // NEW: Initialize useToast
+  const { toast } = useToast();
 
   // --- Effects ---
   // Scroll to bottom effect
@@ -162,6 +166,12 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
       const errorMessage: ChatMessage = { role: 'assistant', content: errorContent };
       // Use functional update
       setMessages(prevMessages => [...prevMessages, errorMessage]);
+      // NEW: Show toast notification for the error
+      toast({ 
+        title: "Chat Error", 
+        description: `Could not process your message: ${error.message}`,
+        variant: "destructive" 
+      });
     } finally {
       setIsLoadingApi(false); // End API loading state
     }
@@ -202,8 +212,8 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
                )}
              >
                {isError && <AlertTriangle className="inline-block h-4 w-4 mr-1.5 mb-0.5 text-red-600" />}
-               {/* Use prose for markdown styling */} 
-               <div className="prose prose-sm max-w-none prose-p:my-1 prose-a:text-teal-600 hover:prose-a:text-teal-700">
+               {/* Use prose for markdown styling - ensure links are teal */}
+               <div className="prose prose-sm max-w-none prose-p:my-1 prose-a:text-teal-600 hover:prose-a:text-teal-700 prose-ul:list-disc prose-ul:pl-5 prose-li:my-0.5">
                  <ReactMarkdown
                    components={{ a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}
                  >

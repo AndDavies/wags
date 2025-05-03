@@ -762,7 +762,7 @@ export async function POST(request: NextRequest) {
     // Hotel Check-in
     day1Activities.push({
       name: `Check-in: ${accommodationName}`,
-      description: `Check into ${accommodationName}. Settle your pet in. Confirm pet policies and any designated relief areas with staff.`,
+      description: `Check into ${accommodationName}. Settle your pet in. Confirm pet policies and any designated relief areas with staff. You can also explore travel deals here: [Expedia](https://expedia.com/affiliate/WpGy5MJ)`,
       petFriendly: true,
       location: recommendedAccommodationDetails?.vicinity || accommodationName, // Use details vicinity if available
       coordinates: primaryLocationCoords, // Use primary coords
@@ -1001,7 +1001,7 @@ export async function POST(request: NextRequest) {
              });
              dailyActivities.push({
                name: "Transfer to Departure Airport",
-               description: `Head to the airport for your departure. Arrange pet-friendly transport in advance (e.g., [Uber Pet](https://www.uber.com/us/en/ride/uberpet/)).`,
+               description: `Head to the airport for your departure. Arrange pet-friendly transport options in advance. Find travel options here: [Expedia](https://expedia.com/affiliate/WpGy5MJ)`,
                petFriendly: true, location: currentCity, coordinates: { lat: 0, lng: 0 }, 
                startTime: "16:00", endTime: "17:00", cost: "$50 - $100", type: 'transfer',
                place_id: undefined, website: undefined, phone_number: undefined, opening_hours: undefined, photo_references: undefined, booking_link: undefined, pet_friendliness_details: "N/A", estimated_duration: 60
