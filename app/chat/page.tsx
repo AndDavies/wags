@@ -360,38 +360,44 @@ export default function ChatPage() {
 
       {/* Main Content Area */}
       <div className="flex-grow flex overflow-hidden">
-        {/* Left Column: Switches between ChatBuilder, Loading State, and ItineraryView */} 
-        <div className="w-full md:w-1/2 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
-          {/* UPDATED Conditional Rendering Logic */} 
-          {showItinerary ? (
-            // 1. If itinerary data exists in store, show ItineraryView
-            <ItineraryView 
-                session={session} 
-             />
-          ) : isStoreLoading ? (
-            // 2. If no itinerary data BUT store indicates loading (generation in progress), show loading message
-            <div className="flex items-center justify-center h-full p-4">
-                <p className="text-gray-600 animate-pulse text-center">
-                    Generating your perfect trip...
-                    <br />
-                    <span className="text-sm">(This can take up to a minute)</span>
-                </p> 
+        {/* UPDATED: Conditional Rendering Logic based on itinerary generation status */}
+        {showItinerary ? (
+            // If itinerary exists, show ItineraryView taking full available width
+            <div className="w-full h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
+                <ItineraryView session={session} />
+                {/* TODO: Consider adding a collapsible Chatbot component here later */}
             </div>
-          ) : (
-            // 3. Otherwise (no itinerary data, not loading), show ChatBuilder
-            <ChatBuilder 
-               session={session} 
-               className="h-full" 
-               onInitiateItineraryGeneration={handleInitiateGeneration} 
-            />
-          )}
-        </div>
+        ) : (
+            // Otherwise (no itinerary yet), show the two-column layout 
+            // with ChatBuilder/Loading on left and MarketingSidebar on right
+            <>
+                {/* Left Column: Switches between Loading State and ChatBuilder */}
+                <div className="w-full md:w-1/2 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
+                    {isStoreLoading ? (
+                        // If loading (generation in progress), show loading message
+                        <div className="flex items-center justify-center h-full p-4">
+                            <p className="text-gray-600 animate-pulse text-center">
+                                Generating your perfect trip...
+                                <br />
+                                <span className="text-sm">(This can take up to a minute)</span>
+                            </p>
+                        </div>
+                    ) : (
+                        // Otherwise (not loading, no itinerary), show ChatBuilder
+                        <ChatBuilder
+                            session={session}
+                            className="h-full"
+                            onInitiateItineraryGeneration={handleInitiateGeneration}
+                        />
+                    )}
+                </div>
 
-        {/* Right Column: Marketing Sidebar */}
-        <div className="hidden md:block md:w-1/2 h-full border-l border-gray-200">
-          {/* Render the actual sidebar component */}
-          <MarketingSidebar className="h-full" />
-        </div>
+                {/* Right Column: Marketing Sidebar (only shown before itinerary generation) */}
+                <div className="hidden md:block md:w-1/2 h-full border-l border-gray-200">
+                    <MarketingSidebar className="h-full" />
+                </div>
+            </>
+        )}
       </div>
 
       {/* --- Modals --- */}
