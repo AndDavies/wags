@@ -138,3 +138,31 @@ Following the initial setup and conversational flow implementation, the focus sh
 *   **Chat-Triggered UI:** Explore triggering modals/UI elements directly from Baggo's responses.
 *   **Persistence:** Implement robust state persistence for the `/app/chat` flow (`localStorage` or Supabase drafts).
 *   **General Refinement:** Continuous improvements to error handling, UX flow, and code quality.
+
+## Development Log - May 4th, 2024 (Layout & Planning)
+
+1.  **Chat Page Layout Fix (`app/chat/page.tsx`):**
+    *   **Logic:** Addressed a UX issue where the `ItineraryView` appeared squished in the left column after generation, alongside the persistent `MarketingSidebar`.
+    *   **Code:** Moved the conditional rendering logic (`showItinerary ? ... : ...`) to wrap the entire content area below the `TopBar`. If `showItinerary` is true, only `ItineraryView` is rendered (full-width). Otherwise, the two-column layout (`ChatBuilder` + `MarketingSidebar`) is rendered.
+    *   **Status:** Completed & Tested (Layout now correctly transitions to full-width itinerary view).
+
+2.  **Planning: `MarketingSidebar` Interactivity:**
+    *   **Goal:** Allow users to click pre-defined trip examples in the sidebar to pre-populate `tripData` and start a customization conversation with Baggo.
+    *   **Plan:**
+        *   Define sample `Partial<TripData>` objects.
+        *   Modify `MarketingSidebar.tsx` to accept an `onSelectExampleTrip` prop and render clickable examples.
+        *   Implement `handleSelectExampleTrip` in `app/chat/page.tsx` to update `useTripStore` and call `sendSystemUpdateToChat` to inform the backend AI.
+        *   Pass the handler function to `MarketingSidebar`.
+    *   **Status:** Planned for next development session.
+
+**Files Updated:**
+
+*   `app/chat/page.tsx`
+
+**Remaining Tasks (Updated):**
+
+*   **Marketing Sidebar Interactivity:** Implement the plan above (Next planned step).
+*   **Modal Styling Refinement:** Further align modal component styles (especially `Calendar`) with OriginUI specifications (Deferred - lower priority).
+*   **Chat-Triggered UI:** Explore triggering modals/UI elements directly from Baggo's responses.
+*   **Persistence:** Implement robust state persistence for the `/app/chat` flow (`localStorage` or Supabase drafts).
+*   **General Refinement:** Continuous improvements to error handling, UX flow, and code quality.
