@@ -216,7 +216,7 @@ export default function ChatPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Send the current tripData; backend will handle defaults for missing optional fields
-        body: JSON.stringify(currentTripData),
+        body: JSON.stringify(currentTripData), 
       });
       
       const contentType = response.headers.get("content-type");

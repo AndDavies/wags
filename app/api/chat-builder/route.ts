@@ -31,28 +31,65 @@ interface BuilderApiResponse {
 
 // --- Helper Functions ---
 /**
- * Tries to parse potentially fuzzy date descriptions.
- * Attempts YYYY-MM-DD, common month names, and falls back to original string.
+ * Tries to parse potentially fuzzy date descriptions into YYYY-MM-DD format.
+ * Handles YYYY-MM-DD, common month names, relative terms like "tomorrow", "next week", "next month".
  * @param dateString The user's date description.
- * @returns A string (YYYY-MM-DD, YYYY-MM, Month Name, or original) or the original string if parsing fails.
+ * @returns A string in YYYY-MM-DD format, or the original string if parsing fails comprehensively.
  */
 function parseDate(dateString: string): string {
    const cleanString = dateString.trim().toLowerCase();
+   const now = new Date();
+   // Prevent parsing things like "a week" or "5 days" without context
+   if (cleanString.match(/^(\d+|a) (day|week|month)s?$/)) {
+       console.log(`[API Chat Builder] Refusing to parse duration-like string without context: ${cleanString}`);
+       return dateString; // Return original descriptive string for durations
+   }
+
    console.log(`[API Chat Builder] Attempting to parse date: ${cleanString}`);
+
+   // Helper to format Date object to YYYY-MM-DD
+   const formatDate = (date: Date): string => date.toISOString().split('T')[0];
 
    // 1. Check for YYYY-MM-DD format
    const yyyyMmDdRegex = /^\d{4}-\d{2}-\d{2}$/;
    if (yyyyMmDdRegex.test(cleanString)) {
        console.log(`[API Chat Builder] Parsed as YYYY-MM-DD: ${cleanString}`);
-       return cleanString; // Already in correct format
+       return cleanString;
    }
 
-   // 2. Attempt basic Date constructor parsing (handles many simple formats)
+   // 2. Handle relative terms
+   let targetDate = new Date(); // Use mutable date for relative calculations
+   let parsedRelative = false;
+
+   if (cleanString === "tomorrow") {
+       targetDate.setDate(now.getDate() + 1);
+       parsedRelative = true;
+   } else if (cleanString === "today") {
+       parsedRelative = true; // Use today's date
+   } else if (cleanString.includes("next week")) {
+       targetDate.setDate(now.getDate() + 7); // Simplistic: exactly 7 days from now
+       // TODO: More complex: adjust to start of next week (e.g., next Monday)
+       parsedRelative = true;
+   } else if (cleanString.includes("next month")) {
+       targetDate.setMonth(now.getMonth() + 1);
+       targetDate.setDate(1); // Default to the 1st of next month
+       parsedRelative = true;
+   } else if (cleanString.includes("in a week") || cleanString.includes("a week from now")) {
+        targetDate.setDate(now.getDate() + 7);
+        parsedRelative = true;
+   } // Add more relative terms: "weekend", specific days "next friday" etc.
+
+   if (parsedRelative) {
+       const formatted = formatDate(targetDate);
+       console.log(`[API Chat Builder] Parsed relative term "${cleanString}" to ${formatted}`);
+       return formatted;
+   }
+
+   // 3. Attempt basic Date constructor parsing (handles many simple formats like "August 15, 2024")
    try {
       const date = new Date(dateString); // Use original string for Date constructor
-      // Check if the parsed date is valid AND seems reasonable (e.g., not 1970)
       if (!isNaN(date.getTime()) && date.getFullYear() > 1970) {
-          const formattedDate = date.toISOString().split('T')[0];
+          const formattedDate = formatDate(date);
           console.log(`[API Chat Builder] Parsed via Date constructor to YYYY-MM-DD: ${formattedDate}`);
           return formattedDate;
       }
@@ -60,31 +97,17 @@ function parseDate(dateString: string): string {
       // Ignore errors, try next method
    }
 
-   // 3. Check for Month names (case-insensitive)
-   const months: { [key: string]: string } = {
-       january: '01', feb: '02', february: '02', mar: '03', march: '03', apr: '04', april: '04', may: '05',
-       jun: '06', june: '06', jul: '07', july: '07', aug: '08', august: '08', sep: '09', september: '09',
-       oct: '10', october: '10', nov: '11', november: '11', dec: '12', december: '12'
-   };
-   const monthMatch = Object.keys(months).find(m => cleanString.includes(m));
-   if (monthMatch) {
-       const currentYear = new Date().getFullYear();
-       // Basic assumption: if just month name, assume this year
-       // TODO: Handle cases like "June next year"
-       const year = cleanString.includes('next year') ? currentYear + 1 : currentYear;
-       const monthNum = months[monthMatch];
-       // Return YYYY-MM for now, frontend can decide how to display
-       const formattedMonth = `${year}-${monthNum}`;
-       console.log(`[API Chat Builder] Parsed as Month (YYYY-MM): ${formattedMonth}`);
-       return formattedMonth; 
-   }
+   // 4. Check for Month names (case-insensitive) - Less reliable, might need year context
+   // const months: { [key: string]: string } = {
+   //     january: '01', feb: '02', february: '02', mar: '03', march: '03', apr: '04', april: '04', may: '05',
+   //     jun: '06', june: '06', jul: '07', july: '07', aug: '08', august: '08', sep: '09', september: '09',
+   //     oct: '10', october: '10', nov: '11', november: '11', dec: '12', december: '12'
+   // };
+   // ... (Logic for parsing month names, potentially ambiguous without year/day)
 
-   // TODO: Add logic for relative terms ("next week", "tomorrow", "summer")
-   // TODO: Add logic for durations ("for 3 days", "a week") - might need startDate context
-
-   // 4. Fallback: Return the original cleaned string if no parsing worked
-   console.log(`[API Chat Builder] Could not parse date, returning original: ${cleanString}`);
-   return cleanString; 
+   // 5. Fallback: Return the original non-duration-like string if no robust parsing worked
+   console.log(`[API Chat Builder] Could not robustly parse date "${cleanString}" to YYYY-MM-DD, returning original.`);
+   return dateString;
 }
 
 // --- Placeholder for external function calls (like Google Places) ---
@@ -135,7 +158,7 @@ export async function POST(req: NextRequest) {
         // Maybe add this non-example update as context? For now, just return success.
          // Potentially add a context message to the thread if needed?
          // e.g., `User updated ${key} to ${value} via UI modal.`
-        return NextResponse.json({});
+      return NextResponse.json({}); 
       }
     }
     // --- End System Update Handling --- 
@@ -187,7 +210,7 @@ export async function POST(req: NextRequest) {
           content: `CONTEXT UPDATE:\nCurrent trip planning state: ${JSON.stringify(contextTripData)}\nUse this state to determine the next question or action.`,
         });
         console.log('[API Chat Builder] TripData context added to thread.');
-    }
+        }
 
     // 3. Create and Run
     console.log(`[API Chat Builder] Creating run for thread ${currentThreadId} with assistant ${CONVERSATIONAL_ASSISTANT_ID}`);
@@ -255,65 +278,85 @@ export async function POST(req: NextRequest) {
                     // Use parseDate helper for potentially fuzzy dates from AI
               if (args.startDate) updatedDataAccumulator.startDate = parseDate(args.startDate);
               if (args.endDate) updatedDataAccumulator.endDate = parseDate(args.endDate);
-                    output = { status: "success", message: `Dates set: ${args.startDate} to ${args.endDate}` };
+                    output = { status: "success", message: `Dates set: ${updatedDataAccumulator.startDate} to ${updatedDataAccumulator.endDate}` }; // Use parsed dates in message
               break;
             case "set_travelers":
               if (args.adults !== undefined) updatedDataAccumulator.adults = args.adults;
                     // Ensure children defaults to 0 if not provided by AI, despite schema requiring it
               updatedDataAccumulator.children = args.children !== undefined ? args.children : 0;
               if (args.pets !== undefined) updatedDataAccumulator.pets = args.pets;
-                    output = { status: "success", message: `Travelers set: ${args.adults} adults, ${updatedDataAccumulator.children} children, ${args.pets} pets` };
+                    // Use the updated values in the confirmation message
+                    output = { status: "success", message: `Travelers set: ${updatedDataAccumulator.adults ?? trip?.adults ?? '?'} adults, ${updatedDataAccumulator.children} children, ${updatedDataAccumulator.pets ?? trip?.pets ?? '?'} pets` };
               break;
             case "set_preferences":
-                    // Update only provided preferences
+                    // Update only provided preferences, respecting strict schema
               if (args.budget) updatedDataAccumulator.budget = args.budget;
-                    // Handle potential empty arrays based on strict schema
-                    if (args.accommodation !== undefined) updatedDataAccumulator.accommodation = Array.isArray(args.accommodation) ? args.accommodation.join(', ') : '';
-                    if (args.interests !== undefined) updatedDataAccumulator.interests = Array.isArray(args.interests) ? args.interests : [];
+                    // Handle potential empty arrays from strict schema. Store accommodation as string.
+                    if (args.accommodation !== undefined) {
+                        updatedDataAccumulator.accommodation = Array.isArray(args.accommodation) ? args.accommodation.join(', ') : '';
+                    }
+                    // Handle potential empty arrays from strict schema. Store interests as array.
+                    if (args.interests !== undefined) {
+                         updatedDataAccumulator.interests = Array.isArray(args.interests) ? args.interests : [];
+                    }
                     output = { status: "success", message: "Preferences updated." };
                     break;
                 case "find_points_of_interest":
                     // ** Placeholder / Actual Implementation Needed **
+                    // Ensure location argument is passed from args
+                    if (!args.location && updatedDataAccumulator.destination) {
+                       console.warn("[API Chat Builder] 'find_points_of_interest' called without location, using destination.");
+                       args.location = updatedDataAccumulator.destination; // Use current dest if not provided
+                    } else if (!args.location && trip?.destination) {
+                       console.warn("[API Chat Builder] 'find_points_of_interest' called without location, using stored destination.");
+                       args.location = trip.destination; // Fallback to stored dest
+                    } else if (!args.location) {
+                         console.error("[API Chat Builder] 'find_points_of_interest' called without location and no destination set.");
+                          output = { status: "error", message: "Cannot search for points of interest without a location." };
+                          break; // Exit case early
+                    }
                     const poiResult = await findPointsOfInterestApiCall(args.query, args.location);
                     output = poiResult; // Submit the results from the API call
                     break;
                  case "add_interest_or_preference":
                     if (args.interest_to_add) {
                         const interest = args.interest_to_add;
-                        // Safely get current interests or initialize empty array
+                        // Safely get current interests or initialize empty array, prioritizing accumulator
                         const currentInterests = Array.isArray(updatedDataAccumulator.interests)
-                            ? updatedDataAccumulator.interests
-                            : (Array.isArray(trip?.interests) ? [...trip.interests] : []);
+                            ? [...updatedDataAccumulator.interests] // Clone accumulator if array
+                            : (Array.isArray(trip?.interests) ? [...trip.interests] : []); // Clone base if array, else empty
 
                         if (!currentInterests.includes(interest)) {
                             updatedDataAccumulator.interests = [...currentInterests, interest];
                              output = { status: "success", message: `Interest '${interest}' added.` };
                         } else {
-                            output = { status: "success", message: `Interest '${interest}' already present.` };
+                            output = { status: "success", message: `Interest '${interest}' is already listed.` };
                         }
                     } else {
+                         console.error("[API Chat Builder] 'add_interest_or_preference' called without 'interest_to_add'.");
                          output = { status: "error", message: "'interest_to_add' argument missing." };
               }
               break;
             case "generate_itinerary":
                     console.log("[API Chat Builder] Tool call: generate_itinerary received.");
-                    // Check essential fields before setting trigger flag
+                    // Check essential fields using combined state before setting trigger flag
               const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
                     if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
                   responseData.triggerItineraryGeneration = true;
-                        output = { status: "success", message: "Itinerary generation triggered for frontend." };
+                        // Let the assistant provide the confirmation message based on this output
+                        output = { status: "success", message: "Essential information collected. Itinerary generation process initiated by the frontend." };
               } else {
-                        console.warn("[API Chat Builder] 'generate_itinerary' called, but essentials missing.");
-                        // Let Assistant handle replying about missing info
-                        output = { status: "error", message: "Essential fields (destination, country, dates) missing. Cannot generate." };
-                        // Clear the trigger flag if it was accidentally set
+                        console.warn("[API Chat Builder] 'generate_itinerary' called, but essential information (destination, country, dates) is missing.");
+                        // Let Assistant handle replying about missing info based on this error output
+                        output = { status: "error", message: "Cannot generate itinerary yet. Please provide destination, country, start date, and end date first." };
+                        // Ensure the trigger flag is false if essentials are missing
                         responseData.triggerItineraryGeneration = false;
               }
               break;
             default:
               console.warn(`[API Chat Builder] Unhandled tool call: ${functionName}`);
                   output = { status: "error", message: `Unknown function: ${functionName}` };
-              }
+          }
           } catch (toolError: any) {
               console.error(`[API Chat Builder] Error processing tool ${functionName} (args: ${call.function.arguments}):`, toolError);
               output = { status: "error", message: `Failed to execute ${functionName}. Error: ${toolError.message}` };
@@ -378,19 +421,21 @@ export async function POST(req: NextRequest) {
                 responseData.reply = firstContent.text.value;
                 console.log('[API Chat Builder] Extracted final reply text.');
                  // Add accumulated updates ONLY if generation wasn't triggered in this step
-                if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
-                   responseData.updatedTripData = updatedDataAccumulator;
+                 // Merge base trip data with updates for the response
+                 if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
+                    responseData.updatedTripData = updatedDataAccumulator; // Send only the delta
                  }
             } else {
-                 responseData.reply = "Received a non-text response.";
+                 responseData.reply = "Received a non-text response from the assistant."; // More informative
+                 console.warn("[API Chat Builder] Assistant message content was not text:", firstContent);
             }
         } else {
             // This can happen if the *only* action was triggering generation
             if (responseData.triggerItineraryGeneration) {
-                responseData.reply = "Okay, generating your itinerary now..."; // Provide a default reply
-      } else {
+                responseData.reply = "Okay, I have all the details needed. The itinerary generation will start now.";
+            } else {
                 console.warn('[API Chat Builder] Run completed but no assistant message content found.');
-                responseData.reply = "Processing complete.";
+                responseData.reply = "Processing complete, but no further message generated."; // More specific default
             }
         }
     } else {
@@ -402,7 +447,7 @@ export async function POST(req: NextRequest) {
            userFriendlyError = `Processing failed (${run.last_error.code}). Please try again.`;
        } else {
             userFriendlyError = `Processing did not complete (Status: ${run.status}). Please try again.`;
-       }
+      }
        responseData.reply = userFriendlyError;
        // Still return accumulated data if any, might be useful for debug/retry
     if (Object.keys(updatedDataAccumulator).length > 0) {
