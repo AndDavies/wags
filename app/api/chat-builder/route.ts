@@ -1,26 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { TripData } from '@/store/tripStore'; // Import TripData type
+import { TripData } from '@/store/tripStore'; // Keep TripData type
+
+// Vercel: Increase max duration for Assistants API polling
+export const maxDuration = 180; // Allow 3 minutes (adjust as needed)
 
 // Ensure your OpenAI API key is set in environment variables
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Define expected request structure
+// --- NEW: Define the Assistant ID for the Conversational Builder ---
+const CONVERSATIONAL_ASSISTANT_ID = 'asst_Yr12Gk8JxB8c1KxNRP1Y9zzR';
+
+// Define expected request structure (minor change: threadId is key)
 interface ChatBuilderRequestBody {
   messageContent: string;
-  threadId?: string;     // Keep for potential future use with Assistants API
+  threadId?: string; // Thread ID is central to Assistants API
   currentTripData: TripData | null; // Receive current state from frontend store
 }
 
-// Define the response structure expected by ChatBuilder.tsx
+// Define the response structure expected by ChatBuilder.tsx (remains the same)
 interface BuilderApiResponse {
     reply: string | null;
-    updatedTripData?: Partial<TripData>; // Send back updates to merge into store
-    triggerItineraryGeneration?: boolean; // Flag to tell frontend to start loading state
-    actions?: any[];
-    threadId?: string;
+    updatedTripData?: Partial<TripData>;
+    triggerItineraryGeneration?: boolean;
+    actions?: any[]; // Keep for potential future use
+    threadId?: string; // Important to pass back
 }
 
 // --- Helper Functions ---
@@ -81,317 +87,339 @@ function parseDate(dateString: string): string {
    return cleanString; 
 }
 
-// --- Constants ---
-// Define ESSENTIAL fields required to ask about generation
-const ESSENTIAL_FIELDS_FOR_ASKING_GENERATE: (keyof TripData)[] = [
-  'destination',
-  'destinationCountry',
-  'startDate',
-  'endDate',
-];
+// --- Placeholder for external function calls (like Google Places) ---
+async function findPointsOfInterestApiCall(query: string, location: string): Promise<any> {
+    console.log(`[API Chat Builder] TODO: Implement API call to find points of interest for query: "${query}" in location: "${location}"`);
+    // Replace with actual Google Places API call logic
+    // Example dummy response:
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+    return {
+        status: "success",
+        results: [
+            { name: `Suggested Park near ${location}`, type: "park" },
+            { name: `Suggested Cafe near ${location}`, type: "cafe" },
+        ]
+    };
+}
 
 /**
- * API Route Handler for Conversational Trip Building (POST)
- * Handles user messages, extracts trip details, and guides the planning process.
+ * API Route Handler for Conversational Trip Building (POST) - Using Assistants API
+ * Handles user messages, manages Assistant threads/runs, executes tool calls, and returns responses.
  * @param {NextRequest} req - The incoming request object.
  * @returns {Promise<NextResponse>} The response object containing the assistant's reply and updated trip data.
  */
 export async function POST(req: NextRequest) {
-  let responseData: BuilderApiResponse = { reply: null }; // Initialize response
-  let updatedDataAccumulator: Partial<TripData> = {}; // Accumulate updates
+  let responseData: BuilderApiResponse = { reply: null };
+  let updatedDataAccumulator: Partial<TripData> = {};
+  let currentThreadId: string | undefined = undefined; // To store/pass back the thread ID
 
   try {
     const body: ChatBuilderRequestBody = await req.json();
     let { messageContent, threadId: existingThreadId, currentTripData } = body;
     let trip = currentTripData || {}; // Use empty object if null
 
-    // --- Intercept System Update Messages --- 
+    // --- Intercept System Update Messages (Keep this logic) ---
+    // This handles updates from the frontend (like example trip selection)
     if (messageContent.startsWith('SYSTEM_UPDATE:')) {
       console.log('[API Chat Builder] Received System Update:', messageContent);
       const updateString = messageContent.replace('SYSTEM_UPDATE:', '').trim();
-      const updates: Partial<TripData> = {};
-
-      // Basic parsing (can be made more robust)
-      updateString.split(',').forEach(part => {
-        const match = part.trim().match(/^(\w+) changed to '(.+)'$/);
-        if (match) {
-          const key = match[1] as keyof TripData;
-          let value: any = match[2];
-
-          // Attempt type conversion for known numeric fields
-          if (key === 'adults' || key === 'children' || key === 'pets') {
-            value = parseInt(value, 10);
-            if (isNaN(value)) value = undefined; // Handle parsing errors
-          }
-          // Add other type conversions if needed (e.g., booleans, dates)
-
-          if (value !== undefined) {
-            updates[key] = value;
-          }
-        }
-      });
-
-      console.log('[API Chat Builder] Parsed Updates:', updates);
-      // Merge updates into the trip data for *this request* context
-      // This ensures the AI's next turn considers the updated data
-      trip = { ...trip, ...updates };
-      console.log('[API Chat Builder] Trip data updated internally:', trip);
-      
-      // IMPORTANT: Do not proceed to call OpenAI for system updates.
-      // Return an empty success response as the frontend handles UI feedback.
-      return NextResponse.json({}); 
+      if (updateString.includes('Example trip selected:')) {
+        const destinationMatch = updateString.match(/Example trip selected: ([^\(]+)/);
+        const destination = destinationMatch ? destinationMatch[1].trim() : 'your selected destination';
+        // System prompt now instructs Assistant on how to handle this context
+        const confirmationReply = `Okay, I've loaded the example trip details for **${destination}**. You can see the specifics reflected above. Looks good, or want to change anything (like dates or interests)? If you're ready, just say **'generate itinerary'**!`;
+        return NextResponse.json({ reply: confirmationReply });
+      } else {
+        // Handle other system updates if needed, or just acknowledge
+        console.log('[API Chat Builder] Acknowledging non-example system update.');
+        // Maybe add this non-example update as context? For now, just return success.
+         // Potentially add a context message to the thread if needed?
+         // e.g., `User updated ${key} to ${value} via UI modal.`
+        return NextResponse.json({});
+      }
     }
     // --- End System Update Handling --- 
 
-    // --- Determine Current Planning Step & Set Goal --- 
-    let currentGoal = "";
-    let systemPrompt = "You are Baggo, a friendly and conversational pet travel assistant.";
-    let nextQuestion = ""; // Default next question if no specific one is set
-    const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
-    let tool_choice: OpenAI.Chat.Completions.ChatCompletionToolChoiceOption = "auto";
-    let essentialsCollected = ESSENTIAL_FIELDS_FOR_ASKING_GENERATE.every(field => trip[field] !== null && trip[field] !== undefined && String(trip[field]).trim() !== '');
+    // --- Assistants API Flow ---
 
-    // Define all possible tools
-    const destinationTool: OpenAI.Chat.Completions.ChatCompletionTool = {
-      type: "function",
-      function: {
-        name: "set_destination",
-        description: "Sets the primary destination city/region and its country.",
-        parameters: {
-          type: "object",
-          properties: {
-             destination: { type: "string", description: "The primary destination city or region (e.g., 'Paris', 'Denver', 'Scottish Highlands')." },
-             destinationCountry: { type: "string", description: "The country of the destination (e.g., 'France', 'USA', 'UK'). Include if specified or easily inferred." }
-          },
-          required: ["destination"]
-        }
-      }
-    };
-    const datesTool: OpenAI.Chat.Completions.ChatCompletionTool = {
-      type: "function",
-      function: {
-        name: "set_travel_dates",
-        description: "Sets the start and end dates for the trip.",
-        parameters: {
-          type: "object",
-          properties: {
-            startDate: { type: "string", description: "The starting date in YYYY-MM-DD format or descriptive (e.g., 2024-10-21, next Friday)." },
-            endDate: { type: "string", description: "The ending date in YYYY-MM-DD format or descriptive (e.g., 2024-10-28, 5 days later)." }
-          },
-          required: ["startDate", "endDate"]
-        }
-      }
-    };
-    const travelersTool: OpenAI.Chat.Completions.ChatCompletionTool = {
-      type: "function",
-      function: {
-        name: "set_travelers",
-        description: "Sets the number of adults, children, and pets.",
-        parameters: {
-          type: "object",
-          properties: {
-            adults: { type: "number", description: "Number of adult travelers (18+)." },
-            children: { type: "number", description: "Number of child travelers (0-17). Default 0 if not mentioned." },
-            pets: { type: "number", description: "Number of pets traveling." }
-          },
-          required: ["adults", "pets"]
-        }
-      }
-    };
-    const preferencesTool: OpenAI.Chat.Completions.ChatCompletionTool = {
-       type: "function",
-       function: {
-         name: "set_preferences",
-         description: "Sets travel preferences like budget, accommodation types, or interests.",
-         parameters: {
-           type: "object",
-           properties: {
-             budget: { type: "string", enum: ["Budget", "Moderate", "Luxury"], description: "The budget level for the trip." },
-             accommodation: { type: "array", items: { type: "string" }, description: "List of preferred accommodation types (e.g., ['Hotel', 'Home'])." },
-             interests: { type: "array", items: { type: "string" }, description: "List of interests or desired activities (e.g., ['Hiking', 'Dog Parks', 'Museums'])." }
-           },
-         }
-       }
-    };
-    const generateItineraryTool: OpenAI.Chat.Completions.ChatCompletionTool = {
-        type: "function",
-        function: {
-            name: "generate_itinerary",
-            description: "Signals readiness to generate itinerary.",
-            parameters: { type: "object", properties: {} }
-        }
-    };
-
-    // --- Base System Prompt --- (Moved outside the state machine for clarity)
-    let baseSystemPrompt = "You are Baggo, a friendly, concise, and conversational pet travel assistant. Your goal is to help the user plan their trip by gathering necessary details.";
-    
-    // --- State Machine Logic & Prompt Augmentation --- 
-    if (!trip.destination || !trip.destinationCountry) {
-      currentGoal = "Determine the **destination and country**.";
-      systemPrompt = `${baseSystemPrompt}\nUser's trip state: ${JSON.stringify(trip)}. Goal: ${currentGoal} Ask where they want to go and the country. Use the 'set_destination' tool, providing both city/region and country.`;
-      tools.push(destinationTool);
-      nextQuestion = "Great! Where are you planning to travel? Please include the city/region **and the country**.";
-    } else if (!trip.startDate || !trip.endDate) {
-      currentGoal = "Determine the **travel dates**.";
-      systemPrompt = `${baseSystemPrompt}\nUser's trip state: ${JSON.stringify(trip)}. Goal: ${currentGoal} Ask for dates. Use 'set_travel_dates' tool.`;
-      // Suggestion Instruction (Example: Suggest checking pet policies)
-      systemPrompt += `\nBased on the destination (${trip.destination}), you can also *briefly* mention checking general pet entry policies as a helpful tip while asking for dates.`;
-      // Fuzzy Date Handling Instruction
-      systemPrompt += `\n**Date Handling:** If the user provides a general timeframe (e.g., 'mid-November', 'next summer'), still use the 'set_travel_dates' function with the provided text. Do not repeatedly ask for specific YYYY-MM-DD dates if the user gives a range or general period.`;
-      tools.push(datesTool);
-      nextQuestion = `Got it, ${trip.destination}! When are you thinking of traveling?`;
+    // 1. Thread Management
+    if (existingThreadId) {
+        console.log(`[API Chat Builder] Using existing thread: ${existingThreadId}`);
+        currentThreadId = existingThreadId;
+        // Optional: Verify thread exists openai.beta.threads.retrieve(existingThreadId);
     } else {
-      // Essentials (Dest, Dates) are collected.
-      essentialsCollected = true; 
-      if (trip.adults === undefined || trip.pets === undefined) {
-        currentGoal = "Determine the **number of travelers** (optional but helpful).";
-        systemPrompt = `${baseSystemPrompt}\nUser's trip state: ${JSON.stringify(trip)}. Essentials collected. Goal: ${currentGoal} Ask for adults & pets count. Use 'set_travelers' tool.`;
-        // Suggestion Instruction (Example: Suggest pet-friendly activity type)
-        systemPrompt += `\nAlso, if relevant based on the destination (${trip.destination}) or user message, *briefly* suggest a *type* of pet-friendly activity (like 'parks' or 'cafes with patios') they might enjoy there. Do **not** suggest specific named locations unless the user mentions them. Then ask the main question about travelers.`;
-        tools.push(travelersTool);
-        tools.push(preferencesTool);
-        tools.push(generateItineraryTool);
-        tool_choice = "auto";
-        nextQuestion = "Okay, we have the destination and dates! How many adults and pets will be traveling? (You can also mention budget/interests or ask me to generate the itinerary now).";
-      } else {
-        // Essentials AND Travelers collected.
-        currentGoal = "Determine **preferences** or trigger **itinerary generation**.";
-        systemPrompt = `${baseSystemPrompt}\nUser's trip state: ${JSON.stringify(trip)}. Essentials & travelers collected. Goal: ${currentGoal} Ask about preferences (budget, accommodation, interests) OR if ready to generate. Use 'set_preferences' or 'generate_itinerary' tools.`;
-        // Suggestion Instruction (Example: Suggest based on interests if provided)
-        if (trip.interests && trip.interests.length > 0) {
-           systemPrompt += `\nSince the user is interested in ${trip.interests.join(', ')}, you can also *briefly* suggest a related *type* of pet-friendly activity in ${trip.destination} (e.g., if interest is 'hiking', suggest 'checking out local trails'). Do **not** suggest specific named locations unless the user mentions them.`;
-        }
-        tools.push(preferencesTool);
-        tools.push(generateItineraryTool);
-        tool_choice = "auto"; 
-        nextQuestion = "Great, we have all the basic details! Would you like to specify preferences like budget or interests, or shall we generate an initial itinerary?";
+        console.log('[API Chat Builder] Creating new thread...');
+        const thread = await openai.beta.threads.create();
+        currentThreadId = thread.id;
+        console.log(`[API Chat Builder] New thread created: ${currentThreadId}`);
+    }
+    responseData.threadId = currentThreadId; // Ensure thread ID is passed back
+
+    // 2. Add Messages (User + Context)
+    // Add the actual user message
+    await openai.beta.threads.messages.create(currentThreadId, {
+      role: "user",
+      content: messageContent,
+    });
+    console.log('[API Chat Builder] User message added to thread.');
+
+    // Add TripData as context (simplified) - Assistant Instructions MUST tell it to use this!
+    if (currentTripData) {
+        const contextTripData = {
+            destination: currentTripData.destination,
+            destinationCountry: currentTripData.destinationCountry,
+            startDate: currentTripData.startDate,
+            endDate: currentTripData.endDate,
+            adults: currentTripData.adults,
+            children: currentTripData.children,
+            pets: currentTripData.pets,
+            budget: currentTripData.budget,
+            accommodation: currentTripData.accommodation,
+            interests: currentTripData.interests,
+            // Flag if essentials are collected - helps Assistant know the state
+            essentialsCollected: !!(currentTripData.destination && currentTripData.destinationCountry && currentTripData.startDate && currentTripData.endDate),
+            travelersCollected: !!(currentTripData.adults !== undefined && currentTripData.children !== undefined && currentTripData.pets !== undefined),
+            // Include the special flag if present
+            sourceFlag: currentTripData.additionalInfo === 'SYSTEM_FLAG: Example trip loaded.' ? 'example_trip_loaded' : null
+        };
+        await openai.beta.threads.messages.create(currentThreadId, {
+          role: "user", // Use 'user' role for context messages as per best practices now
+          content: `CONTEXT UPDATE:\nCurrent trip planning state: ${JSON.stringify(contextTripData)}\nUse this state to determine the next question or action.`,
+        });
+        console.log('[API Chat Builder] TripData context added to thread.');
+    }
+
+    // 3. Create and Run
+    console.log(`[API Chat Builder] Creating run for thread ${currentThreadId} with assistant ${CONVERSATIONAL_ASSISTANT_ID}`);
+    let run = await openai.beta.threads.runs.create(currentThreadId, {
+      assistant_id: CONVERSATIONAL_ASSISTANT_ID,
+      // Instructions are primarily set on the Assistant itself
+      // We could add additional_instructions here if needed per-run
+    });
+    console.log(`[API Chat Builder] Run created: ${run.id}, Status: ${run.status}`);
+
+    // 4. Polling Loop
+    const terminalStates = ["completed", "failed", "cancelled", "expired", "requires_action"];
+    const pollingIntervalMs = 1000;
+    const maxWaitTimeMs = maxDuration * 1000 - 5000; // Max duration minus buffer
+    let elapsedTimeMs = 0;
+    let lastLoggedStatus = run.status;
+
+    while (!terminalStates.includes(run.status) && elapsedTimeMs < maxWaitTimeMs) {
+      await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
+      elapsedTimeMs += pollingIntervalMs;
+      run = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
+
+      if (run.status !== lastLoggedStatus) {
+          console.log(`[API Chat Builder] Run ${run.id} Status: ${run.status}`);
+          lastLoggedStatus = run.status;
+      } else if (elapsedTimeMs % 10000 === 0) { // Log progress every 10s if status hasn't changed
+          console.log(`[API Chat Builder] Run ${run.id} still '${run.status}'... (${elapsedTimeMs / 1000}s)`);
       }
     }
-    
-    // ** Final Prompt Assembly **
-    // Add general guidance for suggestions and state flow
-    systemPrompt += `\n
-**Proactive Suggestion Guidance:** In addition to your main goal, look for opportunities to offer *one* brief, relevant, pet-friendly suggestion based on the user's trip state. Suggest *types* of places (e.g., 'dog parks', 'outdoor cafes') or general tips (e.g., 'check local leash laws'). **Do NOT suggest specific named locations** (like 'Central Park' or 'Eiffel Tower') unless the user explicitly mentions them or asks for specific examples related to an interest. Keep suggestions concise and integrate them naturally.`;
-    systemPrompt += `\n
-**Conversation Flow Guidance:** Prioritize using the correct tool for the information the user *actually* provides, even if it's for a later step. For example, if asking for dates and the user provides traveler numbers, use 'set_travelers' and then ask the *next* question (e.g., about preferences or generation), rather than repeating the date question.`;
-    systemPrompt += `\n
-User message: "${messageContent}"`; // Append user message last
 
-    console.log(`[API Chat Builder] Current Goal: ${currentGoal}`);
-    console.log('[API Chat Builder] System Prompt (Final - Snippet):', systemPrompt.substring(0, 500) + '...'); // Log snippet
-    console.log('[API Chat Builder] Tools available:', tools.map(t => t.function.name));
+     // Check for timeout
+    if (!terminalStates.includes(run.status)) {
+        console.error(`[API Chat Builder] Run polling timed out after ${elapsedTimeMs / 1000}s for run ${run.id}. Status: ${run.status}`);
+        try { await openai.beta.threads.runs.cancel(currentThreadId, run.id); } catch (cancelError) { console.error("Error cancelling run:", cancelError); }
+        responseData.reply = 'Sorry, the request took too long to process. Please try again.';
+        return NextResponse.json(responseData, { status: 504 }); // Gateway Timeout
+    }
 
-    const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        // { role: "user", content: messageContent } // Included in prompt
-      ],
-      tools: tools.length > 0 ? tools : undefined,
-      tool_choice: tools.length > 0 ? tool_choice : undefined,
-      max_tokens: 150,
-      temperature: 0.6,
-    });
+    // 5. Handle requires_action
+    if (run.status === "requires_action") {
+      const requiredActions = run.required_action?.submit_tool_outputs.tool_calls;
+      if (!requiredActions) {
+          throw new Error("Run requires action, but no tool calls were provided.");
+      }
 
-    const assistantMessage = chatCompletion.choices[0].message;
-    console.log('[API Chat Builder] OpenAI Response Message:', assistantMessage);
+      console.log(`[API Chat Builder] Run requires action. Tool calls: ${requiredActions.length}`);
+      const toolOutputs: OpenAI.Beta.Threads.Runs.RunSubmitToolOutputsParams.ToolOutput[] = [];
 
-    // --- Process OpenAI Response ---
-    responseData.reply = assistantMessage.content; 
-
-    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      for (const toolCall of assistantMessage.tool_calls) {
-        const functionName = toolCall.function.name;
-        try {
-          const args = JSON.parse(toolCall.function.arguments);
-          console.log(`[API Chat Builder] Tool Call: ${functionName}`, args);
+      // Process tool calls (can be parallelized if needed)
+      for (const call of requiredActions) {
+          const functionName = call.function.name;
+          let output: any = null;
+          let args: any = {};
+          try {
+             args = JSON.parse(call.function.arguments || '{}');
+             console.log(`[API Chat Builder] Executing tool: ${functionName}`, args);
 
           switch (functionName) {
             case "set_destination":
               if (args.destination) updatedDataAccumulator.destination = args.destination;
               if (args.destinationCountry) updatedDataAccumulator.destinationCountry = args.destinationCountry;
-              if (!args.destinationCountry) {
-                  console.warn(`[API Chat Builder] Destination country missing for ${args.destination}. Relying on frontend check or future enhancement.`);
-              }
+                    output = { status: "success", message: `Destination set to ${args.destination}, ${args.destinationCountry}` };
               break;
             case "set_travel_dates":
+                    // Use parseDate helper for potentially fuzzy dates from AI
               if (args.startDate) updatedDataAccumulator.startDate = parseDate(args.startDate);
               if (args.endDate) updatedDataAccumulator.endDate = parseDate(args.endDate);
+                    output = { status: "success", message: `Dates set: ${args.startDate} to ${args.endDate}` };
               break;
             case "set_travelers":
               if (args.adults !== undefined) updatedDataAccumulator.adults = args.adults;
+                    // Ensure children defaults to 0 if not provided by AI, despite schema requiring it
               updatedDataAccumulator.children = args.children !== undefined ? args.children : 0;
               if (args.pets !== undefined) updatedDataAccumulator.pets = args.pets;
+                    output = { status: "success", message: `Travelers set: ${args.adults} adults, ${updatedDataAccumulator.children} children, ${args.pets} pets` };
               break;
             case "set_preferences":
+                    // Update only provided preferences
               if (args.budget) updatedDataAccumulator.budget = args.budget;
-              if (args.accommodation) updatedDataAccumulator.accommodation = args.accommodation.join(', ');
-              if (args.interests) updatedDataAccumulator.interests = args.interests;
-              if (!responseData.reply || responseData.reply.trim() === '') {
-                   responseData.reply = "Preferences updated! Ready to generate the itinerary now?";
+                    // Handle potential empty arrays based on strict schema
+                    if (args.accommodation !== undefined) updatedDataAccumulator.accommodation = Array.isArray(args.accommodation) ? args.accommodation.join(', ') : '';
+                    if (args.interests !== undefined) updatedDataAccumulator.interests = Array.isArray(args.interests) ? args.interests : [];
+                    output = { status: "success", message: "Preferences updated." };
+                    break;
+                case "find_points_of_interest":
+                    // ** Placeholder / Actual Implementation Needed **
+                    const poiResult = await findPointsOfInterestApiCall(args.query, args.location);
+                    output = poiResult; // Submit the results from the API call
+                    break;
+                 case "add_interest_or_preference":
+                    if (args.interest_to_add) {
+                        const interest = args.interest_to_add;
+                        // Safely get current interests or initialize empty array
+                        const currentInterests = Array.isArray(updatedDataAccumulator.interests)
+                            ? updatedDataAccumulator.interests
+                            : (Array.isArray(trip?.interests) ? [...trip.interests] : []);
+
+                        if (!currentInterests.includes(interest)) {
+                            updatedDataAccumulator.interests = [...currentInterests, interest];
+                             output = { status: "success", message: `Interest '${interest}' added.` };
+                        } else {
+                            output = { status: "success", message: `Interest '${interest}' already present.` };
+                        }
+                    } else {
+                         output = { status: "error", message: "'interest_to_add' argument missing." };
               }
               break;
             case "generate_itinerary":
+                    console.log("[API Chat Builder] Tool call: generate_itinerary received.");
+                    // Check essential fields before setting trigger flag
               const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
-              if (ESSENTIAL_FIELDS_FOR_ASKING_GENERATE.every(field => finalTripStateForGenCheck[field] !== null && finalTripStateForGenCheck[field] !== undefined && String(finalTripStateForGenCheck[field]).trim() !== '') && finalTripStateForGenCheck.destinationCountry) {
-                  console.log("[API Chat Builder] Triggering itinerary generation.");
+                    if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
                   responseData.triggerItineraryGeneration = true;
-                  responseData.reply = `Okay, generating your pet-friendly itinerary for ${finalTripStateForGenCheck.destination}... This might take a minute.`;
+                        output = { status: "success", message: "Itinerary generation triggered for frontend." };
               } else {
-                  console.warn("[API Chat Builder] Generation tool called, but essential fields (incl. country) missing.");
-                  responseData.reply = "Looks like we still need the destination (including country) and dates before I can generate the itinerary. Could you provide those?"; 
-                  updatedDataAccumulator = {}; 
+                        console.warn("[API Chat Builder] 'generate_itinerary' called, but essentials missing.");
+                        // Let Assistant handle replying about missing info
+                        output = { status: "error", message: "Essential fields (destination, country, dates) missing. Cannot generate." };
+                        // Clear the trigger flag if it was accidentally set
+                        responseData.triggerItineraryGeneration = false;
               }
               break;
             default:
               console.warn(`[API Chat Builder] Unhandled tool call: ${functionName}`);
+                  output = { status: "error", message: `Unknown function: ${functionName}` };
+              }
+          } catch (toolError: any) {
+              console.error(`[API Chat Builder] Error processing tool ${functionName} (args: ${call.function.arguments}):`, toolError);
+              output = { status: "error", message: `Failed to execute ${functionName}. Error: ${toolError.message}` };
           }
-        } catch (parseError) {
-          console.error(`[API Chat Builder] Error parsing arguments for ${functionName}:`, parseError);
-        }
-      }
-    }
 
-    // --- Formulate Final Reply if Needed ---
-    if (!responseData.reply && !responseData.triggerItineraryGeneration) {
-      let questionToAsk = ""; // Start fresh
-      const potentiallyUpdatedTrip = { ...trip, ...updatedDataAccumulator }; 
+          toolOutputs.push({
+            tool_call_id: call.id,
+            output: JSON.stringify(output), // Output must be a string
+          });
+      } // End for loop
 
-      // Check essentials again based on potentially updated state
-      if (!potentiallyUpdatedTrip.destination || !potentiallyUpdatedTrip.destinationCountry) {
-          questionToAsk = "Okay, looks like we still need the destination. Where are you headed (city/region and country)?";
-      } else if (!potentiallyUpdatedTrip.startDate || !potentiallyUpdatedTrip.endDate) {
-          questionToAsk = `Got it, ${potentiallyUpdatedTrip.destination}! When are you thinking of traveling?`;
-      } else if (potentiallyUpdatedTrip.adults === undefined || potentiallyUpdatedTrip.pets === undefined) {
-          // Essentials are collected, ask for travelers
-          questionToAsk = "Okay, we have the main details! How many adults and pets will be traveling? (You can also mention budget/interests or ask me to generate the itinerary now).";
+      // Submit outputs
+      if (toolOutputs.length > 0) {
+          console.log('[API Chat Builder] Submitting tool outputs...');
+          try {
+               run = await openai.beta.threads.runs.submitToolOutputs(currentThreadId, run.id, {
+                  tool_outputs: toolOutputs,
+              });
+              console.log(`[API Chat Builder] Tool outputs submitted. New Run Status: ${run.status}`);
+
+              // --- Continue Polling after submission ---
+              elapsedTimeMs = 0; // Reset timer
+              lastLoggedStatus = run.status;
+              while (!terminalStates.includes(run.status) && elapsedTimeMs < maxWaitTimeMs) {
+                  await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
+                  elapsedTimeMs += pollingIntervalMs;
+                  run = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
+                  if (run.status !== lastLoggedStatus) {
+                     console.log(`[API Chat Builder] Run ${run.id} Status (Post-Submit): ${run.status}`);
+                     lastLoggedStatus = run.status;
+                  } else if (elapsedTimeMs % 10000 === 0) {
+                      console.log(`[API Chat Builder] Run ${run.id} still '${run.status}' (Post-Submit)... (${elapsedTimeMs / 1000}s)`);
+                  }
+              }
+              // Check for timeout again
+              if (!terminalStates.includes(run.status)) {
+                  console.error(`[API Chat Builder] Run polling timed out after tool submission (${elapsedTimeMs / 1000}s) for run ${run.id}. Status: ${run.status}`);
+                  try { await openai.beta.threads.runs.cancel(currentThreadId, run.id); } catch (cancelError) { console.error("Error cancelling run:", cancelError);}
+                  responseData.reply = 'Sorry, the request took too long after processing tools. Please try again.';
+                  return NextResponse.json(responseData, { status: 504 });
+              }
+              // --- End Continuous Polling ---
+
+          } catch(submitError: any) {
+               console.error(`[API Chat Builder] Error submitting tool outputs for run ${run.id}:`, submitError);
+               // Let the final status check handle potential failure
+               // Fall through to check run status below
+          }
+      } // End if (toolOutputs.length > 0)
+    } // End if (run.status === "requires_action")
+
+
+    // 6. Handle Final Run Status
+    if (run.status === "completed") {
+        console.log(`[API Chat Builder] Run ${run.id} completed. Fetching messages...`);
+        const messages = await openai.beta.threads.messages.list(currentThreadId, { order: 'desc', limit: 1 });
+        const assistantMessage = messages.data.find(m => m.role === 'assistant');
+
+        if (assistantMessage && assistantMessage.content.length > 0) {
+            const firstContent = assistantMessage.content[0];
+            if (firstContent?.type === 'text') {
+                responseData.reply = firstContent.text.value;
+                console.log('[API Chat Builder] Extracted final reply text.');
+                 // Add accumulated updates ONLY if generation wasn't triggered in this step
+                if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
+                   responseData.updatedTripData = updatedDataAccumulator;
+                 }
+            } else {
+                 responseData.reply = "Received a non-text response.";
+            }
+        } else {
+            // This can happen if the *only* action was triggering generation
+            if (responseData.triggerItineraryGeneration) {
+                responseData.reply = "Okay, generating your itinerary now..."; // Provide a default reply
       } else {
-          // Essentials and travelers are present
-          questionToAsk = "Great, we have the details! Ready to generate the itinerary, or want to set preferences (like budget or specific interests)?";
-      }
-      responseData.reply = questionToAsk;
-    }
-
-    // Add accumulated updates to the response
+                console.warn('[API Chat Builder] Run completed but no assistant message content found.');
+                responseData.reply = "Processing complete.";
+            }
+        }
+    } else {
+       // Handle ALL non-completed final states (failed, cancelled, expired, etc.)
+       console.error(`[API Chat Builder] Run ${run.id} did not complete successfully. Final status: ${run.status}`);
+       let userFriendlyError = "Sorry, I encountered an issue processing your request.";
+       if (run.last_error) {
+           console.error(`[API Chat Builder] Run ${run.id} failed detail: ${run.last_error.code} - ${run.last_error.message}`);
+           userFriendlyError = `Processing failed (${run.last_error.code}). Please try again.`;
+       } else {
+            userFriendlyError = `Processing did not complete (Status: ${run.status}). Please try again.`;
+       }
+       responseData.reply = userFriendlyError;
+       // Still return accumulated data if any, might be useful for debug/retry
     if (Object.keys(updatedDataAccumulator).length > 0) {
       responseData.updatedTripData = updatedDataAccumulator;
+       }
+       return NextResponse.json(responseData, { status: run.status === 'failed' ? 500 : 503 }); // Use appropriate error code
     }
 
-    // Pass back threadId if using Assistants API later
-    // responseData.threadId = ...; 
-
+    // 7. Construct Success Response
     console.log('[API Chat Builder] Final Response Data:', responseData);
     return NextResponse.json(responseData);
 
   } catch (error: any) {
-    console.error('[API Chat Builder] Error:', error);
-    return NextResponse.json(
-        { 
-            reply: `Sorry, I encountered an internal error: ${error.message || 'Unknown error'}`,
-            updatedTripData: null,
-            triggerItineraryGeneration: false
-        }, 
-        { status: 500 }
-    );
+    console.error('[API Chat Builder] Unhandled Error in POST handler:', error);
+    // Ensure responseData has threadId if available
+    if (currentThreadId) responseData.threadId = currentThreadId;
+    responseData.reply = `Sorry, a critical server error occurred: ${error.message || 'Unknown error'}`;
+    return NextResponse.json(responseData, { status: 500 });
   }
 }

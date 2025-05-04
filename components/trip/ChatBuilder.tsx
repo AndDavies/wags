@@ -18,7 +18,7 @@ interface ChatBuilderProps {
 }
 
 interface ChatMessage {
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'system'; // Add 'system' role for internal triggering
     content: string;
 }
 
@@ -56,12 +56,22 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  // Ref to track previous state for detecting example load
+  const previousAdditionalInfoRef = useRef<string | undefined>(undefined);
+  const previousDestinationRef = useRef<string | undefined>(undefined); // NEW Ref for destination
 
   // --- Zustand Store Hook ---
   // Select state values needed for rendering/disabling UI
   const isStoreLoading = useTripStore((state) => state.isLoading);
-  // Remove tripData selection here if read via getState() in callback
-  // const tripData = useTripStore((state) => state.tripData);
+  // Select specific fields needed for the effect dependencies
+  const tripData = useTripStore((state) => state.tripData);
+  const additionalInfo = tripData?.additionalInfo;
+  const destination = tripData?.destination;
+  const startDate = tripData?.startDate;
+  const endDate = tripData?.endDate;
+  const pets = tripData?.pets;
+  const interests = tripData?.interests;
+
   // Actions are accessed directly inside callbacks
   const setTripData = useTripStore((state) => state.setTripData);
   const setError = useTripStore((state) => state.setError);
@@ -69,6 +79,90 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
 
   // NEW: Initialize useToast
   const { toast } = useToast();
+
+  // --- Internal Send Function --- (Refactored for reuse)
+  const sendMessage = useCallback(async (messageContent: string, isSystemMessage: boolean = false) => {
+    // Prevent sending if API call or store loading is in progress
+    if (isLoadingApi || isStoreLoading) return;
+
+    // Don't add system messages to the visible chat history
+    if (!isSystemMessage) {
+        const userMessage: ChatMessage = { role: 'user', content: messageContent };
+        setMessages(prevMessages => [...prevMessages, userMessage]);
+        setInput(''); // Clear input only for user messages
+    }
+
+    setIsLoadingApi(true); // Start API loading state
+    setError(null);
+
+    const currentTripData = useTripStore.getState().tripData; // Read latest state here
+
+    try {
+      console.log(`[ChatBuilder] Sending ${isSystemMessage ? 'SYSTEM' : 'USER'} message to API. Thread ID: ${currentThreadId}`);
+      const response = await fetch('/api/chat-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageContent: messageContent, // Use the provided content
+          threadId: currentThreadId,
+          currentTripData: currentTripData // Send latest data
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API Error: ${response.status}`);
+      }
+
+      const result: BuilderApiResponse = await response.json();
+      const { reply, updatedTripData, threadId, actions, triggerItineraryGeneration } = result;
+
+      if (threadId) {
+        console.log(`[ChatBuilder] Received thread ID: ${threadId}`);
+        setCurrentThreadId(threadId);
+      }
+
+      if (updatedTripData) {
+        console.log('[ChatBuilder] Received tripData updates:', updatedTripData);
+        // Use functional update for store if reading state inside callback is problematic
+        setTripData({ ...(currentTripData || {}), ...updatedTripData });
+      }
+
+      if (reply) {
+        const assistantMessage: ChatMessage = { role: 'assistant', content: reply };
+        setMessages(prevMessages => [...prevMessages, assistantMessage]);
+      } else if (!isSystemMessage) {
+        // Only log lack of reply for non-system messages
+        console.log('[ChatBuilder] No text reply received from assistant for user message.');
+      }
+
+      if (triggerItineraryGeneration) {
+        console.log('[ChatBuilder] Received triggerItineraryGeneration flag.');
+        setIsStoreLoading(true); // Set store loading state
+        await onInitiateItineraryGeneration();
+        // Loading state will be turned off by the parent/store itself
+      }
+      
+      if (actions && actions.length > 0) {
+        console.warn('[ChatBuilder] Received actions, but handling is not implemented yet:', actions);
+        // Future implementation: Loop through actions and trigger UI changes or store updates
+      }
+
+    } catch (error: any) {
+      console.error('[ChatBuilder] Error processing message:', error);
+      const errorContent = `Sorry, I encountered an error processing your request. Please try again. (${error.message})`;
+      setError(error.message);
+      const errorMessage: ChatMessage = { role: 'assistant', content: errorContent };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+      toast({ 
+        title: "Chat Error", 
+        description: `Could not process your message: ${error.message}`,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoadingApi(false); // End API loading state
+    }
+  }, [isLoadingApi, isStoreLoading, currentThreadId, setError, setTripData, setIsStoreLoading, onInitiateItineraryGeneration, toast]);
 
   // --- Effects ---
   // Scroll to bottom effect
@@ -90,6 +184,34 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
       setTripData({}); 
     }
   }, [setTripData]); // Depend only on the stable setter
+
+  // *** NEW Effect to Detect Example Trip Load and Send System Message ***
+  useEffect(() => {
+    const currentAdditionalInfo = additionalInfo;
+    const currentDestination = destination; // Use selected state variable
+    const previousInfo = previousAdditionalInfoRef.current;
+    const previousDest = previousDestinationRef.current; // Get previous destination
+
+    // Check if flag is present AND destination has changed since last time flag was detected
+    if (currentAdditionalInfo === 'SYSTEM_FLAG: Example trip loaded.' && currentDestination !== previousDest) {
+        console.log('[ChatBuilder] Detected example trip load via flag and destination change.');
+
+        // Use the selected state variables directly in the check and message
+        if (currentDestination && startDate && endDate && pets !== undefined && interests) {
+          const interestsString = Array.isArray(interests) ? interests.join(', ') : 'None';
+          const systemMessageContent = `SYSTEM_UPDATE: Example trip selected: ${currentDestination} (${startDate} to ${endDate}) with ${pets} pet(s). Interests: ${interestsString || 'None'}.`;
+          sendMessage(systemMessageContent, true);
+        } else {
+            console.warn('[ChatBuilder] Detected example load flag, but required data (destination, dates, pets, interests) is missing in the store. Cannot send system update.');
+        }
+    }
+
+    // Update the refs AFTER the check
+    previousAdditionalInfoRef.current = currentAdditionalInfo;
+    previousDestinationRef.current = currentDestination; // Update previous destination
+
+  // Correct dependency array using ONLY the selected state variables from the store hook and stable functions
+  }, [additionalInfo, destination, startDate, endDate, pets, interests, sendMessage]);
 
   // --- Event Handlers ---
   // Wrap handleSend in useCallback

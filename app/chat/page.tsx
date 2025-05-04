@@ -342,6 +342,61 @@ export default function ChatPage() {
   // Include sendSystemUpdateToChat in dependencies
   }, [setTripData, toast, sendSystemUpdateToChat]);
 
+  /**
+   * NEW: Handles selecting an example trip from the MarketingSidebar.
+   * Updates the store and notifies the backend chat builder.
+   * @param {Partial<TripData>} sampleTripData - The data for the selected example trip.
+   */
+  const handleSelectExampleTrip = useCallback(async (sampleTripData: Partial<TripData>) => {
+    console.log('[ChatPage] Example trip selected:', sampleTripData);
+    // 1. Clear any existing error state
+    setError(null);
+    // 2. Set loading state true WHILE processing the example trip update
+    setIsLoading(true); 
+    // 3. Create a more complete TripData object for the store, applying defaults 
+    //    similar to how the generation endpoint might (or use a helper function later)
+    const completeSampleData: TripData = {
+      origin: sampleTripData.origin || '', // Use defaults or empty strings
+      originCountry: sampleTripData.originCountry || '',
+      destination: sampleTripData.destination || '',
+      destinationCountry: sampleTripData.destinationCountry || '',
+      startDate: sampleTripData.startDate || '',
+      endDate: sampleTripData.endDate || '',
+      adults: sampleTripData.adults ?? 1,
+      children: sampleTripData.children ?? 0,
+      pets: sampleTripData.pets ?? 0,
+      // Ensure petDetails is an array, default if pets > 0 and no details provided
+      petDetails: sampleTripData.pets && sampleTripData.pets > 0 && (!sampleTripData.petDetails || sampleTripData.petDetails.length === 0)
+          ? [{ type: 'Dog', size: 'Medium' }] // Default pet detail
+          : (sampleTripData.petDetails || []),
+      budget: sampleTripData.budget || 'Moderate',
+      accommodation: sampleTripData.accommodation || 'Hotel',
+      interests: sampleTripData.interests || [],
+      // Use a clear flag in additionalInfo to indicate source
+      additionalInfo: sampleTripData.additionalInfo || 'SYSTEM_FLAG: Example trip loaded.', 
+      additionalCities: sampleTripData.additionalCities || [],
+      additionalCountries: sampleTripData.additionalCountries || [],
+      // Clear any existing itinerary/prep steps from the old trip
+      itinerary: undefined, 
+      policyRequirements: undefined,
+      generalPreparation: undefined,
+      preDeparturePreparation: undefined,
+      destinationSlug: undefined,
+      draftId: undefined // Clear draftId as this is a new starting point
+    };
+
+    // 4. Update the Zustand store
+    setTripData(completeSampleData);
+
+    // 6. Clear loading state AFTER processing is done
+    setIsLoading(false);
+
+    // 7. Show confirmation toast
+    toast({ title: "Example Trip Loaded!", description: "Feel free to customize the details or ask Baggo to generate the plan." });
+
+  // Update dependencies (remove sendSystemUpdateToChat if no longer used directly here)
+  }, [setTripData, setError, setIsLoading, toast]); // Removed sendSystemUpdateToChat from deps
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-gray-50 font-sans">
       {/* TopBar is always visible */}
@@ -394,7 +449,10 @@ export default function ChatPage() {
 
                 {/* Right Column: Marketing Sidebar (only shown before itinerary generation) */}
                 <div className="hidden md:block md:w-1/2 h-full border-l border-gray-200">
-                    <MarketingSidebar className="h-full" />
+                    <MarketingSidebar 
+                      className="h-full" 
+                      onSelectExampleTrip={handleSelectExampleTrip} // Pass the handler function
+                    />
                 </div>
             </>
         )}
