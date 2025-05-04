@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 export interface CityAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
-  onCountryChange?: (country: string) => void;
+  onCountryChange?: (country: string, fullPlaceName: string) => void;
   placeholder?: string;
   inputId?: string;
   className?: string;
@@ -134,7 +134,7 @@ export default function CityAutocomplete({
     }
     console.log('[CityAutocomplete] Country extracted:', country);
     if (onCountryChange) {
-      onCountryChange(country);
+      onCountryChange(country, selectedValue);
     }
   };
 

@@ -102,3 +102,49 @@ To achieve the goal of being a top 1% AI pet travel builder, focusing on value, 
     *   **Robustness:** Implement comprehensive error handling and provide clear feedback to the user if something goes wrong (e.g., generation failure, API timeout).
     *   **Consistency:** Ensure seamless state synchronization between the conversational state, `useTripStore`, and the backend.
     *   **Testing:** Implement thorough testing for conversational flows, entity extraction, and itinerary generation accuracy.
+
+## 5. Development Log
+
+### 3 May 2025
+
+**Summary:** Focused on integrating UI elements for the conversational builder (`/app/chat`) and refining backend/frontend interactions, primarily focusing on Phase 4 tasks.
+
+**Progress & Changes:**
+
+*   **Chat Generation Endpoint (`/api/ai/chat-generate-itinerary`):**
+    *   Implemented flexible input validation (requires only destination, destinationCountry, startDate, endDate).
+    *   Added smart defaults for missing optional fields (origin, adults, pets, petDetails, budget, accommodation, interests).
+    *   Confirmed successful generation using this endpoint triggered from the chat flow.
+*   **Destination Input (`Where` Modal in `app/chat/page.tsx`):**
+    *   Integrated `CityAutocomplete` component.
+    *   Refined the `onChange` and `onCountryChange` handlers to correctly store the country while displaying only the city name in the input field after selection.
+    *   Added validation (requires city & country) and disabled state to the "Save" button.
+*   **Date Input (`When` Modal in `app/chat/page.tsx`):**
+    *   Improved date parsing in `handleOpenWhenModal` to better handle different string formats (`YYYY-MM-DD`, `YYYY-MM`) and existing `Date` objects, aiming to fix re-editing/highlighting issues.
+    *   Updated calendar display to show 2 months with paged navigation (`numberOfMonths={2}`, `pagedNavigation`).
+    *   Added dynamic text display showing the selected date range and duration (e.g., "May 5 – 16 ・ 12 days").
+    *   Added "Clear" button and restyled footer buttons ("Update" primary, "Clear" secondary) to better match wireframes.
+    *   **Styling Issue:** Multiple attempts to fix date range highlighting (using `classNames` prop, global CSS overrides with `@apply`, global CSS overrides with `!important` and explicit hex codes) were unsuccessful. The selected range still shows the default blue instead of the desired black/gray. This styling issue is parked for later investigation.
+*   **Marketing Sidebar (`/components/trip/MarketingSidebar.tsx`):**
+    *   Defined hardcoded example trip data (Paris, Rockies, Cornwall).
+    *   Added `onSelectExampleTrip` prop definition.
+    *   Rendered examples as clickable cards with background images and basic styling.
+*   **Chat Page (`/app/chat/page.tsx`):**
+    *   Implemented `handleSelectExampleTrip` callback: receives example data, resets/updates `useTripStore`, and sends a `SYSTEM_UPDATE` message to `/api/chat-builder`.
+    *   Passed the callback to `MarketingSidebar`.
+    *   Successfully tested clicking example trips: state updates, TopBar reflects changes, Baggo receives system update and responds appropriately.
+
+**Current Status:**
+
+*   The core conversational flow for gathering essential trip details is functional.
+*   Itinerary generation from chat (using defaults) is working.
+*   TopBar modals provide a functional way to review/edit core data.
+*   Marketing sidebar allows users to load example trips to start planning.
+*   **Key Blocker:** Date picker styling for selected ranges remains incorrect.
+
+**Next Steps (Immediate Focus):**
+
+*   **(Deferred)** Fix date picker styling issue.
+*   Implement deep linking via URL query parameters (`/chat?example=...`) for marketing links.
+*   Continue Phase 4 tasks: Enhance persistence, improve error handling, refine UX.
+*   Consider migrating example trip data management (e.g., to Supabase).

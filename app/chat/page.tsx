@@ -24,9 +24,11 @@ import { Label } from '@/components/ui/label';
 // NEW: Import Calendar and date utilities
 import { Calendar } from '@/components/ui/calendar';
 import { type DateRange } from "react-day-picker";
-import { format, parse, isValid } from 'date-fns';
+import { format, parse, isValid, differenceInDays } from 'date-fns';
 // NEW: Import RadioGroup components
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+// NEW: Import CityAutocomplete
+import CityAutocomplete from '@/components/trip/CityAutocomplete';
 
 /**
  * Chat Page Component
@@ -65,6 +67,8 @@ export default function ChatPage() {
   const [tempPets, setTempPets] = useState<number>(0);
   // NEW: Temporary state for Budget selection
   const [tempBudget, setTempBudget] = useState<string>('Moderate');
+  // NEW: State for formatted date string display
+  const [formattedDateString, setFormattedDateString] = useState<string>('');
 
   // Define budget options
   const budgetOptions = ['Budget-Friendly', 'Moderate', 'Luxury'];
@@ -73,6 +77,23 @@ export default function ChatPage() {
     // Simulate fetching session data
     setSession({ user: { id: 'mock-user-id' } });
   }, []);
+
+  // NEW: useEffect to update formatted date string
+  useEffect(() => {
+    if (tempDateRange?.from) {
+      const start = format(tempDateRange.from, 'LLL d'); // Format like "May 5"
+      if (tempDateRange.to) {
+        const end = format(tempDateRange.to, 'LLL d');
+        const duration = differenceInDays(tempDateRange.to, tempDateRange.from) + 1;
+        setFormattedDateString(`${start} – ${end} ・ ${duration} day${duration > 1 ? 's' : ''}`);
+      } else {
+        // Only start date selected
+        setFormattedDateString(`${start} ・ 1 day`);
+      }
+    } else {
+      setFormattedDateString('Select your dates'); // Placeholder text
+    }
+  }, [tempDateRange]);
 
   // Determine if we should show the itinerary view
   // Itinerary exists in the store and we are not actively loading (API call finished)
@@ -97,36 +118,56 @@ export default function ChatPage() {
     let fromDate: Date | undefined = undefined;
     let toDate: Date | undefined = undefined;
 
-    // Explicitly check type before parsing
-    if (typeof currentTripData?.startDate === 'string') {
-      const startStr = currentTripData.startDate; // Guarantees string type
-      // Try parsing YYYY-MM-DD first
-      let parsedStart = parse(startStr, 'yyyy-MM-dd', new Date());
-      if (!isValid(parsedStart)) {
-        // Try parsing YYYY-MM
-        parsedStart = parse(startStr, 'yyyy-MM', new Date());
-      }
-      if (isValid(parsedStart)) {
-        fromDate = parsedStart;
-      }
+    // --- Refined Date Parsing --- 
+    const parseFlexibleDate = (dateString: string | undefined | null): Date | undefined => {
+        if (!dateString) return undefined;
+        
+        // Attempt 1: YYYY-MM-DD
+        let parsedDate = parse(dateString, 'yyyy-MM-dd', new Date());
+        if (isValid(parsedDate)) {
+            console.log(`[ChatPage] Parsed date ${dateString} as YYYY-MM-DD:`, parsedDate);
+            return parsedDate;
+        }
+
+        // Attempt 2: YYYY-MM
+        parsedDate = parse(dateString, 'yyyy-MM', new Date());
+        if (isValid(parsedDate)) {
+            console.log(`[ChatPage] Parsed date ${dateString} as YYYY-MM:`, parsedDate);
+            // Calendar needs a specific day, use the 1st of the month
+            return parsedDate; 
+        }
+        
+        // Attempt 3: Use Date constructor as fallback for other formats it might handle
+        try {
+             parsedDate = new Date(dateString);
+             if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 1970) {
+                console.log(`[ChatPage] Parsed date ${dateString} via Date constructor:`, parsedDate);
+                return parsedDate;
+             }
+        } catch(e) {
+            // Ignore constructor errors
+        }
+
+        console.warn(`[ChatPage] Could not parse date string: ${dateString}`);
+        return undefined;
+    }
+    
+    // Check if start date is already a Date object, otherwise parse string
+    fromDate = currentTripData?.startDate instanceof Date 
+        ? currentTripData.startDate 
+        : parseFlexibleDate(currentTripData?.startDate as string | undefined | null);
+    
+    // Check if end date is already a Date object, otherwise parse string
+    toDate = currentTripData?.endDate instanceof Date 
+        ? currentTripData.endDate 
+        : parseFlexibleDate(currentTripData?.endDate as string | undefined | null);
+
+    // Handle case where only start date is valid (e.g., single day trip or start of range)
+    if (fromDate && !toDate) {
+        toDate = fromDate; // Set end date same as start for initial display
     }
 
-    // Explicitly check type before parsing
-    if (typeof currentTripData?.endDate === 'string') {
-      const endStr = currentTripData.endDate; // Guarantees string type
-      // Try parsing YYYY-MM-DD first
-      let parsedEnd = parse(endStr, 'yyyy-MM-dd', new Date());
-      if (!isValid(parsedEnd)) {
-        // Try parsing YYYY-MM
-        parsedEnd = parse(endStr, 'yyyy-MM', new Date());
-      }
-      // If end date is same as start date (e.g., only month provided), set it to end of month?
-      // For simplicity, let's keep it as the start of the month if only YYYY-MM
-      if (isValid(parsedEnd)) {
-        toDate = parsedEnd;
-      }
-    }
-
+    console.log('[ChatPage] Setting tempDateRange for modal: ', { from: fromDate, to: toDate });
     setTempDateRange({ from: fromDate, to: toDate });
     setIsWhenModalOpen(true);
   }, []); // No dependencies needed
@@ -320,6 +361,56 @@ export default function ChatPage() {
   // Include sendSystemUpdateToChat in dependencies
   }, [setTripData, toast, sendSystemUpdateToChat]);
 
+  /**
+   * Handles selection of an example trip from the sidebar.
+   * Updates the store and notifies the backend chat AI.
+   * @param {Partial<TripData>} exampleTripData - The partial data of the selected example.
+   */
+  const handleSelectExampleTrip = useCallback(async (exampleTripData: Partial<TripData>) => {
+    console.log('[ChatPage] Example trip selected:', exampleTripData);
+
+    // 1. Set trip data in the store (overwrite existing)
+    // Ensure essential fields potentially missing from Partial are cleared or handled
+    const fullInitialData: TripData = {
+        // Start with defaults or empty values for a clean slate
+        origin: '', originCountry: '', destination: '', destinationCountry: '', 
+        startDate: '', endDate: '', adults: 1, children: 0, pets: 0, 
+        petDetails: [], budget: 'Moderate', accommodation: 'Hotel', interests: [],
+        additionalCities: [], additionalCountries: [], additionalInfo: '', 
+        draftId: undefined, // Clear any previous draft ID
+        itinerary: undefined, // Clear existing itinerary
+        policyRequirements: undefined,
+        generalPreparation: undefined,
+        preDeparturePreparation: undefined,
+        destinationSlug: undefined,
+        // Now apply the example data over the defaults
+        ...exampleTripData 
+    } as TripData; // Assert type
+    
+    setTripData(fullInitialData);
+    setIsLoading(false); // Ensure loading state is reset if it was active
+    setError(null); // Clear any previous errors
+
+    // 2. Construct and send system update message
+    const updateDetails = Object.entries(exampleTripData)
+        // Filter out non-TripData fields like title, description, imageUrl before creating message
+        .filter(([key]) => key in fullInitialData) 
+        .map(([key, value]) => `${key} set to '${value}' from example`)
+        .join(', ');
+    // Use destination in the message as title is not part of TripData
+    const systemMessage = `SYSTEM_UPDATE: User selected example trip to ${exampleTripData.destination}. ${updateDetails}. Ask if they want to customize details or generate the itinerary.`;
+    
+    await sendSystemUpdateToChat(systemMessage);
+
+    // 3. Optionally, show a toast or clear chat history (TBD)
+    toast({ title: "Example Trip Loaded!", description: `Loaded example trip to ${exampleTripData.destination}. Ask Baggo to customize or generate!` });
+
+    // 4. Ensure the view switches back to ChatBuilder if ItineraryView was shown
+    // The check for showItinerary based on tripData.itinerary should handle this automatically
+    // when setTripData clears the itinerary above.
+
+  }, [setTripData, setIsLoading, setError, sendSystemUpdateToChat, toast]);
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-gray-50 font-sans">
       {/* TopBar is always visible */}
@@ -368,7 +459,10 @@ export default function ChatPage() {
         {/* Right Column: Marketing Sidebar */}
         <div className="hidden md:block md:w-1/2 h-full border-l border-gray-200">
           {/* Render the actual sidebar component */}
-          <MarketingSidebar className="h-full" />
+          <MarketingSidebar 
+             className="h-full" 
+             onSelectExampleTrip={handleSelectExampleTrip} // Pass the callback
+          />
         </div>
       </div>
 
@@ -383,7 +477,6 @@ export default function ChatPage() {
             {/* Use OriginUI fonts/colors: text-sm text-gray-700 mb-4 */}
             <DialogDescription className="text-sm text-gray-700 mb-4">
               Enter your desired destination city/region and country.
-              {/* TODO: Consider adding CityAutocomplete component here later */}
             </DialogDescription>
           </DialogHeader>
           {/* Form content area with spacing */}
@@ -395,16 +488,39 @@ export default function ChatPage() {
                 Destination
               </Label>
               {/* Use OriginUI input style: col-span-3, p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 */}
-              <Input
+              {/* <Input
                 id="destination"
                 aria-label="Destination City or Region"
                 value={tempDestination}
                 onChange={(e) => setTempDestination(e.target.value)}
                 className="col-span-3 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="e.g., Paris, San Diego, Banff National Park"
+              /> */}
+              {/* --- Replace Input with CityAutocomplete --- */}
+              <CityAutocomplete
+                  inputId="destination-autocomplete"
+                  value={tempDestination}
+                  onChange={(newValue) => {
+                      // When user types manually, just update the display value
+                      setTempDestination(newValue);
+                      // Clear country only if user clears the input, 
+                      // otherwise wait for onCountryChange to confirm.
+                      if (!newValue) {
+                           setTempDestinationCountry(''); 
+                      }
+                  }}
+                  onCountryChange={(country, fullPlaceName) => {
+                      setTempDestinationCountry(country);
+                      // Extract city name from the full place name provided on selection
+                      const cityName = fullPlaceName ? fullPlaceName.split(',')[0].trim() : ''; // Use empty string if parsing fails
+                      setTempDestination(cityName); // Set the display value to just the city
+                  }} 
+                  placeholder="Type a city or region..."
+                  className="col-span-3" // Apply grid column span
               />
             </div>
-            {/* Destination Country Input */}
+            {/* Destination Country Input (Readonly or Hidden if Autocomplete works well) */}
+            {/* We'll keep it visible but readonly for now to confirm country extraction */}
             <div className="grid grid-cols-4 items-center gap-4">
               {/* Use OriginUI label style */}
               <Label htmlFor="destinationCountry" className="text-right text-sm font-medium text-gray-700">
@@ -429,8 +545,21 @@ export default function ChatPage() {
             </DialogClose>
             {/* Use OriginUI primary button style: bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium */}
             <Button
-              onClick={() => handleUpdateTripData({ destination: tempDestination, destinationCountry: tempDestinationCountry })}
-              className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium"
+              onClick={() => {
+                  // ** Add Validation **
+                  if (!tempDestination || !tempDestinationCountry) {
+                      toast({
+                          title: "Missing Information",
+                          description: "Please select a destination and ensure the country is detected.",
+                          variant: "destructive",
+                      });
+                      return;
+                  }
+                  handleUpdateTripData({ destination: tempDestination, destinationCountry: tempDestinationCountry })
+              }}
+              // ** Disable button if validation fails **
+              disabled={!tempDestination || !tempDestinationCountry}
+              className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save
             </Button>
@@ -438,19 +567,22 @@ export default function ChatPage() {
         </DialogContent>
       </Dialog>
 
-      {/* When Modal */}
+      {/* When Modal - UPDATED */}
       <Dialog open={isWhenModalOpen} onOpenChange={setIsWhenModalOpen}>
-        {/* Apply OriginUI styling */} 
-        <DialogContent className="bg-white rounded-lg shadow-lg p-6 max-w-lg">
-           <DialogHeader>
-             {/* Use OriginUI fonts/colors */} 
-             <DialogTitle className="text-2xl font-bold text-black mb-2 tracking-tight">Edit Dates</DialogTitle>
-             {/* Use OriginUI fonts/colors */} 
-             <DialogDescription className="text-sm text-gray-700 mb-4">
-               Select your travel start and end dates.
+        <DialogContent className="bg-white rounded-lg shadow-lg p-6 max-w-2xl"> {/* Adjusted max-width for two months */}
+           <DialogHeader className="text-center mb-4"> {/* Center header text */}
+             <DialogTitle className="text-2xl font-bold text-black mb-1 tracking-tight">When</DialogTitle>
+             {/* Display formatted date string */}
+             <DialogDescription className="text-sm text-gray-500 h-5"> {/* Fixed height to prevent layout shift */}
+                {formattedDateString}
              </DialogDescription>
+             {/* TODO: Add Dates/Flexible toggle here later */}
+             {/* <div className="flex justify-center mt-4">
+                 <Button variant="outline" className="rounded-full mr-2">Dates</Button>
+                 <Button variant="ghost" className="rounded-full text-gray-500">Flexible</Button> 
+             </div> */} 
            </DialogHeader>
-           {/* Calendar component for date range selection */}
+           {/* Calendar component for date range selection - UPDATED */}
            <div className="flex justify-center py-4">
                 <Calendar
                     initialFocus
@@ -458,35 +590,44 @@ export default function ChatPage() {
                     defaultMonth={tempDateRange?.from}
                     selected={tempDateRange}
                     onSelect={setTempDateRange}
-                    numberOfMonths={1} // Show one month at a time
-                    className="rounded-md border border-gray-200 p-3" // Add some basic styling
-                    // Ensure Calendar uses appropriate aria labels internally
+                    numberOfMonths={2}
+                    pagedNavigation
+                    showOutsideDays={false}
+                    className="rounded-md border p-2"
+                    // SIMPLIFIED: Rely on theme variables for day colors
+                    classNames={{
+                        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                        month: "space-y-4 relative first-of-type:before:hidden before:absolute max-sm:before:inset-x-2 max-sm:before:h-px max-sm:before:-top-2 sm:before:inset-y-2 sm:before:w-px before:bg-gray-200 sm:before:-left-4",
+                        // REMOVED day_selected, day_range_start, day_range_end, day_range_middle
+                    }}
                 />
            </div>
-           {/* Use OriginUI footer style */} 
-           <DialogFooter className="flex justify-end space-x-2 mt-6">
-             {/* Use OriginUI secondary button style */} 
-             <DialogClose asChild>
-                <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium">Cancel</Button>
-             </DialogClose>
-             {/* Use OriginUI primary button style */} 
+           {/* UPDATED Footer: Clear and Update buttons */}
+           <DialogFooter className="flex justify-between items-center mt-6"> {/* Use justify-between */} 
+             {/* Clear Button */}
+             <Button 
+                variant="ghost" // Use ghost or outline for secondary action
+                onClick={() => setTempDateRange(undefined)} 
+                className="text-gray-700 hover:text-black px-4 py-2 rounded-lg font-medium"
+             >
+                 Clear
+             </Button>
+             {/* Update Button (was Save) */}
              <Button 
                 onClick={() => {
                     const startDate = tempDateRange?.from ? format(tempDateRange.from, 'yyyy-MM-dd') : undefined;
-                    // If only one date is selected, 'to' might be undefined. Handle this.
-                    const endDate = tempDateRange?.to ? format(tempDateRange.to, 'yyyy-MM-dd') : startDate; // Default to startDate if 'to' is not set
+                    const endDate = tempDateRange?.to ? format(tempDateRange.to, 'yyyy-MM-dd') : startDate;
                     if (startDate && endDate) {
                         handleUpdateTripData({ startDate, endDate });
                     } else {
-                        // Handle case where no dates are selected or only 'from' is selected without 'to'
-                        // Maybe show a toast? For now, just don't update.
-                        console.warn("[ChatPage] Cannot save dates: Invalid date range selected.", tempDateRange);
-                        toast({ title: "Invalid Dates", description: "Please select a valid start and end date.", variant: "destructive"});
+                        toast({ title: "Incomplete Dates", description: "Please select a start and end date.", variant: "destructive"});
                     }
                 }}
-                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium"
+                // Style like wireframe primary button
+                className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
+                disabled={!tempDateRange?.from || !tempDateRange?.to} // Disable if range is incomplete
              >
-                Save
+                Update
             </Button>
            </DialogFooter>
          </DialogContent>
