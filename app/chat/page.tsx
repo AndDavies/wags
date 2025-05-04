@@ -211,12 +211,12 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      // *** POINT TO THE NEW FLEXIBLE ENDPOINT ***
-      const response = await fetch('/api/ai/chat-generate-itinerary', { 
+      // *** POINT TO THE NEW SIMPLER ENDPOINT ***
+      const response = await fetch('/api/generate-trip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Send the current tripData; backend will handle defaults for missing optional fields
-        body: JSON.stringify(currentTripData), 
+        body: JSON.stringify(currentTripData),
       });
       
       const contentType = response.headers.get("content-type");
