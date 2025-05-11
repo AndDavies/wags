@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Loader2, Send, AlertTriangle, Sparkles } from 'lucide-react';
 import { useTripStore, TripData } from '@/store/tripStore';
 import ReactMarkdown from 'react-markdown';
@@ -13,8 +13,7 @@ interface ChatBuilderProps {
   // session might be needed later for auth-related actions
   session?: any | null; 
   className?: string;
-  // Add prop to handle the generation trigger
-  onInitiateItineraryGeneration: () => Promise<void>; 
+  onActualItineraryGenerationRequested: () => Promise<void>; // Renamed prop
 }
 
 interface ChatMessage {
@@ -43,19 +42,29 @@ interface BuilderApiResponse {
  * @param {() => Promise<void>} props.onInitiateItineraryGeneration - Callback to trigger itinerary generation.
  * @returns {JSX.Element} The rendered ChatBuilder component.
  */
-export default function ChatBuilder({ session, className, onInitiateItineraryGeneration }: ChatBuilderProps) {
+const ChatBuilder = forwardRef<{
+  sendSystemMessage: (message: string) => void;
+}, ChatBuilderProps>(({ session, className, onActualItineraryGenerationRequested }, ref) => {
   // --- State Hooks ---
   const [isLoadingApi, setIsLoadingApi] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-      {
-          role: 'assistant',
-          // Initial prompt based on the wireframe
-          content: "Hey there, where would you like to go? I'm here to assist you in planning your experience. Ask me anything travel related, or tell me where you'd like to plan a trip!"
-      }
+  const [hasMounted, setHasMounted] = useState(false);
+
+  // Initialize messages with default state. Will be updated on client mount.
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    {
+        role: 'assistant',
+        content: "Hey there, where would you like to go? I'm here to assist you in planning your experience. Ask me anything travel related, or tell me where you'd like to plan a trip!"
+    }
   ]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  // Initialize threadId from sessionStorage or null - this is safe as it doesn't directly cause UI mismatch for SSR
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('chatBuilderThreadId');
+    }
+    return null;
+  });
   // Ref to track previous state for detecting example load
   const previousAdditionalInfoRef = useRef<string | undefined>(undefined);
   const previousDestinationRef = useRef<string | undefined>(undefined); // NEW Ref for destination
@@ -79,6 +88,48 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
 
   // NEW: Initialize useToast
   const { toast } = useToast();
+
+  // Effect to set hasMounted to true after initial client render
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // Effect to LOAD messages from sessionStorage AFTER mount
+  useEffect(() => {
+    if (hasMounted) { // Only run on client after mount
+      const storedMessages = sessionStorage.getItem('chatBuilderMessages');
+      if (storedMessages) {
+        try {
+          const parsedMessages = JSON.parse(storedMessages);
+          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+            setMessages(parsedMessages);
+          } else {
+            // Optional: if stored messages are empty/invalid, you might revert to default
+            // This check prevents an empty screen if storage was cleared or corrupted.
+            // console.log('[ChatBuilder] Stored messages were empty/invalid, keeping default.');
+          }
+        } catch (e) {
+          console.error('[ChatBuilder] Failed to parse stored messages on mount:', e);
+        }
+      }
+    }
+  }, [hasMounted]); // Runs only when hasMounted changes (once from false to true)
+
+  // Effect to SAVE messages and threadId to sessionStorage whenever they change
+  useEffect(() => {
+    if (hasMounted) { // Only run on client and after initial load from storage is complete
+      try {
+        sessionStorage.setItem('chatBuilderMessages', JSON.stringify(messages));
+      } catch (e) {
+        console.error('[ChatBuilder] Failed to save messages to sessionStorage:', e);
+      }
+      if (currentThreadId) {
+        sessionStorage.setItem('chatBuilderThreadId', currentThreadId);
+      } else {
+        sessionStorage.removeItem('chatBuilderThreadId');
+      }
+    }
+  }, [messages, currentThreadId, hasMounted]); // Re-run when messages, threadId, or hasMounted change
 
   // --- Internal Send Function --- (Refactored for reuse)
   const sendMessage = useCallback(async (messageContent: string, isSystemMessage: boolean = false) => {
@@ -125,7 +176,7 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
       if (updatedTripData) {
         console.log('[ChatBuilder] Received tripData updates:', updatedTripData);
         // Use functional update for store if reading state inside callback is problematic
-        setTripData({ ...(currentTripData || {}), ...updatedTripData });
+        setTripData({ ...(useTripStore.getState().tripData || {}), ...updatedTripData }); // Read fresh state for update
       }
 
       if (reply) {
@@ -139,7 +190,7 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
       if (triggerItineraryGeneration) {
         console.log('[ChatBuilder] Received triggerItineraryGeneration flag.');
         setIsStoreLoading(true); // Set store loading state
-        await onInitiateItineraryGeneration();
+        await onActualItineraryGenerationRequested(); // Call the renamed prop
         // Loading state will be turned off by the parent/store itself
       }
       
@@ -162,7 +213,7 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
     } finally {
       setIsLoadingApi(false); // End API loading state
     }
-  }, [isLoadingApi, isStoreLoading, currentThreadId, setError, setTripData, setIsStoreLoading, onInitiateItineraryGeneration, toast]);
+  }, [isLoadingApi, isStoreLoading, currentThreadId, setError, setTripData, setIsStoreLoading, onActualItineraryGenerationRequested, toast]);
 
   // --- Effects ---
   // Scroll to bottom effect
@@ -212,6 +263,14 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
 
   // Correct dependency array using ONLY the selected state variables from the store hook and stable functions
   }, [additionalInfo, destination, startDate, endDate, pets, interests, sendMessage]);
+
+  // Expose sendSystemMessage via ref
+  useImperativeHandle(ref, () => ({
+    sendSystemMessage: (message: string) => {
+      console.log('[ChatBuilder] sendSystemMessage called via ref:', message);
+      sendMessage(message, true); // Call internal sendMessage with isSystemMessage = true
+    }
+  }));
 
   // --- Event Handlers ---
   // Wrap handleSend in useCallback
@@ -272,7 +331,7 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
       if (triggerItineraryGeneration) {
         console.log('[ChatBuilder] Received triggerItineraryGeneration flag.');
         setIsStoreLoading(true); // Set store loading state
-        await onInitiateItineraryGeneration();
+        await onActualItineraryGenerationRequested(); // Call the renamed prop
         // Loading state will be turned off by the parent/store itself
       }
       
@@ -297,7 +356,7 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
     } finally {
       setIsLoadingApi(false); // End API loading state
     }
-  }, [input, isLoadingApi, isStoreLoading, currentThreadId, setError, setTripData, setIsStoreLoading, onInitiateItineraryGeneration]);
+  }, [input, isLoadingApi, isStoreLoading, currentThreadId, setError, setTripData, setIsStoreLoading, onActualItineraryGenerationRequested, toast]);
 
   // --- JSX ---
   return (
@@ -306,20 +365,16 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
       {/* Header Section (Mimicking Mindtrip Style) */}
       <div className="p-4 flex-shrink-0">
         <h1 className="text-4xl font-bold text-black tracking-tight font-inter">Where to today?</h1>
-        <div className="flex items-start mt-3 text-gray-700">
-          <Sparkles className="h-6 w-6 mr-2 mt-0.5 text-black flex-shrink-0" />
-          <p className="text-base leading-relaxed">
-            {/* Display the latest assistant message or the initial prompt */} 
-            {messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content || 
-             "Hey there, where would you like to go? I'm here to assist you in planning your experience."}
-          </p>
-        </div>
       </div>
       
       {/* Messages Area - takes remaining space */}
       <div className="flex-grow overflow-y-auto px-4 space-y-3 mb-2">
-        {/* Skip rendering the very first assistant message again here */} 
-        {messages.slice(1).map((msg, index) => {
+        {/* Conditionally render messages based on hasMounted to prevent hydration mismatch */}
+        {/* The .slice(1) might be an issue if the initial message from storage IS the default. */}
+        {/* Let's render all messages if hasMounted, and handle the default message logic carefully. */}
+        {/* If messages are loaded from storage, the default greeting might not be the first one. */}
+        {/* For now, assume the first message is always the greeting for slicing, or remove slice if problematic. */}
+        {hasMounted && messages.length > 1 ? messages.slice(1).map((msg, index) => { 
            const isError = msg.role === 'assistant' && msg.content.includes('Sorry, I encountered an error');
            return (
              <div
@@ -344,7 +399,7 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
                </div>
              </div>
            );
-        })}
+        }) : null}
         {/* Display loading indicator if API call OR itinerary generation is happening */}
         {(isLoadingApi || isStoreLoading) && (
           <div className="flex items-center justify-start p-2">
@@ -399,4 +454,6 @@ export default function ChatBuilder({ session, className, onInitiateItineraryGen
       </div>
     </div>
   );
-}
+});
+
+export default ChatBuilder;

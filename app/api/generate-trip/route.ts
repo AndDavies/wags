@@ -890,7 +890,18 @@ export async function POST(request: NextRequest) {
 
     while (currentDay <= tripDays) {
         const dailyActivities: Activity[] = [];
-        const dayData: { city: string; coords: { lat: number; lng: number } } = { city: currentCity, coords: currentCoords }; // Store current day's context
+        
+        // Ensure cityForThisDay is always a valid string, defaulting to the main trip destination
+        const cityForThisDay = currentCity || tripData.destination;
+        // Ensure currentCoords is also robustly determined. If city switching logic changes currentCity,
+        // currentCoords should ideally be re-geocoded or handled. For now, it uses the loop-invariant currentCoords.
+        // If currentCity changes, currentCoords used for Google Places searches might become less accurate
+        // for that new city unless also updated.
+
+        const dayData: { city: string; coords: { lat: number; lng: number } } = { 
+            city: cityForThisDay, 
+            coords: currentCoords // This uses the currentCoords scoped outside, which might not match cityForThisDay if currentCity changed
+        }; 
         
         // Helper to fetch details and convert/update Activity for the daily loop
         const getActivityWithDetails = async (input: Activity | string): Promise<Activity | null> => {
@@ -1039,14 +1050,14 @@ export async function POST(request: NextRequest) {
              dailyActivities.unshift({
                name: "Final Vet Check (Optional but Recommended)",
                description: "If your trip exceeded ~10-14 days or required specific entry paperwork, consider a final vet visit for a health check/certificate for your return or onward travel. [Review Best Practices](/blog/best-practices)",
-               petFriendly: true, location: currentCity, coordinates: { lat: 0, lng: 0 }, 
+               petFriendly: true, location: cityForThisDay, coordinates: { lat: 0, lng: 0 }, 
                startTime: "09:00", endTime: "10:00", cost: "Varies ($50-$150+)", type: 'preparation',
                place_id: undefined, website: undefined, phone_number: undefined, opening_hours: undefined, photo_references: undefined, booking_link: undefined, pet_friendliness_details: "N/A", estimated_duration: 60
              });
              dailyActivities.push({
                name: "Transfer to Departure Airport",
                description: `Head to the airport for your departure. Arrange pet-friendly transport in advance (e.g., [Uber Pet](https://www.uber.com/us/en/ride/uberpet/)).`,
-               petFriendly: true, location: currentCity, coordinates: { lat: 0, lng: 0 }, 
+               petFriendly: true, location: cityForThisDay, coordinates: { lat: 0, lng: 0 }, 
                startTime: "16:00", endTime: "17:00", cost: "$50 - $100", type: 'transfer',
                place_id: undefined, website: undefined, phone_number: undefined, opening_hours: undefined, photo_references: undefined, booking_link: undefined, pet_friendliness_details: "N/A", estimated_duration: 60
              });
@@ -1056,7 +1067,7 @@ export async function POST(request: NextRequest) {
         itinerary.days.push({
             day: currentDay,
             date: currentDate.toISOString().split('T')[0],
-            city: currentCity,
+            city: cityForThisDay, // Use the validated cityForThisDay
             activities: dailyActivities,
             // Narratives will be added by LLM later
             narrative_intro: undefined, // Placeholder

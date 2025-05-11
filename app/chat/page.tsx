@@ -5,7 +5,7 @@ import TopBar from '@/components/trip/TopBar';
 import MarketingSidebar from '@/components/trip/MarketingSidebar';
 import { useTripStore, TripData } from '@/store/tripStore';
 import ItineraryView from '@/components/trip/ItineraryView';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 // Import Dialog components from Shadcn UI
 import {
@@ -70,6 +70,14 @@ export default function ChatPage() {
 
   // Define budget options
   const budgetOptions = ['Budget-Friendly', 'Moderate', 'Luxury'];
+
+  // NEW: Define a ref type for ChatBuilder's exposed methods
+  interface ChatBuilderRef {
+    sendSystemMessage: (message: string) => void;
+  }
+
+  // Create the ref
+  const chatBuilderRef = useRef<ChatBuilderRef>(null);
 
   useEffect(() => {
     // Simulate fetching session data
@@ -210,13 +218,25 @@ export default function ChatPage() {
     setIsLoading(true);
     setError(null);
 
+    // Prepare data for the API, ensuring accommodation is a string
+    const accommodationForApi = Array.isArray(currentTripData.accommodation) && currentTripData.accommodation.length > 0
+      ? currentTripData.accommodation[0]
+      : currentTripData.accommodation && typeof currentTripData.accommodation === 'string'
+      ? currentTripData.accommodation // It's already a string (less likely given store type)
+      : 'Hotel'; // Default
+
+    const tripDataForApi = {
+      ...currentTripData,
+      accommodation: accommodationForApi,
+    };
+
     try {
       // *** POINT TO THE NEW SIMPLER ENDPOINT ***
       const response = await fetch('/api/generate-trip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Send the current tripData; backend will handle defaults for missing optional fields
-        body: JSON.stringify(currentTripData), 
+        // Send the modified tripDataForApi with accommodation as a string
+        body: JSON.stringify(tripDataForApi), 
       });
       
       const contentType = response.headers.get("content-type");
@@ -256,7 +276,8 @@ export default function ChatPage() {
         pets: currentTripData.pets ?? 0,
         petDetails: currentTripData.petDetails || [],
         budget: currentTripData.budget || 'Moderate',
-        accommodation: currentTripData.accommodation || 'Hotel',
+        // Ensure accommodation in the store is restored/maintained as string[]
+        accommodation: currentTripData.accommodation || (result.accommodation && typeof result.accommodation === 'string' ? [result.accommodation] : ['Hotel']),
         interests: currentTripData.interests || [],
         additionalInfo: currentTripData.additionalInfo || '',
         draftId: currentTripData.draftId,
@@ -286,28 +307,34 @@ export default function ChatPage() {
   const sendSystemUpdateToChat = useCallback(async (updateMessage: string) => {
     // Note: We might need the current threadId here if the API requires it
     // For now, assume the API can handle context without threadId for system updates, or manages it implicitly
-    console.log(`[ChatPage] Sending system update to chat API: ${updateMessage}`);
-    try {
-      const response = await fetch('/api/chat-builder', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messageContent: updateMessage, 
-          // threadId: currentThreadId, // Pass threadId if available and necessary
-          // currentTripData: useTripStore.getState().tripData // Send full data if API needs it to re-sync
-        }),
-      });
-      if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response'})); // Catch potential JSON parse error
-          console.error('[ChatPage] Failed to send system update to chat API:', errorData.error || response.statusText);
-          // Optionally show a non-critical toast here?
-      }
-      // We don't necessarily need to process the response here, 
-      // as the main goal is just to inform the backend.
-    } catch (error: any) {
-        console.error('[ChatPage] Error sending system update to chat API:', error);
+    console.log(`[ChatPage] Attempting to send system update via ChatBuilder ref: ${updateMessage}`);
+    if (chatBuilderRef.current) {
+      chatBuilderRef.current.sendSystemMessage(updateMessage);
+    } else {
+      console.warn('[ChatPage] ChatBuilder ref is not available to send system update.');
+      // Fallback or error handling if needed, though ideally the ref should be set
+      // For now, let's try the old direct API call as a temporary measure IF NEEDED,
+      // but the goal is to remove this.
+      // try {
+      //   const response = await fetch('/api/chat-builder', { // Ensure this points to the correct unified endpoint
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       messageContent: updateMessage,
+      //       isSystemMessage: true, // Add a flag if API needs to differentiate
+      //       // threadId: currentThreadId, // Pass threadId if available and necessary
+      //       // currentTripData: useTripStore.getState().tripData // Send full data if API needs it to re-sync
+      //     }),
+      //   });
+      //   if (!response.ok) {
+      //       const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response'}));
+      //       console.error('[ChatPage] Fallback: Failed to send system update to chat API:', errorData.error || response.statusText);
+      //   }
+      // } catch (error: any) {
+      //     console.error('[ChatPage] Fallback: Error sending system update to chat API:', error);
+      // }
     }
-  }, []); // Dependencies might be needed if using threadId or currentTripData
+  }, []); // Dependencies might be needed if using threadId or currentTripData from here
 
   /**
    * Handles updating the trip data in the Zustand store AND informs the backend.
@@ -370,7 +397,7 @@ export default function ChatPage() {
           ? [{ type: 'Dog', size: 'Medium' }] // Default pet detail
           : (sampleTripData.petDetails || []),
       budget: sampleTripData.budget || 'Moderate',
-      accommodation: sampleTripData.accommodation || 'Hotel',
+      accommodation: sampleTripData.accommodation ? (Array.isArray(sampleTripData.accommodation) ? sampleTripData.accommodation : [sampleTripData.accommodation]) : ['Hotel'],
       interests: sampleTripData.interests || [],
       // Use a clear flag in additionalInfo to indicate source
       additionalInfo: sampleTripData.additionalInfo || 'SYSTEM_FLAG: Example trip loaded.', 
@@ -413,49 +440,42 @@ export default function ChatPage() {
         // onCreateTripClick={() => { /* TODO: Navigate or open form modal */ }}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-grow flex overflow-hidden">
-        {/* UPDATED: Conditional Rendering Logic based on itinerary generation status */}
-        {showItinerary ? (
-            // If itinerary exists, show ItineraryView taking full available width
-            <div className="w-full h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
-                <ItineraryView session={session} />
-                {/* TODO: Consider adding a collapsible Chatbot component here later */}
-            </div>
-        ) : (
-            // Otherwise (no itinerary yet), show the two-column layout 
-            // with ChatBuilder/Loading on left and MarketingSidebar on right
-            <>
-                {/* Left Column: Switches between Loading State and ChatBuilder */}
-                <div className="w-full md:w-1/2 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
-                    {isStoreLoading ? (
-                        // If loading (generation in progress), show loading message
-                        <div className="flex items-center justify-center h-full p-4">
-                            <p className="text-gray-600 animate-pulse text-center">
-                                Generating your perfect trip...
-                                <br />
-                                <span className="text-sm">(This can take up to a minute)</span>
-                            </p>
-                        </div>
-                    ) : (
-                        // Otherwise (not loading, no itinerary), show ChatBuilder
-                        <ChatBuilder
-                            session={session}
-                            className="h-full"
-                            onInitiateItineraryGeneration={handleInitiateGeneration}
-                        />
-                    )}
-                </div>
+      {/* Main Content Area - Revised Two-Pane Layout */}
+      <div className="flex-grow flex flex-col md:flex-row overflow-hidden">
+        {/* Left Pane: ChatBuilder (Always Visible) */}
+        {/* Use max-width for more predictable sizing, h-full on md+ */}
+        <div className="w-full md:max-w-xs lg:max-w-sm xl:max-w-md h-1/2 md:h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 flex-shrink-0 bg-white md:border-r md:border-gray-200">
+          <ChatBuilder
+              ref={chatBuilderRef} 
+              session={session}
+              className="h-full"
+              onActualItineraryGenerationRequested={handleInitiateGeneration} 
+          />
+        </div>
 
-                {/* Right Column: Marketing Sidebar (only shown before itinerary generation) */}
-                <div className="hidden md:block md:w-1/2 h-full border-l border-gray-200">
-                    <MarketingSidebar 
-                      className="h-full" 
-                      onSelectExampleTrip={handleSelectExampleTrip} // Pass the handler function
-                    />
-                </div>
-            </>
-        )}
+        {/* Right Pane: Switches between Loading/MarketingSidebar and ItineraryView */}
+        <div className="flex-grow h-1/2 md:h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
+          {isStoreLoading && !showItinerary ? (
+            // Global loading state for initial itinerary generation, shown in the content area
+            <div className="flex items-center justify-center h-full p-4">
+                <p className="text-gray-600 animate-pulse text-center">
+                    Generating your perfect trip...
+                    <br />
+                    <span className="text-sm">(This can take up to a minute)</span>
+                </p>
+            </div>
+          ) : showItinerary ? (
+            // If itinerary exists, show ItineraryView
+            <ItineraryView session={session} />
+          ) : (
+            // Otherwise (no itinerary yet, not loading), show MarketingSidebar
+            // MarketingSidebar has its own internal hidden md:block for responsiveness
+            <MarketingSidebar 
+              className="h-full" 
+              onSelectExampleTrip={handleSelectExampleTrip}
+            />
+          )}
+        </div>
       </div>
 
       {/* --- Modals --- */}

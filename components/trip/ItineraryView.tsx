@@ -48,7 +48,6 @@ import {
   Image as ImageIcon,
   ChevronRight,
 } from 'lucide-react';
-import Chatbot from './Chatbot';
 import { Map, Marker, Popup, LngLatBounds } from '@maptiler/sdk';
 import '@maptiler/sdk/dist/maptiler-sdk.css';
 import ReactMarkdown from 'react-markdown';
@@ -659,7 +658,6 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   const [addingVetDay, setAddingVetDay] = useState<number | null>(null);
   const [vetSearchResults, setVetSearchResults] = useState<any[]>([]);
   const [isSearchingVets, setIsSearchingVets] = useState(false);
-  const [showChatbot, setShowChatbot] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [mapFilterDay, setMapFilterDay] = useState<number | 'all'>('all');
   
@@ -1041,136 +1039,119 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   }
 
   return (
-    <div className="flex flex-col md:flex-row font-sans h-screen max-h-screen overflow-hidden">
-      {showChatbot && (
-        <div className="w-full md:w-[35%] h-1/2 md:h-full border-b md:border-b-0 md:border-r border-gray-200 bg-white flex flex-col flex-shrink-0 pt-20">
-          <Chatbot
-            tripData={tripData}
-            session={session}
-            onClose={() => setShowChatbot(false)}
-            onTriggerSave={onTriggerSave}
-            className="flex-grow min-h-0"
-          />
-        </div>
-      )}
-
-      <div className={cn("flex flex-col flex-grow h-1/2 md:h-full pt-20", showChatbot ? "w-full md:w-[65%]" : "w-full")}>
-        <div className="sticky top-20 bg-white z-10 p-3 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 gap-3">
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {onBackToPlanning && (
-              <Button variant="outline" size="sm" onClick={onBackToPlanning}>
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Planning
-              </Button>
-            )}
-            {!showChatbot && (
-              <Button variant="outline" size="sm" onClick={() => setShowChatbot(true)}>Show Assistant</Button>
-            )}
-            <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1>
-          </div>
-          <div className="flex gap-2 flex-wrap flex-shrink-0">
-            <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
-              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
+    <div className="font-sans flex flex-col h-full w-full overflow-hidden bg-white">
+      <div className="p-3 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 bg-white">
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {onBackToPlanning && (
+            <Button variant="outline" size="sm" onClick={onBackToPlanning}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Planning
             </Button>
-            <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
-            <Button variant="outline" onClick={handleFinalSave} disabled={isSaving} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-1" />
-              )}
-              {isSaving ? 'Saving...' : 'Save Trip'}
-            </Button>
-            <Button variant="outline" onClick={handleNewTrip} size="sm">New Trip</Button>
-          </div>
-        </div>
-
-        <Toast.Provider swipeDirection="right">
-          <Toast.Root open={openToast} onOpenChange={setOpenToast} className="bg-white border border-gray-200 shadow-lg p-4 rounded-lg z-50 data-[state=open]:animate-slideIn data-[state=closed]:animate-hide data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-swipeOut">
-            <Toast.Title className={cn("font-semibold text-base mb-1", error ? "text-red-600" : "text-teal-700")}>{toastMessage.title}</Toast.Title>
-            <Toast.Description className="text-gray-600 text-sm">{toastMessage.description}</Toast.Description>
-            <Toast.Close className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"><X className="h-4 w-4" /></Toast.Close>
-          </Toast.Root>
-          <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw] z-[2147483647] outline-none" />
-        </Toast.Provider>
-
-        {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded m-4 flex-shrink-0" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
-
-        <div className="flex-grow overflow-y-auto p-3 md:p-4 space-y-3">
-          {preDeparturePreparation && preDeparturePreparation.length > 0 && (
-              <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
-                  <div className="space-y-1.5 mt-1">
-                      {preDeparturePreparation.map((activity, idx) => (
-                          <div key={`prep-${idx}`} className="flex items-start p-2.5 bg-yellow-50/50 rounded-md border border-yellow-100">
-                              <div className="mr-2 mt-0.5 flex-shrink-0">{getActivityIcon(activity)}</div>
-                              <div>
-                                  <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
-                                  <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
-                                  {activity.cost && <p className="text-gray-500 text-xs mt-1">Est. Cost: ${activity.cost}</p>}
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              </CollapsibleCard>
           )}
-
-          <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}>
-            <PolicyRequirementsSteps steps={policyRequirements} />
-            <GeneralPreparationInfo items={generalPreparation} />
-            {tripData?.destinationSlug && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <Link
-                  href={`/directory/policies/${tripData.destinationSlug}`}
-                  className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Full Destination Policy Details
-                  <ExternalLink className="h-4 w-4 ml-1.5" />
-                </Link>
-              </div>
+          <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1>
+        </div>
+        <div className="flex gap-2 flex-wrap flex-shrink-0">
+          <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
+            {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
+          </Button>
+          <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
+          <Button variant="outline" onClick={handleFinalSave} disabled={isSaving} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-1" />
             )}
-          </CollapsibleCard>
+            {isSaving ? 'Saving...' : 'Save Trip'}
+          </Button>
+          <Button variant="outline" onClick={handleNewTrip} size="sm">New Trip</Button>
+        </div>
+      </div>
 
-          <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
-            <CardHeader className="p-3 pb-1.5">
-              <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
-                <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 text-sm text-amber-900 space-y-1.5">
-               <p>
-                  It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
-               </p>
-               <a 
-                  href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-teal-700 hover:text-teal-800 hover:underline text-xs font-medium"
-                >
-                   Find Vets Near {tripData?.destination?.split(',')[0] || 'Destination'} <ExternalLink className="h-3 w-3 ml-1" />
-               </a>
-            </CardContent>
-          </Card>
+      <Toast.Provider swipeDirection="right">
+        <Toast.Root open={openToast} onOpenChange={setOpenToast} className="bg-white border border-gray-200 shadow-lg p-4 rounded-lg z-50 data-[state=open]:animate-slideIn data-[state=closed]:animate-hide data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-swipeOut">
+          <Toast.Title className={cn("font-semibold text-base mb-1", error ? "text-red-600" : "text-teal-700")}>{toastMessage.title}</Toast.Title>
+          <Toast.Description className="text-gray-600 text-sm">{toastMessage.description}</Toast.Description>
+          <Toast.Close className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"><X className="h-4 w-4" /></Toast.Close>
+        </Toast.Root>
+        <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw] z-[2147483647] outline-none" />
+      </Toast.Provider>
 
-          <div>
-            <h2 className="text-xl font-bold text-black tracking-tight mb-3">Daily Breakdown</h2>
-            {itinerary?.days?.map((day: ItineraryDay) => (
-              <ItineraryDayAccordion
-                key={day.day}
-                day={day}
-                index={day.day}
-                isExpanded={expandedDays.includes(day.day)}
-                onToggle={() => handleToggleDay(day.day)}
-                onAddActivityClick={() => handleAddActivityClick(day.day)}
-                onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)}
-                onOpenBookingModal={handleOpenBookingModal}
-                tripData={tripData}
-              />
-            ))}
-            {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (
-                <p className="text-gray-500 italic text-sm p-4 text-center">Itinerary data is not available.</p>
-            )}
-          </div>
+      {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded m-4 flex-shrink-0" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
+
+      <div className="flex-grow overflow-y-auto p-3 md:p-4 space-y-3">
+        {preDeparturePreparation && preDeparturePreparation.length > 0 && (
+            <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
+                <div className="space-y-1.5 mt-1">
+                    {preDeparturePreparation.map((activity, idx) => (
+                        <div key={`prep-${idx}`} className="flex items-start p-2.5 bg-yellow-50/50 rounded-md border border-yellow-100">
+                            <div className="mr-2 mt-0.5 flex-shrink-0">{getActivityIcon(activity)}</div>
+                            <div>
+                                <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
+                                <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
+                                {activity.cost && <p className="text-gray-500 text-xs mt-1">Est. Cost: ${activity.cost}</p>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </CollapsibleCard>
+        )}
+
+        <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}>
+          <PolicyRequirementsSteps steps={policyRequirements} />
+          <GeneralPreparationInfo items={generalPreparation} />
+          {tripData?.destinationSlug && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <Link
+                href={`/directory/policies/${tripData.destinationSlug}`}
+                className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View Full Destination Policy Details
+                <ExternalLink className="h-4 w-4 ml-1.5" />
+              </Link>
+            </div>
+          )}
+        </CollapsibleCard>
+
+        <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
+          <CardHeader className="p-3 pb-1.5">
+            <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
+              <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0 text-sm text-amber-900 space-y-1.5">
+             <p>
+                It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
+             </p>
+             <a 
+                href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-teal-700 hover:text-teal-800 hover:underline text-xs font-medium"
+              >
+                 Find Vets Near {tripData?.destination?.split(',')[0] || 'Destination'} <ExternalLink className="h-3 w-3 ml-1" />
+             </a>
+          </CardContent>
+        </Card>
+
+        <div>
+          <h2 className="text-xl font-bold text-black tracking-tight mb-3">Daily Breakdown</h2>
+          {itinerary?.days?.map((day: ItineraryDay) => (
+            <ItineraryDayAccordion
+              key={day.day}
+              day={day}
+              index={day.day}
+              isExpanded={expandedDays.includes(day.day)}
+              onToggle={() => handleToggleDay(day.day)}
+              onAddActivityClick={() => handleAddActivityClick(day.day)}
+              onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)}
+              onOpenBookingModal={handleOpenBookingModal}
+              tripData={tripData}
+            />
+          ))}
+          {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (
+              <p className="text-gray-500 italic text-sm p-4 text-center">Itinerary data is not available.</p>
+          )}
         </div>
       </div>
 

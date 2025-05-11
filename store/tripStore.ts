@@ -103,6 +103,22 @@ export interface Itinerary {
   days: ItineraryDay[];
 }
 
+// --- NEW: Interface for the Assistant's expected Itinerary Summary structure ---
+export interface ItineraryActivitySummary {
+  name: string;
+  type?: Activity['type']; // Use existing Activity type for consistency
+  location: string;
+}
+
+export interface ItineraryDaySummary {
+  day: number;
+  date: string;
+  city: string;
+  activityCount: number;
+  keyActivities: ItineraryActivitySummary[];
+}
+// --- END NEW ---
+
 export interface PolicyRequirementStep {
   step: number;
   label: string;
@@ -112,6 +128,13 @@ export interface PolicyRequirementStep {
 export interface GeneralPreparationItem {
   requirement: string;
   details: string | { url: string; title: string };
+  additionalInfo?: string;
+  draftId?: string;
+  itinerary?: Itinerary;
+  itinerarySummary?: ItineraryDaySummary[];
+  policyRequirements?: PolicyRequirementStep[];
+  generalPreparation?: GeneralPreparationItem[];
+  preDeparturePreparation?: Activity[];
 }
 
 // Main data structure for the trip
@@ -130,11 +153,12 @@ export interface TripData {
   pets?: number;
   petDetails?: { type: string; size: string }[];
   budget?: string;
-  accommodation?: string;
+  accommodation?: string[];
   interests?: string[];
   additionalInfo?: string;
   draftId?: string;
   itinerary?: Itinerary;
+  itinerarySummary?: ItineraryDaySummary[];
   policyRequirements?: PolicyRequirementStep[];
   generalPreparation?: GeneralPreparationItem[];
   preDeparturePreparation?: Activity[];
