@@ -32,6 +32,12 @@ interface BuilderApiResponse {
     triggerItineraryGeneration?: boolean; 
 }
 
+// Default welcome message
+const defaultWelcomeMessage: ChatMessage = {
+    role: 'assistant',
+    content: "Hello! I'm Baggo, your pet travel assistant. Where are you thinking of going with your furry friend?"
+};
+
 /**
  * ChatBuilder Component
  * Provides a conversational interface for users to build their pet-friendly trip itinerary.
@@ -49,22 +55,13 @@ const ChatBuilder = forwardRef<{
   const [isLoadingApi, setIsLoadingApi] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
 
-  // Initialize messages with default state. Will be updated on client mount.
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-        role: 'assistant',
-        content: "Hey there, where would you like to go? I'm here to assist you in planning your experience. Ask me anything travel related, or tell me where you'd like to plan a trip!"
-    }
-  ]);
+  // Initialize messages with the static welcome message.
+  const [messages, setMessages] = useState<ChatMessage[]>([defaultWelcomeMessage]); 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Initialize threadId from sessionStorage or null - this is safe as it doesn't directly cause UI mismatch for SSR
-  const [currentThreadId, setCurrentThreadId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('chatBuilderThreadId');
-    }
-    return null;
-  });
+  // Initialize threadId from sessionStorage or null
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null); // Initial value set in useEffect
+
   // Ref to track previous state for detecting example load
   const previousAdditionalInfoRef = useRef<string | undefined>(undefined);
   const previousDestinationRef = useRef<string | undefined>(undefined); // NEW Ref for destination
@@ -94,26 +91,46 @@ const ChatBuilder = forwardRef<{
     setHasMounted(true);
   }, []);
 
-  // Effect to LOAD messages from sessionStorage AFTER mount
+  // Effect to LOAD state from sessionStorage AFTER mount and INITIATE conversation if needed
   useEffect(() => {
     if (hasMounted) { // Only run on client after mount
       const storedMessages = sessionStorage.getItem('chatBuilderMessages');
+      const storedThreadId = sessionStorage.getItem('chatBuilderThreadId');
+      let loadedMessages: ChatMessage[] = [];
+
       if (storedMessages) {
         try {
           const parsedMessages = JSON.parse(storedMessages);
-          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-            setMessages(parsedMessages);
+          // Load stored messages ONLY if they exist and are not just the default welcome
+          if (Array.isArray(parsedMessages) && parsedMessages.length > 1) { 
+            loadedMessages = parsedMessages;
+            setMessages(loadedMessages);
+            console.log("[ChatBuilder] Loaded messages from session storage.");
+          } else if (parsedMessages.length === 1 && JSON.stringify(parsedMessages[0]) !== JSON.stringify(defaultWelcomeMessage)) {
+             // Handle edge case: storage has only one message, but it's not the default
+             loadedMessages = parsedMessages;
+             setMessages(loadedMessages);
+             console.log("[ChatBuilder] Loaded single non-default message from session storage.");
           } else {
-            // Optional: if stored messages are empty/invalid, you might revert to default
-            // This check prevents an empty screen if storage was cleared or corrupted.
-            // console.log('[ChatBuilder] Stored messages were empty/invalid, keeping default.');
+            // If storage only contains the default message or is empty/invalid, keep the default
+            setMessages([defaultWelcomeMessage]);
+            console.log("[ChatBuilder] Session storage empty or contained only default message. Starting fresh.");
           }
         } catch (e) {
           console.error('[ChatBuilder] Failed to parse stored messages on mount:', e);
+          sessionStorage.removeItem('chatBuilderMessages'); // Clear corrupted data
+          setMessages([defaultWelcomeMessage]); // Reset to default
         }
       }
+
+      if (storedThreadId) {
+          setCurrentThreadId(storedThreadId);
+          console.log(`[ChatBuilder] Loaded thread ID ${storedThreadId} from session storage.`);
+      } 
     }
-  }, [hasMounted]); // Runs only when hasMounted changes (once from false to true)
+  // Depend only on hasMounted to run once after mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
+  }, [hasMounted]); 
 
   // Effect to SAVE messages and threadId to sessionStorage whenever they change
   useEffect(() => {
@@ -279,6 +296,13 @@ const ChatBuilder = forwardRef<{
     // Prevent sending if API call or store loading is in progress
     if (!currentInput || isLoadingApi || isStoreLoading) return; 
 
+    // Clear input immediately for better UX
+    setInput(''); 
+
+    // Call the central sendMessage function instead of duplicating logic
+    await sendMessage(currentInput, false);
+
+    /* Removed duplicated API call and state logic:
     const userMessage: ChatMessage = { role: 'user', content: currentInput };
     // Use functional update for messages to avoid needing messages in deps
     setMessages(prevMessages => [...prevMessages, userMessage]);
@@ -356,7 +380,9 @@ const ChatBuilder = forwardRef<{
     } finally {
       setIsLoadingApi(false); // End API loading state
     }
-  }, [input, isLoadingApi, isStoreLoading, currentThreadId, setError, setTripData, setIsStoreLoading, onActualItineraryGenerationRequested, toast]);
+    */
+  // Simplified dependencies: only depends on input, loading states, and sendMessage
+  }, [input, isLoadingApi, isStoreLoading, sendMessage]); 
 
   // --- JSX ---
   return (
@@ -374,12 +400,13 @@ const ChatBuilder = forwardRef<{
         {/* Let's render all messages if hasMounted, and handle the default message logic carefully. */}
         {/* If messages are loaded from storage, the default greeting might not be the first one. */}
         {/* For now, assume the first message is always the greeting for slicing, or remove slice if problematic. */}
-        {hasMounted && messages.length > 1 ? messages.slice(1).map((msg, index) => { 
+        {/* REMOVED slice(1) to ensure all messages, including the first greeting, are rendered */}
+        {hasMounted && messages.length > 0 ? messages.map((msg, index) => { 
            const isError = msg.role === 'assistant' && msg.content.includes('Sorry, I encountered an error');
            return (
              <div
-               // Start key from 1 because we slice the first message
-               key={index + 1} 
+               // Start key from 0 as we are no longer slicing
+               key={index} 
                className={cn(
                  "p-3 rounded-lg max-w-[85%] text-sm leading-relaxed shadow-sm",
                  msg.role === 'user'

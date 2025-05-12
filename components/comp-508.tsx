@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { addDays } from "date-fns"
-import { DateRange } from "react-day-picker"
+import type { DateRange } from "react-day-picker"
 
 import { Calendar } from "@/components/ui/calendar"
 
@@ -29,17 +29,13 @@ export default function Component() {
             "relative first-of-type:before:hidden before:absolute max-sm:before:inset-x-2 max-sm:before:h-px max-sm:before:-top-2 sm:before:inset-y-2 sm:before:w-px before:bg-border sm:before:-left-4",
         }}
       />
-      <p
-        className="text-muted-foreground mt-4 text-center text-xs"
-        role="region"
-        aria-live="polite"
-      >
+      <p className="text-muted-foreground mt-4 text-center text-xs" role="region" aria-live="polite">
         Two months calendar -{" "}
         <a
           className="hover:text-foreground underline"
           href="https://daypicker.dev/"
           target="_blank"
-          rel="noopener nofollow"
+          rel="noreferrer noopener nofollow"
         >
           React DayPicker
         </a>

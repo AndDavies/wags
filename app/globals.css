@@ -403,3 +403,30 @@ figcaption {
   }
 }
 
+/* Fix for calendar display in two-month mode */
+.rdp-months {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .rdp-months {
+    flex-direction: column;
+  }
+}
+
+/* Apply styling to selected date range */
+.rdp-day_selected,
+.rdp-day_selected:hover,
+.rdp-day_selected:focus {
+  background-color: #00CED1 !important;
+  color: white !important;
+}
+
+.rdp-day_range_middle {
+  background-color: rgba(0, 206, 209, 0.2) !important;
+  color: black !important;
+}
+

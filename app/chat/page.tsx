@@ -29,6 +29,8 @@ import { format, parse, isValid } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 // NEW: Import CityAutocomplete
 import CityAutocomplete from '@/components/trip/CityAutocomplete';
+// Import Supabase client
+import { createClient } from '@/lib/supabase-client';
 
 /**
  * Chat Page Component
@@ -80,8 +82,20 @@ export default function ChatPage() {
   const chatBuilderRef = useRef<ChatBuilderRef>(null);
 
   useEffect(() => {
-    // Simulate fetching session data
-    setSession({ user: { id: 'mock-user-id' } });
+    // Fetch the actual session data
+    const fetchSession = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("[ChatPage] Error fetching session:", error);
+        setSession(null);
+      } else {
+        console.log("[ChatPage] Fetched session successfully:", data.session);
+        setSession(data.session); // Set the entire session object or null
+      }
+    };
+
+    fetchSession();
   }, []);
 
   // Determine if we should show the itinerary view
@@ -481,117 +495,68 @@ export default function ChatPage() {
       {/* --- Modals --- */}
       {/* Where Modal */}
       <Dialog open={isWhereModalOpen} onOpenChange={setIsWhereModalOpen}>
-        {/* Apply OriginUI styling: bg-white, rounded-lg, shadow-lg, p-6, max-w-lg */}
-        <DialogContent className="bg-white rounded-lg shadow-lg p-6 max-w-lg">
+        <DialogContent className="bg-white rounded-2xl shadow-lg p-6 max-w-lg">
           <DialogHeader>
-            {/* Use OriginUI fonts/colors: text-2xl font-bold text-black mb-2 tracking-tight */}
             <DialogTitle className="text-2xl font-bold text-black mb-2 tracking-tight">Edit Destination</DialogTitle>
-            {/* Use OriginUI fonts/colors: text-sm text-gray-700 mb-4 */}
             <DialogDescription className="text-sm text-gray-700 mb-4">
-              Enter your desired destination city/region and country.
+              Enter your desired destination city or region.
             </DialogDescription>
           </DialogHeader>
-          {/* Form content area with spacing */}
+          {/* Input takes full width, label removed */}
           <div className="grid gap-4 py-4">
-            {/* Destination Input */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              {/* Use OriginUI label style: text-sm font-medium text-gray-700 */}
-              <Label htmlFor="destination" className="text-right text-sm font-medium text-gray-700">
-                Destination
-              </Label>
-              {/* Use OriginUI input style: col-span-3, p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 */}
-              {/* <Input
-                id="destination"
-                aria-label="Destination City or Region"
+            <CityAutocomplete
+                inputId="destination-autocomplete"
                 value={tempDestination}
-                onChange={(e) => setTempDestination(e.target.value)}
-                className="col-span-3 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="e.g., Paris, San Diego, Banff National Park"
-              /> */}
-              {/* --- Replace Input with CityAutocomplete --- */}
-              <CityAutocomplete
-                  inputId="destination-autocomplete"
-                  value={tempDestination}
-                  onChange={(newValue) => {
-                      // When user types manually, just update the display value
-                      setTempDestination(newValue);
-                      // Clear country only if user clears the input, 
-                      // otherwise wait for onCountryChange to confirm.
-                      if (!newValue) {
-                           setTempDestinationCountry(''); 
-                      }
-                  }}
-                  onCountryChange={(country, fullPlaceName) => {
-                      setTempDestinationCountry(country);
-                      // Extract city name from the full place name provided on selection
-                      const cityName = fullPlaceName ? fullPlaceName.split(',')[0].trim() : ''; // Use empty string if parsing fails
-                      setTempDestination(cityName); // Set the display value to just the city
-                  }} 
-                  placeholder="Type a city or region..."
-                  className="col-span-3" // Apply grid column span
-              />
-            </div>
-            {/* Destination Country Input (Readonly or Hidden if Autocomplete works well) */}
-            {/* We'll keep it visible but readonly for now to confirm country extraction */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              {/* Use OriginUI label style */}
-              <Label htmlFor="destinationCountry" className="text-right text-sm font-medium text-gray-700">
-                Country
-              </Label>
-              {/* Use OriginUI input style */}
-              <Input
-                id="destinationCountry"
-                aria-label="Destination Country"
-                value={tempDestinationCountry}
-                onChange={(e) => setTempDestinationCountry(e.target.value)}
-                className="col-span-3 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="e.g., France, USA, Canada"
-              />
-            </div>
+                onChange={(newValue) => {
+                    setTempDestination(newValue);
+                    if (!newValue) {
+                         setTempDestinationCountry(''); 
+                    }
+                }}
+                onCountryChange={(country, fullPlaceName) => {
+                    setTempDestinationCountry(country);
+                    const cityName = fullPlaceName ? fullPlaceName.split(',')[0].trim() : '';
+                    setTempDestination(cityName);
+                }} 
+                placeholder="Type a city or region..."
+                className="w-full rounded-full py-2 px-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500" // Full width and styled like an input
+            />
           </div>
-          {/* Use OriginUI footer style: flex justify-end space-x-2 mt-6 */}
+          {/* Buttons swapped: Save on left, Cancel on right */}
           <DialogFooter className="flex justify-end space-x-2 mt-6">
-            {/* Use OriginUI secondary button style: bg-mustard-500 hover:bg-mustard-600 text-white px-4 py-2 rounded-lg font-medium */}
-            <DialogClose asChild>
-              <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium">Cancel</Button>
-            </DialogClose>
-            {/* Use OriginUI primary button style: bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium */}
             <Button
               onClick={() => {
-                  // ** Add Validation **
                   if (!tempDestination || !tempDestinationCountry) {
                       toast({
                           title: "Missing Information",
-                          description: "Please select a destination and ensure the country is detected.",
+                          description: "Please select a valid destination.",
                           variant: "destructive",
                       });
                       return;
                   }
                   handleUpdateTripData({ destination: tempDestination, destinationCountry: tempDestinationCountry })
               }}
-              // ** Disable button if validation fails **
               disabled={!tempDestination || !tempDestinationCountry}
-              className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-full font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save
             </Button>
+            <DialogClose asChild>
+              <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full font-medium">Cancel</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* When Modal */}
       <Dialog open={isWhenModalOpen} onOpenChange={setIsWhenModalOpen}>
-        {/* Apply OriginUI styling */} 
-        <DialogContent className="bg-white rounded-lg shadow-lg p-6 max-w-lg">
+        <DialogContent className="bg-white rounded-2xl shadow-lg p-6 max-w-2xl">
            <DialogHeader>
-             {/* Use OriginUI fonts/colors */} 
              <DialogTitle className="text-2xl font-bold text-black mb-2 tracking-tight">Edit Dates</DialogTitle>
-             {/* Use OriginUI fonts/colors */} 
              <DialogDescription className="text-sm text-gray-700 mb-4">
                Select your travel start and end dates.
              </DialogDescription>
            </DialogHeader>
-           {/* Calendar component for date range selection */}
            <div className="flex justify-center py-4">
                 <Calendar
                     initialFocus
@@ -599,34 +564,38 @@ export default function ChatPage() {
                     defaultMonth={tempDateRange?.from}
                     selected={tempDateRange}
                     onSelect={setTempDateRange}
-                    numberOfMonths={1} // Show one month at a time
+                    numberOfMonths={2}
+                    fixedWeeks
                     showOutsideDays={false}
-                    className="rounded-md border border-gray-200 p-3" // Add some basic styling
-                    // Ensure Calendar uses appropriate aria labels internally
+                    pagedNavigation
+                    className="rounded-md border border-gray-200 p-3"
+                    classNames={{
+                      months: "flex flex-col sm:flex-row gap-8",
+                      month: "w-full space-y-4",
+                      nav: "flex items-center justify-between relative w-full",
+                      nav_button_previous: "absolute left-1 p-1 rounded-full hover:bg-gray-100",
+                      nav_button_next: "absolute right-1 p-1 rounded-full hover:bg-gray-100",
+                      caption: "flex justify-center pt-1 relative items-center",
+                      caption_label: "text-sm font-medium",
+                      day: " h-9 w-9 p-0 font-normal group size-9 px-0 py-px text-sm relative flex items-center justify-center whitespace-nowrap rounded-xl text-foreground group-[[data-selected]:not(.range-middle)]:[transition-property:color,background-color,border-radius,box-shadow] group-[[data-selected]:not(.range-middle)]:duration-150 group-data-disabled:pointer-events-none focus-visible:z-10 hover:not-in-data-selected:bg-accent group-data-selected:bg-primary hover:not-in-data-selected:text-foreground group-data-selected:text-primary-foreground group-data-disabled:text-foreground/30 group-data-disabled:line-through group-data-outside:text-foreground/30 group-data-selected:group-data-outside:text-primary-foreground outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px] group-[.range-start:not(.range-end)]:rounded-e-none group-[.range-end:not(.range-start)]:rounded-s-none group-[.range-middle]:rounded-none group-[.range-middle]:group-data-selected:bg-accent group-[.range-middle]:group-data-selected:text-foreground",
+                    }}
                 />
            </div>
-           {/* Use OriginUI footer style */} 
            <DialogFooter className="flex justify-end space-x-2 mt-6">
-             {/* Use OriginUI secondary button style */} 
              <DialogClose asChild>
-                <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium">Cancel</Button>
+                <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full font-medium">Cancel</Button>
              </DialogClose>
-             {/* Use OriginUI primary button style */} 
              <Button 
                 onClick={() => {
                     const startDate = tempDateRange?.from ? format(tempDateRange.from, 'yyyy-MM-dd') : undefined;
-                    // If only one date is selected, 'to' might be undefined. Handle this.
-                    const endDate = tempDateRange?.to ? format(tempDateRange.to, 'yyyy-MM-dd') : startDate; // Default to startDate if 'to' is not set
+                    const endDate = tempDateRange?.to ? format(tempDateRange.to, 'yyyy-MM-dd') : startDate;
                     if (startDate && endDate) {
                         handleUpdateTripData({ startDate, endDate });
                     } else {
-                        // Handle case where no dates are selected or only 'from' is selected without 'to'
-                        // Maybe show a toast? For now, just don't update.
-                        console.warn("[ChatPage] Cannot save dates: Invalid date range selected.", tempDateRange);
                         toast({ title: "Invalid Dates", description: "Please select a valid start and end date.", variant: "destructive"});
                     }
                 }}
-                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium"
+                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-full font-medium"
              >
                 Save
             </Button>
@@ -634,82 +603,104 @@ export default function ChatPage() {
          </DialogContent>
       </Dialog>
 
-      {/* Travelers Modal */}
+      {/* Travelers Modal with Counter UI */}
       <Dialog open={isTravelersModalOpen} onOpenChange={setIsTravelersModalOpen}>
-        {/* Apply OriginUI styling */} 
-        <DialogContent className="bg-white rounded-lg shadow-lg p-6 max-w-lg">
+        <DialogContent className="bg-white rounded-2xl shadow-lg p-6 max-w-lg">
            <DialogHeader>
-             {/* Use OriginUI fonts/colors */} 
              <DialogTitle className="text-2xl font-bold text-black mb-2 tracking-tight">Edit Travelers</DialogTitle>
-             {/* Use OriginUI fonts/colors */} 
              <DialogDescription className="text-sm text-gray-700 mb-4">
                Specify the number of adults, children (under 18), and pets traveling.
              </DialogDescription>
            </DialogHeader>
-           {/* Form content area with spacing */} 
-           <div className="grid gap-6 py-4"> {/* Increased gap for better spacing */} 
-             {/* Adults Input */}
+           <div className="grid gap-6 py-4">
+             {/* Adults Counter */}
              <div className="grid grid-cols-3 items-center gap-4">
-               {/* Use OriginUI label style */} 
-               <Label htmlFor="adults" className="text-sm font-medium text-gray-700 col-span-1">
+               <Label className="text-sm font-medium text-gray-700 col-span-1">
                  Adults
                </Label>
-               {/* Use OriginUI input style for number */} 
-               <Input
-                 id="adults"
-                 type="number"
-                 min="1" // At least one adult
-                 aria-label="Number of adults"
-                 value={tempAdults}
-                 onChange={(e) => setTempAdults(parseInt(e.target.value, 10) || 1)} // Parse and ensure at least 1
-                 className="col-span-2 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-               />
+               <div className="col-span-2 flex items-center justify-between rounded-full border border-gray-300 p-1">
+                 <button 
+                   type="button"
+                   aria-label="Decrease adults"
+                   onClick={() => setTempAdults(Math.max(1, tempAdults - 1))}
+                   className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                   disabled={tempAdults <= 1}
+                 >
+                   <span className="text-xl font-medium">-</span>
+                 </button>
+                 <span className="text-base font-medium text-gray-700">{tempAdults}</span>
+                 <button 
+                   type="button"
+                   aria-label="Increase adults"
+                   onClick={() => setTempAdults(tempAdults + 1)}
+                   className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                 >
+                   <span className="text-xl font-medium">+</span>
+                 </button>
+               </div>
              </div>
-             {/* Children Input */}
+             
+             {/* Children Counter */}
              <div className="grid grid-cols-3 items-center gap-4">
-               {/* Use OriginUI label style */} 
-               <Label htmlFor="children" className="text-sm font-medium text-gray-700 col-span-1">
+               <Label className="text-sm font-medium text-gray-700 col-span-1">
                  Children
                </Label>
-               {/* Use OriginUI input style */} 
-               <Input
-                 id="children"
-                 type="number"
-                 min="0"
-                 aria-label="Number of children"
-                 value={tempChildren}
-                 onChange={(e) => setTempChildren(parseInt(e.target.value, 10) || 0)} // Parse and default to 0
-                 className="col-span-2 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-               />
+               <div className="col-span-2 flex items-center justify-between rounded-full border border-gray-300 p-1">
+                 <button 
+                   type="button"
+                   aria-label="Decrease children"
+                   onClick={() => setTempChildren(Math.max(0, tempChildren - 1))}
+                   className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                   disabled={tempChildren <= 0}
+                 >
+                   <span className="text-xl font-medium">-</span>
+                 </button>
+                 <span className="text-base font-medium text-gray-700">{tempChildren}</span>
+                 <button 
+                   type="button"
+                   aria-label="Increase children"
+                   onClick={() => setTempChildren(tempChildren + 1)}
+                   className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                 >
+                   <span className="text-xl font-medium">+</span>
+                 </button>
+               </div>
              </div>
-             {/* Pets Input */}
+             
+             {/* Pets Counter */}
              <div className="grid grid-cols-3 items-center gap-4">
-               {/* Use OriginUI label style */} 
-               <Label htmlFor="pets" className="text-sm font-medium text-gray-700 col-span-1">
+               <Label className="text-sm font-medium text-gray-700 col-span-1">
                  Pets
                </Label>
-               {/* Use OriginUI input style */} 
-               <Input
-                 id="pets"
-                 type="number"
-                 min="0"
-                 aria-label="Number of pets"
-                 value={tempPets}
-                 onChange={(e) => setTempPets(parseInt(e.target.value, 10) || 0)} // Parse and default to 0
-                 className="col-span-2 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
-               />
+               <div className="col-span-2 flex items-center justify-between rounded-full border border-gray-300 p-1">
+                 <button 
+                   type="button"
+                   aria-label="Decrease pets"
+                   onClick={() => setTempPets(Math.max(0, tempPets - 1))}
+                   className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                   disabled={tempPets <= 0}
+                 >
+                   <span className="text-xl font-medium">-</span>
+                 </button>
+                 <span className="text-base font-medium text-gray-700">{tempPets}</span>
+                 <button 
+                   type="button"
+                   aria-label="Increase pets"
+                   onClick={() => setTempPets(tempPets + 1)}
+                   className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                 >
+                   <span className="text-xl font-medium">+</span>
+                 </button>
+               </div>
              </div>
            </div>
-           {/* Use OriginUI footer style */} 
            <DialogFooter className="flex justify-end space-x-2 mt-6">
-             {/* Use OriginUI secondary button style */} 
              <DialogClose asChild>
-                <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium">Cancel</Button>
+                <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full font-medium">Cancel</Button>
              </DialogClose>
-             {/* Use OriginUI primary button style */} 
              <Button 
                 onClick={() => handleUpdateTripData({ adults: tempAdults, children: tempChildren, pets: tempPets })}
-                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium"
+                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-full font-medium"
              >
                 Save
             </Button>
@@ -719,17 +710,13 @@ export default function ChatPage() {
       
       {/* Budget Modal */}
       <Dialog open={isBudgetModalOpen} onOpenChange={setIsBudgetModalOpen}>
-         {/* Apply OriginUI styling */} 
-         <DialogContent className="bg-white rounded-lg shadow-lg p-6 max-w-lg">
+         <DialogContent className="bg-white rounded-2xl shadow-lg p-6 max-w-lg">
            <DialogHeader>
-             {/* Use OriginUI fonts/colors */} 
              <DialogTitle className="text-2xl font-bold text-black mb-2 tracking-tight">Edit Budget</DialogTitle>
-             {/* Use OriginUI fonts/colors */} 
              <DialogDescription className="text-sm text-gray-700 mb-4">
                Select your preferred budget level for this trip.
              </DialogDescription>
            </DialogHeader>
-           {/* RadioGroup for budget selection */}
            <RadioGroup 
              value={tempBudget} 
              onValueChange={setTempBudget}
@@ -753,16 +740,13 @@ export default function ChatPage() {
                 </div>
             ))}
            </RadioGroup>
-           {/* Use OriginUI footer style */} 
            <DialogFooter className="flex justify-end space-x-2 mt-6">
-             {/* Use OriginUI secondary button style */} 
              <DialogClose asChild>
-                <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium">Cancel</Button>
+                <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full font-medium">Cancel</Button>
              </DialogClose>
-             {/* Use OriginUI primary button style */} 
              <Button 
                 onClick={() => handleUpdateTripData({ budget: tempBudget })}
-                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium"
+                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-full font-medium"
             >
                 Save
             </Button>

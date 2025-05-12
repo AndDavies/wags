@@ -21,7 +21,7 @@ const exampleTrips: { title: string; image: string; data: Partial<TripData> }[] 
       petDetails: [{ type: 'Dog', size: 'Small' }],
       interests: ['Water Activities', 'Outdoor Adventures', 'Food Tours'],
       budget: 'Moderate',
-      accommodation: 'Hotel',
+      accommodation: ['Hotel'],
     }
   },
   {
@@ -37,7 +37,7 @@ const exampleTrips: { title: string; image: string; data: Partial<TripData> }[] 
       petDetails: [{ type: 'Dog', size: 'Medium' }],
       interests: ['Sightseeing', 'Food Tours', 'Museums', 'Local Experiences'],
       budget: 'Luxury',
-      accommodation: 'Apartment',
+      accommodation: ['Apartment'],
     }
   }
   // Add more examples as needed

@@ -162,6 +162,7 @@ export interface TripData {
   policyRequirements?: PolicyRequirementStep[];
   generalPreparation?: GeneralPreparationItem[];
   preDeparturePreparation?: Activity[];
+  learnedPreferences?: Array<{ type: string; detail: string; item_reference?: string }>;
 }
 
 interface TripState {

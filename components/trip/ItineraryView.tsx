@@ -906,21 +906,22 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   };
 
   const handleAuthRedirect = (authPath: '/login' | '/signup') => {
-    console.log(`[handleAuthRedirect] Called for path: ${authPath}`);
-    if (!tripData) { 
-        console.error('[handleAuthRedirect] CRITICAL: No tripData available in store when attempting to save pending action.');
-        setToastMessage({ title: 'Error', description: 'Cannot save trip data. Please try generating the trip again.' });
-        setOpenToast(true);
-        setShowAuthModal(false);
-        return; 
+    console.log(`[handleAuthRedirect] Called for path: ${authPath} due to save attempt.`);
+    if (!tripData) {
+      console.error('[handleAuthRedirect] CRITICAL: No tripData available in store when attempting to save pending action.');
+      setToastMessage({ title: 'Error', description: 'Cannot save trip data. Please try generating the trip again.' });
+      setOpenToast(true);
+      setShowAuthModal(false);
+      return;
     }
     try {
-      console.log('[handleAuthRedirect] Preparing pending action. Current tripData keys:', Object.keys(tripData));
+      console.log('[handleAuthRedirect] Preparing pending action: save_final_itinerary');
+      // Store the *intent* to save the final itinerary and the data itself
       const pendingAction = {
-        action: 'save_draft', 
-        payload: tripData 
+        action: 'save_final_itinerary', // Indicate this is for the main table
+        payload: tripData
       };
-      
+
       let actionString;
       try {
         actionString = JSON.stringify(pendingAction);
@@ -933,68 +934,122 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
       localStorage.setItem('pending_auth_action', actionString);
       console.log('[handleAuthRedirect] Set pending_auth_action in localStorage.');
 
-      const finalRedirectPath = '/create-trip'; 
+      // Define the redirect path *after* successful auth + save
+      const finalRedirectPath = pathname; // Redirect back to the current itinerary view
       localStorage.setItem('post_auth_redirect', finalRedirectPath);
-      console.log('[handleAuthRedirect] Set post_auth_redirect in localStorage.');
-      
-      const authRedirectUrl = `${authPath}?redirect=${encodeURIComponent(finalRedirectPath)}&reason=pendingSave`;
-      
+      console.log(`[handleAuthRedirect] Set post_auth_redirect to ${finalRedirectPath} in localStorage.`);
+
+      const authRedirectUrl = `${authPath}?redirect=${encodeURIComponent(finalRedirectPath)}&reason=saveTrip`;
+
       console.log(`[handleAuthRedirect] Attempting redirect to: ${authRedirectUrl}`);
       setShowAuthModal(false);
       router.push(authRedirectUrl);
       console.log(`[handleAuthRedirect] router.push executed.`);
 
     } catch (error) {
-       console.error('[ItineraryView] Error setting localStorage or stringifying:', error);
-       setError('Could not temporarily save trip progress for authentication.');
-       setToastMessage({ title: 'Error', description: 'Could not save progress before redirecting. Please try again.' });
-       setOpenToast(true);
-       setShowAuthModal(false);
+      console.error('[ItineraryView] Error setting localStorage or stringifying:', error);
+      setError('Could not temporarily save trip progress for authentication.');
+      setToastMessage({ title: 'Error', description: 'Could not save progress before redirecting. Please try again.' });
+      setOpenToast(true);
+      setShowAuthModal(false);
     }
   };
 
-  const handleFinalSave = async () => {
-    if (!session) {
-      if (!tripData) {
-          setToastMessage({ title: 'No Trip Data', description: 'Cannot save an empty trip.' });
-          setOpenToast(true);
-          return;
-      }
-      console.log('[ItineraryView] User not logged in. Showing auth modal.');
-      setShowAuthModal(true);
-      return;
-    }
+  // Define persistFinalItinerary before it's used
+  const persistFinalItinerary = async (userId: string, data: TripData): Promise<{ success: boolean, error?: string }> => {
+    console.log(`[ItineraryView] Attempting to save final itinerary to DB for user ${userId}`);
+    const supabase = createClient();
 
+    // Prepare data for the itineraries table
+    // Ensure dates are formatted as YYYY-MM-DD strings or null
+    const formatSupabaseDate = (date: string | Date | undefined | null): string | null => {
+        if (!date) return null;
+        try {
+            const d = typeof date === 'string' ? new Date(date) : date;
+            // Check if date is valid after parsing
+            if (isNaN(d.getTime())) throw new Error('Invalid date');
+            // Return in YYYY-MM-DD format
+            return d.toISOString().split('T')[0];
+        } catch (e) {
+            console.error("Error formatting date for Supabase:", e, "Original date:", date);
+            return null; // Return null if date is invalid
+        }
+    };
+
+    const dbPayload = {
+        user_id: userId,
+        trip_data: data, // Store the full TripData object
+        // Derive other columns from tripData
+        title: data.destination || 'Untitled Trip',
+        location: data.destination || 'Unknown Location',
+        start_date: formatSupabaseDate(data.startDate),
+        end_date: formatSupabaseDate(data.endDate),
+        // documents: data.documents || null, // Assuming documents are handled separately or within trip_data
+    };
+
+    console.log("[ItineraryView] Payload for itineraries table:", {
+        ...dbPayload,
+        trip_data: '[TripData object - not logged]' // Avoid logging potentially large object
+    });
+
+    try {
+      const { error: insertError } = await supabase
+        .from('itineraries')
+        .insert(dbPayload);
+
+      if (insertError) {
+        console.error('[ItineraryView] Supabase insert error:', insertError);
+        return { success: false, error: insertError.message };
+      }
+
+      console.log('[ItineraryView] Itinerary saved successfully to DB.');
+      return { success: true };
+
+    } catch (e) {
+      console.error('[ItineraryView] Unexpected error during Supabase insert:', e);
+      return { success: false, error: e instanceof Error ? e.message : 'Unknown error saving itinerary.' };
+    }
+  };
+
+  // Updated function triggered by the main "Save Trip" button
+  const handleFinalSave = async () => {
     if (!tripData) {
       setToastMessage({ title: 'No Trip Data', description: 'Cannot save an empty trip.' });
       setOpenToast(true);
       return;
     }
+    
+    if (!session) {
+      console.log('[ItineraryView - handleFinalSave] User not logged in. Showing auth modal.');
+      setShowAuthModal(true); // Show modal for guests
+      return;
+    }
+
+    // User is logged in, proceed with saving
     setIsSaving(true);
     setError(null);
-    console.log('[ItineraryView] Data being sent to /api/trips/save:', JSON.stringify(tripData, null, 2));
+    console.log('[ItineraryView - handleFinalSave] Logged-in user saving final itinerary...');
+
     try {
-        const response = await fetch('/api/trips/save', {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(tripData),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-            console.error('[ItineraryView] API Error Response Body:', result);
-            throw new Error(result.error || `HTTP error! status: ${response.status}`);
-        }
-        setToastMessage({ title: 'Trip Saved!', description: 'Your itinerary has been saved successfully.' });
-        setOpenToast(true);
+      const result = await persistFinalItinerary(session.user.id, tripData); // Call the actual save function
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save itinerary to database.');
+      }
+
+      setToastMessage({ title: 'Trip Saved!', description: 'Your itinerary has been saved successfully.' });
+      setOpenToast(true);
+      // Optional: Maybe clear draft state if applicable?
+      // const supabase = createClient();
+      // await supabase.from('draft_itineraries').delete().match({ user_id: session.user.id });
+
     } catch (e: any) {
-        console.error('[ItineraryView] Error saving final trip:', e);
-        setError(`Failed to save final trip: ${e.message || 'Unknown error'}`);
-        setToastMessage({ title: 'Save Failed', description: `Could not save the trip. ${e.message || 'Please try again.'}` });
-        setOpenToast(true);
+      console.error('[ItineraryView - handleFinalSave] Error saving final trip:', e);
+      setError(`Failed to save final trip: ${e.message || 'Unknown error'}`);
+      setToastMessage({ title: 'Save Failed', description: `Could not save the trip. ${e.message || 'Please try again.'}` });
+      setOpenToast(true);
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
@@ -1041,117 +1096,118 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   return (
     <div className="font-sans flex flex-col h-full w-full overflow-hidden bg-white">
       <div className="p-3 border-b border-gray-200 shadow-sm flex justify-between items-center flex-shrink-0 bg-white">
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {onBackToPlanning && (
-            <Button variant="outline" size="sm" onClick={onBackToPlanning}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Planning
-            </Button>
-          )}
-          <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1>
-        </div>
-        <div className="flex gap-2 flex-wrap flex-shrink-0">
-          <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
-            {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
-          </Button>
-          <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
-          <Button variant="outline" onClick={handleFinalSave} disabled={isSaving} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-1" />
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {onBackToPlanning && (
+              <Button variant="outline" size="sm" onClick={onBackToPlanning}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Planning
+              </Button>
             )}
-            {isSaving ? 'Saving...' : 'Save Trip'}
-          </Button>
-          <Button variant="outline" onClick={handleNewTrip} size="sm">New Trip</Button>
+            <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1>
+          </div>
+          <div className="flex gap-2 flex-wrap flex-shrink-0">
+            <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
+              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Progress'}
+            </Button>
+            <Button variant="outline" onClick={toggleMapView} size="sm">{showMap ? 'Hide Map' : 'Show Map'}</Button>
+            <Button variant="outline" onClick={handleFinalSave} disabled={isSaving} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              {isSaving ? 'Saving...' : 'Save Trip'}
+            </Button>
+            <Button variant="outline" onClick={handleNewTrip} size="sm">New Trip</Button>
+          </div>
         </div>
-      </div>
 
-      <Toast.Provider swipeDirection="right">
-        <Toast.Root open={openToast} onOpenChange={setOpenToast} className="bg-white border border-gray-200 shadow-lg p-4 rounded-lg z-50 data-[state=open]:animate-slideIn data-[state=closed]:animate-hide data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-swipeOut">
-          <Toast.Title className={cn("font-semibold text-base mb-1", error ? "text-red-600" : "text-teal-700")}>{toastMessage.title}</Toast.Title>
-          <Toast.Description className="text-gray-600 text-sm">{toastMessage.description}</Toast.Description>
-          <Toast.Close className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"><X className="h-4 w-4" /></Toast.Close>
-        </Toast.Root>
-        <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw] z-[2147483647] outline-none" />
-      </Toast.Provider>
+        <Toast.Provider swipeDirection="right">
+          <Toast.Root open={openToast} onOpenChange={setOpenToast} className="bg-white border border-gray-200 shadow-lg p-4 rounded-lg z-50 data-[state=open]:animate-slideIn data-[state=closed]:animate-hide data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-swipeOut">
+            <Toast.Title className={cn("font-semibold text-base mb-1", error ? "text-red-600" : "text-teal-700")}>{toastMessage.title}</Toast.Title>
+            <Toast.Description className="text-gray-600 text-sm">{toastMessage.description}</Toast.Description>
+            <Toast.Close className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"><X className="h-4 w-4" /></Toast.Close>
+          </Toast.Root>
+          <Toast.Viewport className="fixed bottom-0 right-0 p-6 w-[390px] max-w-[100vw] z-[2147483647] outline-none" />
+        </Toast.Provider>
 
-      {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded m-4 flex-shrink-0" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
+        {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded m-4 flex-shrink-0" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
 
-      <div className="flex-grow overflow-y-auto p-3 md:p-4 space-y-3">
-        {preDeparturePreparation && preDeparturePreparation.length > 0 && (
-            <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
-                <div className="space-y-1.5 mt-1">
-                    {preDeparturePreparation.map((activity, idx) => (
-                        <div key={`prep-${idx}`} className="flex items-start p-2.5 bg-yellow-50/50 rounded-md border border-yellow-100">
-                            <div className="mr-2 mt-0.5 flex-shrink-0">{getActivityIcon(activity)}</div>
-                            <div>
-                                <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
-                                <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
-                                {activity.cost && <p className="text-gray-500 text-xs mt-1">Est. Cost: ${activity.cost}</p>}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </CollapsibleCard>
-        )}
-
-        <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}>
-          <PolicyRequirementsSteps steps={policyRequirements} />
-          <GeneralPreparationInfo items={generalPreparation} />
-          {tripData?.destinationSlug && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <Link
-                href={`/directory/policies/${tripData.destinationSlug}`}
-                className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Full Destination Policy Details
-                <ExternalLink className="h-4 w-4 ml-1.5" />
-              </Link>
-            </div>
+        <div className="flex-grow overflow-y-auto p-3 md:p-4 space-y-3">
+          {preDeparturePreparation && preDeparturePreparation.length > 0 && (
+              <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
+                  <div className="space-y-1.5 mt-1">
+                      {preDeparturePreparation.map((activity, idx) => (
+                          <div key={`prep-${idx}`} className="flex items-start p-2.5 bg-yellow-50/50 rounded-md border border-yellow-100">
+                              <div className="mr-2 mt-0.5 flex-shrink-0">{getActivityIcon(activity)}</div>
+                              <div>
+                                  <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
+                                  <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
+                                  {activity.cost && <p className="text-gray-500 text-xs mt-1">Est. Cost: ${activity.cost}</p>}
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              </CollapsibleCard>
           )}
-        </CollapsibleCard>
 
-        <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
-          <CardHeader className="p-3 pb-1.5">
-            <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
-              <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 text-sm text-amber-900 space-y-1.5">
-             <p>
-                It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
-             </p>
-             <a 
-                href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-teal-700 hover:text-teal-800 hover:underline text-xs font-medium"
-              >
-                 Find Vets Near {tripData?.destination?.split(',')[0] || 'Destination'} <ExternalLink className="h-3 w-3 ml-1" />
-             </a>
-          </CardContent>
-        </Card>
+          <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}>
+          <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
+            <CardHeader className="p-3 pb-1.5">
+              <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
+                <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 text-sm text-amber-900 space-y-1.5">
+               <p>
+                  It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
+               </p>
+               <a 
+                  href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-teal-700 hover:text-teal-800 hover:underline text-xs font-medium"
+                >
+                   Find Vets Near {tripData?.destination?.split(',')[0] || 'Destination'} <ExternalLink className="h-3 w-3 ml-1" />
+               </a>
+            </CardContent>
+          </Card>
+            <PolicyRequirementsSteps steps={policyRequirements} />
+            <GeneralPreparationInfo items={generalPreparation} />
+            {tripData?.destinationSlug && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <Link
+                  href={`/directory/policies/${tripData.destinationSlug}`}
+                  className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Full Destination Policy Details
+                  <ExternalLink className="h-4 w-4 ml-1.5" />
+                </Link>
+              </div>
+            )}
+          </CollapsibleCard>
 
-        <div>
-          <h2 className="text-xl font-bold text-black tracking-tight mb-3">Daily Breakdown</h2>
-          {itinerary?.days?.map((day: ItineraryDay) => (
-            <ItineraryDayAccordion
-              key={day.day}
-              day={day}
-              index={day.day}
-              isExpanded={expandedDays.includes(day.day)}
-              onToggle={() => handleToggleDay(day.day)}
-              onAddActivityClick={() => handleAddActivityClick(day.day)}
-              onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)}
-              onOpenBookingModal={handleOpenBookingModal}
-              tripData={tripData}
-            />
-          ))}
-          {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (
-              <p className="text-gray-500 italic text-sm p-4 text-center">Itinerary data is not available.</p>
-          )}
+          
+
+          <div>
+            <h2 className="text-xl font-bold text-black tracking-tight mb-3">Daily Breakdown</h2>
+            {itinerary?.days?.map((day: ItineraryDay) => (
+              <ItineraryDayAccordion
+                key={day.day}
+                day={day}
+                index={day.day}
+                isExpanded={expandedDays.includes(day.day)}
+                onToggle={() => handleToggleDay(day.day)}
+                onAddActivityClick={() => handleAddActivityClick(day.day)}
+                onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)}
+                onOpenBookingModal={handleOpenBookingModal}
+                tripData={tripData}
+              />
+            ))}
+            {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (
+                <p className="text-gray-500 italic text-sm p-4 text-center">Itinerary data is not available.</p>
+            )}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { TripData } from '@/store/tripStore'; // Keep TripData type
+import { createClient } from '@/lib/supabase-server';
 
 // Vercel: Increase max duration for Assistants API polling
 export const maxDuration = 180; // Allow 3 minutes (adjust as needed)
@@ -526,7 +527,7 @@ async function suggestPlacesOfInterestApiCall(location: string, interests?: stri
     status: "success",
     message: `Here are some suggestions for ${activity_type || 'places'}${interests ? ' related to ' + interests.join(', ') : ''} in ${location}:`,
     results: formattedResults,
-  };
+    };
 }
 
 /**
@@ -538,12 +539,72 @@ async function suggestPlacesOfInterestApiCall(location: string, interests?: stri
 export async function POST(req: NextRequest) {
   let responseData: BuilderApiResponse = { reply: null };
   let updatedDataAccumulator: Partial<TripData> = {};
-  let currentThreadId: string | undefined = undefined; // To store/pass back the thread ID
+  let currentThreadId: string | null | undefined; // Declare with let
 
   try {
-    const body: ChatBuilderRequestBody = await req.json();
-    let { messageContent, threadId: existingThreadId, currentTripData } = body;
+    // --- Supabase User & Preference Loading ---
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+    let loadedDbPreferences: any[] = [];
+
+    if (userId) {
+        console.log('[API Chat Builder] User logged in:', userId);
+        const { data: profileData, error: profileError } = await supabase
+            .from('user_profiles') // <<< CONFIRM YOUR TABLE NAME HERE
+            .select('learned_preferences')
+            .eq('id', userId)     // <<< CONFIRM YOUR USER ID COLUMN NAME HERE
+            .single();
+
+        if (profileError && profileError.code !== 'PGRST116') { // Ignore error if row not found
+            console.error('[API Chat Builder] Error loading user profile preferences:', profileError.message);
+            // Decide how to handle: proceed without DB prefs, or return error?
+            // For now, we'll proceed, relying on session data.
+        } else if (profileData?.learned_preferences) {
+            // Validate that it's an array before assigning
+            if(Array.isArray(profileData.learned_preferences)) {
+                loadedDbPreferences = profileData.learned_preferences;
+                console.log(`[API Chat Builder] Loaded ${loadedDbPreferences.length} preferences from DB for user: ${userId}`);
+            } else {
+                console.warn('[API Chat Builder] learned_preferences from DB is not an array for user:', userId);
+            }
+        } else {
+            console.log('[API Chat Builder] No existing preferences found in DB for user:', userId);
+        }
+    } else {
+        console.log('[API Chat Builder] No user logged in.');
+    }
+    // --- End Supabase Loading ---
+
+    // Extract data from request body
+    const { messageContent = '', threadId, currentTripData, initialRequest } = await req.json();
+    currentThreadId = threadId; // Assign the value
+
+    console.log(`[API Chat Builder] Received request: threadId=${currentThreadId}, initialRequest=${initialRequest}, messageContent=${messageContent ? messageContent.substring(0, 50) + '...' : '(empty)'}`);
+
     let trip = currentTripData || {}; // Use empty object if null
+
+    // --- Merge Preferences & Initialize Accumulator ---
+    const sessionPreferences = currentTripData?.learnedPreferences || [];
+    // Define type for preference object for clarity
+    type LearnedPreference = { type: string; detail: string; item_reference?: string };
+    // Combine DB and session preferences, removing duplicates based on type and detail
+    const combinedPreferences: LearnedPreference[] = [...loadedDbPreferences]; // Explicitly type combinedPreferences
+    sessionPreferences.forEach((p_session: LearnedPreference) => { // Explicitly type p_session
+        if (!combinedPreferences.some(p_db => p_db.type === p_session.type && p_db.detail === p_session.detail)) {
+            combinedPreferences.push(p_session);
+        }
+    });
+
+    // Initialize the accumulator with these combined preferences
+    if (combinedPreferences.length > 0) {
+        updatedDataAccumulator.learnedPreferences = [...combinedPreferences]; // Use spread for new array
+    }
+    // Also update the local 'trip' variable to hold the combined state for tool handlers
+    if (!trip.learnedPreferences) trip.learnedPreferences = [];
+    trip.learnedPreferences = [...combinedPreferences]; // Use spread for new array
+    console.log(`[API Chat Builder] Initialized with ${trip.learnedPreferences?.length ?? 0} combined learned preferences.`);
+    // --- End Merge & Init ---
 
     // --- Intercept System Update Messages (Keep this logic) ---
     // This handles updates from the frontend (like example trip selection)
@@ -570,10 +631,9 @@ export async function POST(req: NextRequest) {
     // --- Assistants API Flow ---
 
     // 1. Thread Management
-    if (existingThreadId) {
-        console.log(`[API Chat Builder] Using existing thread: ${existingThreadId}`);
-        currentThreadId = existingThreadId;
-        // Optional: Verify thread exists openai.beta.threads.retrieve(existingThreadId);
+    if (currentThreadId) {
+        console.log(`[API Chat Builder] Using existing thread: ${currentThreadId}`);
+        // Optional: Verify thread exists openai.beta.threads.retrieve(currentThreadId);
     } else {
         console.log('[API Chat Builder] Creating new thread...');
         const thread = await openai.beta.threads.create();
@@ -599,6 +659,8 @@ export async function POST(req: NextRequest) {
             interests: currentTripData.interests,       // Should be array as per TripData
             // Include petDetails if available and relevant
             petDetails: currentTripData.petDetails,
+            // NEW: Include learnedPreferences if available
+            learnedPreferences: currentTripData.learnedPreferences,
             // Other fields like origin, notes, etc., can be added if deemed useful for the Assistant
         };
 
@@ -626,14 +688,19 @@ export async function POST(req: NextRequest) {
         console.log('[API Chat Builder] No currentTripData provided; skipping CONTEXT UPDATE.');
     }
 
-    // Add the actual user message AFTER the context update
-    await openai.beta.threads.messages.create(currentThreadId, {
-      role: "user",
-      content: messageContent,
-    });
-    console.log('[API Chat Builder] User message added to thread after context.');
+    // Add the actual user message AFTER the context update, ONLY if it's not empty
+    if (messageContent) { // Check if messageContent is truthy (non-empty string)
+        await openai.beta.threads.messages.create(currentThreadId, {
+          role: "user",
+          content: messageContent,
+        });
+        console.log('[API Chat Builder] User message added to thread after context.');
+    } else {
+        console.log('[API Chat Builder] No user message content provided; skipping user message creation.');
+    }
 
-    // 3. Create and Run
+    // 3. Create and Run (Always create the run, even if no user message was added,
+    // as the assistant might respond based on context or just provide a greeting)
     console.log(`[API Chat Builder] Creating run for thread ${currentThreadId} with assistant ${CONVERSATIONAL_ASSISTANT_ID}`);
     let run = await openai.beta.threads.runs.create(currentThreadId, {
       assistant_id: CONVERSATIONAL_ASSISTANT_ID,
@@ -651,55 +718,103 @@ export async function POST(req: NextRequest) {
 
     // Main loop that handles polling and tool calls
     while (!terminalStates.includes(run.status) && elapsedTimeMs < maxWaitTimeMs) {
-        if (run.status === "requires_action") {
-            const requiredActions = run.required_action?.submit_tool_outputs.tool_calls;
+    if (run.status === "requires_action") {
+      const requiredActions = run.required_action?.submit_tool_outputs.tool_calls;
             if (!requiredActions || requiredActions.length === 0) {
                 console.error("[API Chat Builder] Run requires action, but no tool calls were provided. Breaking loop.");
                 run.status = "failed"; // Force a failed state
                 run.last_error = { code: "server_error", message: "Run entered 'requires_action' but no tool_calls were present." };
                 break; 
-            }
+      }
 
-            console.log(`[API Chat Builder] Run requires action. Tool calls: ${requiredActions.length}`);
-            const toolOutputs: OpenAI.Beta.Threads.Runs.RunSubmitToolOutputsParams.ToolOutput[] = [];
+      console.log(`[API Chat Builder] Run requires action. Tool calls: ${requiredActions.length}`);
+      const toolOutputs: OpenAI.Beta.Threads.Runs.RunSubmitToolOutputsParams.ToolOutput[] = [];
 
-            // Process tool calls (can be parallelized if needed)
-            for (const call of requiredActions) {
-                const functionName = call.function.name;
+      // Process tool calls (can be parallelized if needed)
+      for (const call of requiredActions) {
+          const functionName = call.function.name;
                 let output: any = null; // Ensure output is initialized for each call
-                let args: any = {};
-                try {
-                    args = JSON.parse(call.function.arguments || '{}');
-                    console.log(`[API Chat Builder] Executing tool: ${functionName}`, args);
+          let args: any = {};
+          try {
+             args = JSON.parse(call.function.arguments || '{}');
+             console.log(`[API Chat Builder] Executing tool: ${functionName}`, args);
 
                     // --- Existing switch case for tool calls ---
-                    switch (functionName) {
-                      case "set_destination":
-                        if (args.destination) updatedDataAccumulator.destination = args.destination;
-                        if (args.destinationCountry) updatedDataAccumulator.destinationCountry = args.destinationCountry;
-                              output = { status: "success", message: `Destination set to ${args.destination}, ${args.destinationCountry}` };
-                        break;
-                      case "set_travel_dates":
-                        if (args.startDate) updatedDataAccumulator.startDate = parseDate(args.startDate);
-                        if (args.endDate) updatedDataAccumulator.endDate = parseDate(args.endDate);
+          switch (functionName) {
+            case "set_destination":
+              if (args.destination) updatedDataAccumulator.destination = args.destination;
+              if (args.destinationCountry) updatedDataAccumulator.destinationCountry = args.destinationCountry;
+                    output = { status: "success", message: `Destination set to ${args.destination}, ${args.destinationCountry}` };
+              break;
+            case "set_travel_dates":
+              if (args.startDate) updatedDataAccumulator.startDate = parseDate(args.startDate);
+              if (args.endDate) updatedDataAccumulator.endDate = parseDate(args.endDate);
                               output = { status: "success", message: `Dates set: ${updatedDataAccumulator.startDate} to ${updatedDataAccumulator.endDate}` };
-                        break;
-                      case "set_travelers":
-                        if (args.adults !== undefined) updatedDataAccumulator.adults = args.adults;
-                        updatedDataAccumulator.children = args.children !== undefined ? args.children : 0;
-                        if (args.pets !== undefined) updatedDataAccumulator.pets = args.pets;
-                              output = { status: "success", message: `Travelers set: ${updatedDataAccumulator.adults ?? trip?.adults ?? '?'} adults, ${updatedDataAccumulator.children} children, ${updatedDataAccumulator.pets ?? trip?.pets ?? '?'} pets` };
-                        break;
-                      case "set_preferences":
-                        if (args.budget) updatedDataAccumulator.budget = args.budget;
-                              if (args.accommodation !== undefined) {
+              break;
+            case "set_travelers":
+              if (args.adults !== undefined) updatedDataAccumulator.adults = args.adults;
+              updatedDataAccumulator.children = args.children !== undefined ? args.children : 0;
+              if (args.pets !== undefined) updatedDataAccumulator.pets = args.pets;
+                    output = { status: "success", message: `Travelers set: ${updatedDataAccumulator.adults ?? trip?.adults ?? '?'} adults, ${updatedDataAccumulator.children} children, ${updatedDataAccumulator.pets ?? trip?.pets ?? '?'} pets` };
+              break;
+            case "set_preferences":
+              if (args.budget) updatedDataAccumulator.budget = args.budget;
+                    if (args.accommodation !== undefined) {
                                   updatedDataAccumulator.accommodation = Array.isArray(args.accommodation) ? args.accommodation : (typeof args.accommodation === 'string' && args.accommodation.trim() !== '' ? [args.accommodation] : []);
-                              }
-                              if (args.interests !== undefined) {
+                    }
+                    if (args.interests !== undefined) {
                                    updatedDataAccumulator.interests = Array.isArray(args.interests) ? args.interests : (typeof args.interests === 'string' && args.interests.trim() !== '' ? [args.interests] : []);
+                    }
+                    output = { status: "success", message: "Preferences updated." };
+                    break;
+                          // NEW Case for Learned Preferences
+                          case "update_learned_preferences":
+                            const { preference_type, detail, item_reference } = args;
+                            if (preference_type && detail) {
+                              const newPreference = { type: preference_type, detail, ...(item_reference && { item_reference }) };
+                              // Ensure learnedPreferences array exists and append, avoiding exact duplicates
+                              if (!updatedDataAccumulator.learnedPreferences) {
+                                  // Initialize based on current trip state or empty array
+                                  updatedDataAccumulator.learnedPreferences = trip?.learnedPreferences ? [...trip.learnedPreferences] : [];
                               }
-                              output = { status: "success", message: "Preferences updated." };
-                              break;
+                              // Check if this exact preference detail already exists for the type
+                              const exists = updatedDataAccumulator.learnedPreferences.some(
+                                (p) => p.type === preference_type && p.detail === detail
+                              );
+                              if (!exists) {
+                                updatedDataAccumulator.learnedPreferences.push(newPreference);
+                                console.log('[API Chat Builder] Recorded learned preference:', newPreference);
+
+                                // --- BEGIN SUPABASE SAVE ---
+                                if (userId) {
+                                    const { error: upsertError } = await supabase
+                                        .from('user_profiles') // <<< CONFIRM YOUR TABLE NAME HERE
+                                        .update({ learned_preferences: updatedDataAccumulator.learnedPreferences })
+                                        .eq('id', userId); // <<< CONFIRM YOUR USER ID COLUMN NAME HERE
+
+                                    if (upsertError) {
+                                        console.error('[API Chat Builder] Error saving learned preferences to DB:', upsertError.message);
+                                        // Output reflects local success but persistent failure
+                                        output = { status: "partial_success", message: `Preference (${preference_type}) recorded locally, but failed to save persistently.` };
+                                    } else {
+                                        console.log('[API Chat Builder] Successfully saved learned preferences to DB for user:', userId);
+                                        // Keep original success message if DB save works
+                                        output = { status: "success", message: `Learned preference (${preference_type}) recorded.` };
+                                    }
+                                } else {
+                                    // No user logged in, keep original success message (saved to session only)
+                                    output = { status: "success", message: `Learned preference (${preference_type}) recorded (session only).` };
+                                }
+                                // --- END SUPABASE SAVE ---
+
+                              } else {
+                                output = { status: "success", message: `Preference (${preference_type}: ${detail}) already recorded.` };
+                                console.log('[API Chat Builder] Duplicate learned preference ignored:', newPreference);
+                              }
+                            } else {
+                              output = { status: "error", message: "Missing required arguments (preference_type, detail) for update_learned_preferences." };
+                            }
+                            break;
                           case "suggest_places_of_interest":
                               // ... (rest of the cases, ensure they are complete as per previous versions)
                               if (!args.location) {
@@ -715,13 +830,13 @@ export async function POST(req: NextRequest) {
                               break;
                           case "get_trip_details":
                               output = { status: "success", details: await getTripDetailsApiCall(trip), message: "Current trip details retrieved." };
-                              break;
+                    break;
                           case "find_nearby_service":
                               if (!args.location) {
                                    const locationContext = updatedDataAccumulator.destination || trip?.destination;
                                    if (locationContext) {
                                       args.location = locationContext;
-                                  } else {
+                        } else {
                                       output = { status: "error", message: "Cannot find nearby services without a location context." };
                                       break;
                                   }
@@ -746,40 +861,40 @@ export async function POST(req: NextRequest) {
                               // Also update summary if it was returned and is used by AI/frontend separately
                               if (addActivityResult.updatedItinerarySummary) {
                                   updatedDataAccumulator.itinerarySummary = addActivityResult.updatedItinerarySummary;
-                              }
-                              break;
-                          case "generate_itinerary":
-                              const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
-                              if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
-                                  responseData.triggerItineraryGeneration = true;
-                                  output = { status: "success", message: "Essential information collected. Itinerary generation process initiated by the frontend." };
-                              } else {
-                                  output = { status: "error", message: "Cannot generate itinerary yet. Please provide destination, country, start date, and end date first." };
-                                  responseData.triggerItineraryGeneration = false;
-                              }
-                            break;
-                      default:
-                        console.warn(`[API Chat Builder] Unhandled tool call: ${functionName}`);
-                            output = { status: "error", message: `Unknown function: ${functionName}` };
-                    }
-                } catch (toolError: any) {
-                    console.error(`[API Chat Builder] Error processing tool ${functionName} (args: ${call.function.arguments}):`, toolError);
-                    output = { status: "error", message: `Failed to execute ${functionName}. Error: ${toolError.message}` };
-                }
+              }
+              break;
+            case "generate_itinerary":
+              const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
+                    if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
+                  responseData.triggerItineraryGeneration = true;
+                        output = { status: "success", message: "Essential information collected. Itinerary generation process initiated by the frontend." };
+              } else {
+                        output = { status: "error", message: "Cannot generate itinerary yet. Please provide destination, country, start date, and end date first." };
+                        responseData.triggerItineraryGeneration = false;
+              }
+              break;
+            default:
+              console.warn(`[API Chat Builder] Unhandled tool call: ${functionName}`);
+                  output = { status: "error", message: `Unknown function: ${functionName}` };
+          }
+          } catch (toolError: any) {
+              console.error(`[API Chat Builder] Error processing tool ${functionName} (args: ${call.function.arguments}):`, toolError);
+              output = { status: "error", message: `Failed to execute ${functionName}. Error: ${toolError.message}` };
+          }
 
-                toolOutputs.push({
-                  tool_call_id: call.id,
+          toolOutputs.push({
+            tool_call_id: call.id,
                   output: JSON.stringify(output), 
-                });
+          });
             } // End for loop for tool calls
 
-            if (toolOutputs.length > 0) {
-                console.log('[API Chat Builder] Submitting tool outputs...');
-                try {
-                    run = await openai.beta.threads.runs.submitToolOutputs(currentThreadId, run.id, {
-                        tool_outputs: toolOutputs,
-                    });
-                    console.log(`[API Chat Builder] Tool outputs submitted. New Run Status: ${run.status}`);
+      if (toolOutputs.length > 0) {
+          console.log('[API Chat Builder] Submitting tool outputs...');
+          try {
+               run = await openai.beta.threads.runs.submitToolOutputs(currentThreadId, run.id, {
+                  tool_outputs: toolOutputs,
+              });
+              console.log(`[API Chat Builder] Tool outputs submitted. New Run Status: ${run.status}`);
                     lastLoggedStatus = run.status; // Update lastLoggedStatus immediately
                     // Loop will continue, and next iteration will poll or handle new status.
                 } catch (submitError: any) {
@@ -799,10 +914,10 @@ export async function POST(req: NextRequest) {
 
         // Standard polling logic if not 'requires_action' or after tools submitted and status is not yet terminal
         if (!terminalStates.includes(run.status) && run.status !== "requires_action") { // Don't poll if we just handled requires_action and it might become terminal
-            await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
-            elapsedTimeMs += pollingIntervalMs;
+                  await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
+                  elapsedTimeMs += pollingIntervalMs;
             try {
-                run = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
+                  run = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
             } catch (retrieveError: any) {
                 console.error(`[API Chat Builder] Error retrieving run status for run ${run.id}:`, retrieveError);
                 run.status = "failed"; 
@@ -810,9 +925,9 @@ export async function POST(req: NextRequest) {
                 break; // Exit loop on retrieval error
             }
 
-            if (run.status !== lastLoggedStatus) {
+                  if (run.status !== lastLoggedStatus) {
                 console.log(`[API Chat Builder] Run ${run.id} Status: ${run.status}`);
-                lastLoggedStatus = run.status;
+                     lastLoggedStatus = run.status;
             } else if (elapsedTimeMs % 10000 === 0) { // Log progress every 10s if status hasn't changed
                 console.log(`[API Chat Builder] Run ${run.id} still '${run.status}'... (${elapsedTimeMs / 1000}s)`);
             }
@@ -822,7 +937,7 @@ export async function POST(req: NextRequest) {
     } // End while loop
 
      // Check for timeout or if loop exited due to an internal break (e.g. tool submission error)
-    if (!terminalStates.includes(run.status)) {
+              if (!terminalStates.includes(run.status)) {
         // If it's requires_action here, it means the loop timed out while in requires_action,
         // or an error occurred during its processing that didn't set it to 'failed'.
         // This case should ideally be caught by the 'failed' status set on errors within the loop.

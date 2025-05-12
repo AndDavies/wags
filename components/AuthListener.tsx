@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
 import type { Subscription, Session } from '@supabase/supabase-js';
-import { useTripStore } from '@/store/tripStore';
+import { useTripStore, TripData } from '@/store/tripStore';
+import { savePendingItineraryAction } from '@/lib/actions/itineraryActions';
 
 // This component handles client-side auth state changes, 
 // including the post-OAuth redirect logic.
@@ -14,6 +15,8 @@ export default function AuthListener({ children }: { children: React.ReactNode }
   const { clearTrip } = useTripStore();
   // Ref to ensure initial check runs only once
   const initialCheckPerformed = useRef(false);
+  // Ref to ensure pending action is processed only once per session establishment
+  const pendingActionProcessed = useRef(false);
 
   useEffect(() => {
     console.log('[AuthListener] useEffect running.');
@@ -46,13 +49,63 @@ export default function AuthListener({ children }: { children: React.ReactNode }
       }
     }
 
-    // --- Setup listener ONLY for other events (like SIGNED_OUT) ---
-    console.log('[AuthListener] Setting up onAuthStateChange listener for other events (e.g., SIGNED_OUT).');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Log events but don't handle the SIGNED_IN redirect here anymore
-      console.log(`[AuthListener] Listener Event: ${event}`, session ? `Session: active` : `Session: none`);
+    // --- Setup listener for auth events --- 
+    console.log('[AuthListener] Setting up onAuthStateChange listener.');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AuthListener] Listener Event: ${event}`, session ? `User: ${session.user.id}` : `Session: none`);
       
-      if (event === 'SIGNED_OUT') {
+      // Handle the SIGNED_IN event specifically for processing pending actions
+      if (event === 'SIGNED_IN' && session && !pendingActionProcessed.current) {
+        console.log('[AuthListener] SIGNED_IN event detected. Checking for pending actions...');
+        pendingActionProcessed.current = true; // Mark as processed for this session instance
+
+        const redirectPath = localStorage.getItem('post_auth_redirect') || '/';
+        const pendingActionString = localStorage.getItem('pending_auth_action');
+
+        console.log(`[AuthListener] SIGNED_IN - redirectPath: ${redirectPath}, pendingActionString exists: ${!!pendingActionString}`);
+
+        if (pendingActionString) {
+          localStorage.removeItem('pending_auth_action'); // Attempt to clear immediately
+          localStorage.removeItem('post_auth_redirect');
+          console.log('[AuthListener] Cleared localStorage items.');
+
+          try {
+            const pendingAction = JSON.parse(pendingActionString);
+            console.log('[AuthListener] Parsed pending action:', pendingAction?.action);
+
+            if (pendingAction.action === 'save_final_itinerary' && pendingAction.payload && session.user.id) {
+              console.log('[AuthListener] Found save_final_itinerary action. Calling server action...');
+              
+              // Call the server action to save the itinerary
+              const result = await savePendingItineraryAction(session.user.id, pendingAction.payload as TripData);
+
+              if (result.success) {
+                console.log('[AuthListener] Server action successful. Redirecting now.');
+                router.push(redirectPath);
+              } else {
+                console.error('[AuthListener] Server action failed:', result.error);
+                // Redirect anyway, but maybe show an error? Or redirect to an error page?
+                // For now, just redirect to the intended path.
+                router.push(redirectPath + '?saveError=' + encodeURIComponent(result.error || 'Unknown save error'));
+              }
+              
+            } else {
+              console.log('[AuthListener] Pending action was not save_final_itinerary or payload missing. Redirecting normally.');
+              router.push(redirectPath);
+            }
+          } catch (e) {
+            console.error('[AuthListener] Error parsing or processing pending action:', e);
+            // Redirect even if parsing fails, maybe with an error indicator
+            router.push(redirectPath + '?parseError=true');
+          }
+        } else {
+            // No pending action, just redirect
+            console.log('[AuthListener] No pending action found. Redirecting normally.');
+            localStorage.removeItem('post_auth_redirect'); // Ensure it's cleared
+            router.push(redirectPath);
+        }
+
+      } else if (event === 'SIGNED_OUT') {
         console.log('[AuthListener] SIGNED_OUT event detected. Clearing trip store.');
         clearTrip();
         sessionStorage.removeItem('tripData'); // Also clear guest draft

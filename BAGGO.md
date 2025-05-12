@@ -173,6 +173,78 @@ Following the initial setup and conversational flow implementation, the focus sh
 *   **Persistence:** Implement robust state persistence for the `/app/chat` flow (`localStorage` or Supabase drafts).
 *   **General Refinement:** Continuous improvements to error handling, UX flow, and code quality.
 
+## Development Log - May 12th, 2024 (Preference Learning & Stability)
+
+1.  **Assistant Strategy:** Reaffirmed commitment to the single "Super Baggo" assistant (`asst_Yr12Gk8JxB8c1KxNRP1Y9zzR`), avoiding the UI/UX issues caused by switching assistants.
+
+2.  **Chat Interface Stability (`ChatBuilder.tsx` & `/api/chat-builder`):**
+    *   **Logic:** Resolved multiple 500 errors in the `/api/chat-builder` route related to handling initial loads and system update messages where `messageContent` could be undefined or empty. Added checks and defaults to prevent `TypeError: Cannot read properties of undefined (reading 'startsWith')` and `Error: 400 Message content must be non-empty`.
+    *   **Logic:** Reverted `ChatBuilder.tsx` to use a static frontend welcome message, removing the need for an initial API call and simplifying the startup flow. Adjusted session storage loading logic accordingly.
+    *   **Code:** Refactored `handleSend` in `ChatBuilder.tsx` for cleaner code reuse. Fixed display issue where the initial greeting wasn't shown.
+    *   **Status:** Completed & Tested (Initial chat load is now stable).
+
+3.  **Preference Learning & Persistence (Foundation):**
+    *   **Goal:** Implement "True Multi-Turn Context & Preference Learning" as outlined previously.
+    *   **Tool:** Defined and corrected the JSON schema for the new `update_learned_preferences` Assistant tool. **(Action: User to add tool to Assistant in OpenAI dashboard)**.
+    *   **Instructions:** Outlined necessary additions to the Assistant's system instructions to utilize the new tool and the `learnedPreferences` context. **(Action: User to update Assistant instructions in OpenAI dashboard)**.
+    *   **Types (`store/tripStore.ts`):** Added `learnedPreferences: Array<{ type: string; detail: string; item_reference?: string }>` field to the `TripData` interface.
+    *   **Backend (`/api/chat-builder/route.ts`):**
+        *   Implemented a new tool handler `case` for `update_learned_preferences`.
+        *   Added logic to include `learnedPreferences` in the `CONTEXT UPDATE:` message sent to the Assistant.
+        *   Integrated Supabase persistence using `@supabase/ssr`:
+            *   Added logic to load `learnedPreferences` from the `user_profiles` table (JSONB column assumed) for logged-in users at the start of API requests.
+            *   Added logic to save the updated `learnedPreferences` array back to the `user_profiles` table when the `update_learned_preferences` tool is successfully used. **(Action: User to add `learned_preferences` JSONB column to `user_profiles` table in Supabase)**.
+    *   **Status:** Foundational code implemented. Requires Assistant/DB updates by user and thorough testing.
+
+**Remaining Tasks (Updated May 12th):**
+
+*   **UI Refactoring:** Major effort required to refactor various UI elements across the application for consistency and improved UX (High Priority for Launch).
+*   **`ItineraryView` Refactor:** Specific refactoring needed for the `ItineraryView.tsx` component (High Priority for Launch).
+*   **Partner Link Implementation:** Integrate affiliate/partner links for booking accommodations, activities, etc., within the itinerary view or related UI components to establish revenue stream (Critical for Launch).
+*   **Preference Learning - Finalize & Test:**
+    *   Update Assistant tool definition and instructions in OpenAI.
+    *   Add `learned_preferences` column to Supabase `user_profiles` table.
+    *   Test the end-to-end flow of learning, storing, recalling, and applying nuanced preferences.
+*   **General Refinement:** Ongoing improvements to error handling, assistant prompting, UX flow, and code quality.
+
+### Development Log - May 12th, 2024 (Planning: Authentication & Itinerary Saving)
+
+Based on discussion and review of the user flow and Supabase schema (`public.itineraries`, `public.profiles`), the following implementation plan for saving itineraries and handling authentication was established:
+
+1.  **Confirm Primary User Table:** Verify if `public.profiles` is the primary table for user details (like `full_name`, `learned_preferences`) linked to `auth.users`. Assume `profiles` for now.
+2.  **Define State Management for Guests:** Utilize `sessionStorage` (managed via `useTripStore`) to hold the active itinerary data for guest users.
+3.  **Implement "Save Trip" UI:** Add a "Save Trip" button/trigger within the `ItineraryView.tsx` component.
+    *   Handler will check auth status (Supabase client).
+    *   If logged in, call a function to persist the itinerary to the `itineraries` table.
+    *   If guest, display the login/signup modal.
+4.  **Implement Auth Modal:** Create the necessary modal component for email/password and Google OAuth login/signup.
+5.  **Implement Automatic Saving Post-Authentication:**
+    *   In the auth callback route (`/app/auth/callback/route.ts`) or client-side after successful authentication:
+        *   Retrieve `tripData` from `useTripStore` / `sessionStorage`.
+        *   If guest `tripData` exists, get the authenticated `user_id`.
+        *   Insert a new record into `public.itineraries` table, populating `user_id`, `trip_data`, and other relevant fields (title, dates, location).
+        *   Clear the guest `tripData` from `useTripStore` / `sessionStorage`.
+        *   Redirect the user back to the itinerary view (`/chat` or similar).
+6.  **Implement Basic Profile Page (`/app/profile/page.tsx`):**
+    *   Create the profile page component.
+    *   Fetch and display a list of saved itineraries for the logged-in user from the `public.itineraries` table (requires RLS).
+    *   Provide basic user information display (e.g., name, email from `profiles` table).
+
+**Next Steps:** Begin implementation of the "Save Trip" UI trigger and the automatic saving logic post-authentication.
+
+### Development Log - May 13th, 2024 (Planning: UI/UX Refinements)
+
+Following successful implementation and testing of the authentication and itinerary saving flow, the following areas for UI/UX refinement have been identified as future enhancements:
+
+1.  **Post-Save Flow & CTA:** Improve the user experience immediately after an itinerary is successfully saved (especially after a user logs in/signs up to save). This involves:
+    *   Providing clearer confirmation feedback.
+    *   Potentially redirecting the user to their new saved trip on the profile page or offering a clear link/button to navigate there.
+    *   Reviewing and optimizing the Call-to-Actions (CTAs) presented at this stage.
+
+2.  **`/chat` Route Header Consistency:** Address the issue where the header/navigation (`TopBar.tsx` or equivalent) may disappear or not be consistently displayed within the `/app/chat` route, particularly after the `ItineraryView.tsx` component is rendered upon generation or loading. Ensure consistent layout and navigation access throughout the user journey on this page.
+
+**Next Steps:** Prioritize and implement these refinements after completing the core profile page functionality.
+
 ## 5. Suggestions for Achieving Top 0.1% Status
 
 To elevate Wags & Wanders and Baggo to be a truly elite, Mindtrip-level AI travel planner, consider these enhancements across the conversational flow, AI capabilities, and backend logic:
