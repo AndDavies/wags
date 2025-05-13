@@ -135,83 +135,151 @@ interface BuilderApiResponse {
 }
 
 // --- Helper Functions ---
+
+/**
+ * Helper to format a Date object to YYYY-MM-DD string.
+ * @param date The Date object to format.
+ * @returns A string in YYYY-MM-DD format.
+ */
+const formatDateToYYYYMMDD = (date: Date): string => date.toISOString().split('T')[0];
+
 /**
  * Tries to parse potentially fuzzy date descriptions into YYYY-MM-DD format.
  * Handles YYYY-MM-DD, common month names, relative terms like "tomorrow", "next week", "next month".
+ * Implements smart year assumption: if no year is provided, defaults to current year.
+ * If that date in the current year has passed, it defaults to the next calendar year.
  * @param dateString The user's date description.
  * @returns A string in YYYY-MM-DD format, or the original string if parsing fails comprehensively.
  */
 function parseDate(dateString: string): string {
    const cleanString = dateString.trim().toLowerCase();
    const now = new Date();
-   // Prevent parsing things like "a week" or "5 days" without context
-   if (cleanString.match(/^(\d+|a) (day|week|month)s?$/)) {
-       console.log(`[API Chat Builder] Refusing to parse duration-like string without context: ${cleanString}`);
-       return dateString; // Return original descriptive string for durations
+   now.setHours(0, 0, 0, 0); // Normalize 'now' to the beginning of today for comparisons
+
+   // 0. Prevent parsing things like "a week" or "5 days" without context (likely durations)
+   if (cleanString.match(/^(\\d+|a) (day|week|month)s?$/)) {
+       console.log(`[API Chat Builder - parseDate] Refusing to parse duration-like string: "${cleanString}"`);
+       return dateString;
    }
 
-   console.log(`[API Chat Builder] Attempting to parse date: ${cleanString}`);
+   console.log(`[API Chat Builder - parseDate] Attempting to parse date: "${dateString}" (cleaned: "${cleanString}")`);
 
-   // Helper to format Date object to YYYY-MM-DD
-   const formatDate = (date: Date): string => date.toISOString().split('T')[0];
-
-   // 1. Check for YYYY-MM-DD format
-   const yyyyMmDdRegex = /^\d{4}-\d{2}-\d{2}$/;
+   // 1. Check for existing YYYY-MM-DD format
+   const yyyyMmDdRegex = /^\\d{4}-\\d{2}-\\d{2}$/;
    if (yyyyMmDdRegex.test(cleanString)) {
-       console.log(`[API Chat Builder] Parsed as YYYY-MM-DD: ${cleanString}`);
-       return cleanString;
+       try {
+           // Validate if it's a real date, e.g., not 2023-13-01
+           const d = new Date(cleanString + 'T00:00:00Z'); // Use T00:00:00Z for UTC midnight
+           if (!isNaN(d.getTime()) && formatDateToYYYYMMDD(d) === cleanString) { // Double check format after parsing
+                console.log(`[API Chat Builder - parseDate] Input is already valid YYYY-MM-DD: "${cleanString}"`);
+                return cleanString;
+           }
+       } catch (e) { /* ignore, will be handled by later parsing attempts */ }
    }
 
-   // 2. Handle relative terms
-   let targetDate = new Date(); // Use mutable date for relative calculations
+   // 2. Handle specific relative terms
+   let targetDateRelative = new Date(now); // Use a mutable copy of 'now'
    let parsedRelative = false;
 
    if (cleanString === "tomorrow") {
-       targetDate.setDate(now.getDate() + 1);
+       targetDateRelative.setDate(now.getDate() + 1);
        parsedRelative = true;
    } else if (cleanString === "today") {
-       parsedRelative = true; // Use today's date
-   } else if (cleanString.includes("next week")) {
-       targetDate.setDate(now.getDate() + 7); // Simplistic: exactly 7 days from now
-       // TODO: More complex: adjust to start of next week (e.g., next Monday)
+       // targetDateRelative is already 'now'
        parsedRelative = true;
-   } else if (cleanString.includes("next month")) {
-       targetDate.setMonth(now.getMonth() + 1);
-       targetDate.setDate(1); // Default to the 1st of next month
+   } else if (cleanString.includes("next monday")) {
+       targetDateRelative.setDate(now.getDate() + ( (1 + 7 - now.getDay()) % 7 || 7) );
        parsedRelative = true;
-   } else if (cleanString.includes("in a week") || cleanString.includes("a week from now")) {
-        targetDate.setDate(now.getDate() + 7);
+   } else if (cleanString.includes("next tuesday")) {
+       targetDateRelative.setDate(now.getDate() + ( (2 + 7 - now.getDay()) % 7 || 7) );
+       parsedRelative = true;
+   } else if (cleanString.includes("next wednesday")) {
+       targetDateRelative.setDate(now.getDate() + ( (3 + 7 - now.getDay()) % 7 || 7) );
+       parsedRelative = true;
+   } else if (cleanString.includes("next thursday")) {
+       targetDateRelative.setDate(now.getDate() + ( (4 + 7 - now.getDay()) % 7 || 7) );
+       parsedRelative = true;
+   } else if (cleanString.includes("next friday")) {
+       targetDateRelative.setDate(now.getDate() + ( (5 + 7 - now.getDay()) % 7 || 7) );
+       parsedRelative = true;
+   } else if (cleanString.includes("next saturday")) {
+       targetDateRelative.setDate(now.getDate() + ( (6 + 7 - now.getDay()) % 7 || 7) );
+       parsedRelative = true;
+   } else if (cleanString.includes("next sunday")) {
+        targetDateRelative.setDate(now.getDate() + ( (7 - now.getDay()) % 7 || 7) ); // If today is Sunday, gets next Sunday
         parsedRelative = true;
-   } // Add more relative terms: "weekend", specific days "next friday" etc.
+   }
+   // Add more relative terms as needed: "next week" could be ambiguous (start or just 7 days from now)
 
    if (parsedRelative) {
-       const formatted = formatDate(targetDate);
-       console.log(`[API Chat Builder] Parsed relative term "${cleanString}" to ${formatted}`);
+       const formatted = formatDateToYYYYMMDD(targetDateRelative);
+       console.log(`[API Chat Builder - parseDate] Parsed relative term "${cleanString}" to: ${formatted}`);
        return formatted;
    }
 
-   // 3. Attempt basic Date constructor parsing (handles many simple formats like "August 15, 2024")
+   // 3. Attempt general Date constructor parsing and apply smart year logic
    try {
-      const date = new Date(dateString); // Use original string for Date constructor
-      if (!isNaN(date.getTime()) && date.getFullYear() > 1970) {
-          const formattedDate = formatDate(date);
-          console.log(`[API Chat Builder] Parsed via Date constructor to YYYY-MM-DD: ${formattedDate}`);
-          return formattedDate;
+      // Use original casing for `new Date()` as it can be more lenient
+      const d = new Date(dateString);
+      
+      if (!isNaN(d.getTime())) { // Check if it's a valid date object at all
+        let year = d.getFullYear();
+        const month = d.getMonth(); // 0-indexed
+        const dayOfMonth = d.getDate();
+
+        // Heuristic: Does the input string likely contain an explicit year?
+        // Looks for 4 digits (19xx, 20xx) or 'YY or /YY patterns.
+        const inputLikelyHasExplicitYear = /\\b(19[7-9]\\d|20\\d{2})\\b/.test(dateString) || /\\b(['/])\\d{2}\\b/.test(dateString);
+        
+        const currentYear = now.getFullYear();
+
+        if (!inputLikelyHasExplicitYear && year >= 1970) {
+            // No explicit year in input, and JS parsed to a "modern" year (likely current year by default for "Month Day" strings)
+            console.log(`[API Chat Builder - parseDate] Input "${dateString}" (parsed as ${year}-${month+1}-${dayOfMonth}) lacks explicit year. Applying smart year logic.`);
+            
+            let candidateDate = new Date(currentYear, month, dayOfMonth);
+            candidateDate.setHours(0, 0, 0, 0);
+
+            if (candidateDate < now) { 
+                console.log(`[API Chat Builder - parseDate] Date ${formatDateToYYYYMMDD(candidateDate)} (current year) has passed. Assuming next year.`);
+                year = currentYear + 1;
+            } else {
+                year = currentYear; // Stick with current year
+            }
+        } else if (inputLikelyHasExplicitYear && year < 1970 && dateString.match(/\\b\\d{1,2}\\s*([a-zA-Z]+)/)) {
+             // Handles cases like "05 June" where new Date() might parse year as 1901, 1905 etc.
+             // If input seems to have day and month but JS produced an old year, assume current/next year.
+             console.log(`[API Chat Builder - parseDate] Input "${dateString}" (parsed as ${year}-${month+1}-${dayOfMonth}) had no obvious 4-digit year but JS gave old year. Applying smart year logic.`);
+             let candidateDate = new Date(currentYear, month, dayOfMonth);
+             candidateDate.setHours(0, 0, 0, 0);
+             if (candidateDate < now) {
+                 year = currentYear + 1;
+             } else {
+                 year = currentYear;
+             }
+        } else if (!inputLikelyHasExplicitYear && year < 1970) {
+             // Input had no year, and JS defaulted to a very old year (e.g. new Date("June") might give 1900 or similar if not specific enough)
+             // This case is too ambiguous to apply smart year logic, probably not a full date.
+             console.log(`[API Chat Builder - parseDate] Input "${dateString}" parsed to very old year ${year} without explicit year in input. Returning original.`);
+             return dateString;
+        }
+        // Else (inputLikelyHasExplicitYear and year >= 1970), use the year parsed by new Date().
+
+        const finalDate = new Date(year, month, dayOfMonth);
+        finalDate.setHours(0, 0, 0, 0); // Normalize before formatting
+
+        if (!isNaN(finalDate.getTime())) { // Final check on the reconstructed date
+            const formatted = formatDateToYYYYMMDD(finalDate);
+            console.log(`[API Chat Builder - parseDate] Successfully parsed "${dateString}" to: ${formatted}`);
+            return formatted;
+        }
       }
    } catch (e) {
-      // Ignore errors, try next method
+      // console.warn(`[API Chat Builder - parseDate] Date constructor error for "${dateString}":`, e);
    }
 
-   // 4. Check for Month names (case-insensitive) - Less reliable, might need year context
-   // const months: { [key: string]: string } = {
-   //     january: '01', feb: '02', february: '02', mar: '03', march: '03', apr: '04', april: '04', may: '05',
-   //     jun: '06', june: '06', jul: '07', july: '07', aug: '08', august: '08', sep: '09', september: '09',
-   //     oct: '10', october: '10', nov: '11', november: '11', dec: '12', december: '12'
-   // };
-   // ... (Logic for parsing month names, potentially ambiguous without year/day)
-
-   // 5. Fallback: Return the original non-duration-like string if no robust parsing worked
-   console.log(`[API Chat Builder] Could not robustly parse date "${cleanString}" to YYYY-MM-DD, returning original.`);
+   // 4. Fallback: Return the original non-duration-like string if no robust parsing worked
+   console.log(`[API Chat Builder - parseDate] Could not robustly parse date "${dateString}" to YYYY-MM-DD. Returning original.`);
    return dateString;
 }
 
@@ -742,140 +810,208 @@ export async function POST(req: NextRequest) {
                     // --- Existing switch case for tool calls ---
           switch (functionName) {
             case "set_destination":
-              if (args.destination) updatedDataAccumulator.destination = args.destination;
-              if (args.destinationCountry) updatedDataAccumulator.destinationCountry = args.destinationCountry;
-                    output = { status: "success", message: `Destination set to ${args.destination}, ${args.destinationCountry}` };
+              if (args.destination) {
+                trip.destination = args.destination;
+                updatedDataAccumulator.destination = args.destination;
+              }
+              if (args.destinationCountry) {
+                trip.destinationCountry = args.destinationCountry;
+                updatedDataAccumulator.destinationCountry = args.destinationCountry;
+              }
+              output = { status: "success", message: `Destination set to ${args.destination}, ${args.destinationCountry}` };
               break;
             case "set_travel_dates":
-              if (args.startDate) updatedDataAccumulator.startDate = parseDate(args.startDate);
-              if (args.endDate) updatedDataAccumulator.endDate = parseDate(args.endDate);
-                              output = { status: "success", message: `Dates set: ${updatedDataAccumulator.startDate} to ${updatedDataAccumulator.endDate}` };
+              let startDateStr = args.startDate;
+              let endDateStr = args.endDate;
+              let startDateUpdated = false;
+              let endDateUpdated = false;
+
+              console.log(`[API Chat Builder] RAW ARGS for set_travel_dates: startDate="${startDateStr}", endDate="${endDateStr}"`);
+
+              const looksLikeQuestion = (str: string | undefined): boolean => str ? (str.includes("?") || str.length < 5 || str.split(' ').length > 5) : false;
+
+              if (startDateStr && !looksLikeQuestion(startDateStr)) {
+                console.log(`[API Chat Builder] Calling parseDate for startDateStr: "${startDateStr}"`);
+                const parsedStartDate = parseDate(startDateStr);
+                console.log(`[API Chat Builder] set_travel_dates: Original startDateStr: "${startDateStr}", Parsed: "${parsedStartDate}"`);
+                if (/^\\d{4}-\\d{2}-\\d{2}$/.test(parsedStartDate)) { 
+                    trip.startDate = parsedStartDate;
+                    updatedDataAccumulator.startDate = parsedStartDate;
+                    startDateUpdated = true;
+                    console.log(`[API Chat Builder] set_travel_dates: Successfully updated trip.startDate to "${parsedStartDate}"`);
+                } else {
+                    console.warn(`[API Chat Builder] set_travel_dates: startDate "${startDateStr}" (parsed as "${parsedStartDate}") NOT updated. It's not YYYY-MM-DD or looked like a question.`);
+                }
+              }
+              if (endDateStr && !looksLikeQuestion(endDateStr)) {
+                console.log(`[API Chat Builder] Calling parseDate for endDateStr: "${endDateStr}"`);
+                const parsedEndDate = parseDate(endDateStr);
+                console.log(`[API Chat Builder] set_travel_dates: Original endDateStr: "${endDateStr}", Parsed: "${parsedEndDate}"`);
+                if (/^\\d{4}-\\d{2}-\\d{2}$/.test(parsedEndDate)) { 
+                    trip.endDate = parsedEndDate;
+                    updatedDataAccumulator.endDate = parsedEndDate;
+                    endDateUpdated = true;
+                    console.log(`[API Chat Builder] set_travel_dates: Successfully updated trip.endDate to "${parsedEndDate}"`);
+                } else {
+                     console.warn(`[API Chat Builder] set_travel_dates: endDate "${endDateStr}" (parsed as "${parsedEndDate}") NOT updated. It's not YYYY-MM-DD or looked like a question.`);
+                }
+              }
+              
+              let dateMessage = "Travel dates processed.";
+              if (startDateUpdated && endDateUpdated) {
+                dateMessage = `Dates set: ${trip.startDate} to ${trip.endDate}.`;
+                console.log(`[API Chat Builder] set_travel_dates CONFIRMED: Start=${trip.startDate}, End=${trip.endDate}`);
+              } else if (startDateUpdated) {
+                dateMessage = `Start date set to ${trip.startDate}. End date needs clarification.`;
+                console.log(`[API Chat Builder] set_travel_dates PARTIAL: Start=${trip.startDate}, End needs clarification.`);
+              } else if (endDateUpdated) {
+                dateMessage = `End date set to ${trip.endDate}. Start date needs clarification.`;
+                console.log(`[API Chat Builder] set_travel_dates PARTIAL: End=${trip.endDate}, Start needs clarification.`);
+              } else {
+                dateMessage = "Could not reliably set travel dates. Please clarify.";
+                console.warn(`[API Chat Builder] set_travel_dates FAILED to set any dates reliably.`);
+              }
+              
+              output = { status: "success", message: dateMessage };
               break;
             case "set_travelers":
-              if (args.adults !== undefined) updatedDataAccumulator.adults = args.adults;
-              updatedDataAccumulator.children = args.children !== undefined ? args.children : 0;
-              if (args.pets !== undefined) updatedDataAccumulator.pets = args.pets;
-                    output = { status: "success", message: `Travelers set: ${updatedDataAccumulator.adults ?? trip?.adults ?? '?'} adults, ${updatedDataAccumulator.children} children, ${updatedDataAccumulator.pets ?? trip?.pets ?? '?'} pets` };
+              if (args.adults !== undefined) {
+                trip.adults = args.adults;
+                updatedDataAccumulator.adults = args.adults;
+              }
+              trip.children = args.children !== undefined ? args.children : (trip.children || 0); // Preserve existing if undefined, else default to 0
+              updatedDataAccumulator.children = trip.children;
+
+              if (args.pets !== undefined) {
+                trip.pets = args.pets;
+                updatedDataAccumulator.pets = args.pets;
+              }
+              output = { status: "success", message: `Travelers set: ${trip.adults ?? '?'} adults, ${trip.children} children, ${trip.pets ?? '?'} pets` };
               break;
             case "set_preferences":
-              if (args.budget) updatedDataAccumulator.budget = args.budget;
-                    if (args.accommodation !== undefined) {
-                                  updatedDataAccumulator.accommodation = Array.isArray(args.accommodation) ? args.accommodation : (typeof args.accommodation === 'string' && args.accommodation.trim() !== '' ? [args.accommodation] : []);
-                    }
-                    if (args.interests !== undefined) {
-                                   updatedDataAccumulator.interests = Array.isArray(args.interests) ? args.interests : (typeof args.interests === 'string' && args.interests.trim() !== '' ? [args.interests] : []);
-                    }
-                    output = { status: "success", message: "Preferences updated." };
-                    break;
-                          // NEW Case for Learned Preferences
-                          case "update_learned_preferences":
-                            const { preference_type, detail, item_reference } = args;
-                            if (preference_type && detail) {
-                              const newPreference = { type: preference_type, detail, ...(item_reference && { item_reference }) };
-                              // Ensure learnedPreferences array exists and append, avoiding exact duplicates
-                              if (!updatedDataAccumulator.learnedPreferences) {
-                                  // Initialize based on current trip state or empty array
-                                  updatedDataAccumulator.learnedPreferences = trip?.learnedPreferences ? [...trip.learnedPreferences] : [];
-                              }
-                              // Check if this exact preference detail already exists for the type
-                              const exists = updatedDataAccumulator.learnedPreferences.some(
-                                (p) => p.type === preference_type && p.detail === detail
-                              );
-                              if (!exists) {
-                                updatedDataAccumulator.learnedPreferences.push(newPreference);
-                                console.log('[API Chat Builder] Recorded learned preference:', newPreference);
-
-                                // --- BEGIN SUPABASE SAVE ---
-                                if (userId) {
-                                    const { error: upsertError } = await supabase
-                                        .from('user_profiles') // <<< CONFIRM YOUR TABLE NAME HERE
-                                        .update({ learned_preferences: updatedDataAccumulator.learnedPreferences })
-                                        .eq('id', userId); // <<< CONFIRM YOUR USER ID COLUMN NAME HERE
-
-                                    if (upsertError) {
-                                        console.error('[API Chat Builder] Error saving learned preferences to DB:', upsertError.message);
-                                        // Output reflects local success but persistent failure
-                                        output = { status: "partial_success", message: `Preference (${preference_type}) recorded locally, but failed to save persistently.` };
-                                    } else {
-                                        console.log('[API Chat Builder] Successfully saved learned preferences to DB for user:', userId);
-                                        // Keep original success message if DB save works
-                                        output = { status: "success", message: `Learned preference (${preference_type}) recorded.` };
-                                    }
-                                } else {
-                                    // No user logged in, keep original success message (saved to session only)
-                                    output = { status: "success", message: `Learned preference (${preference_type}) recorded (session only).` };
-                                }
-                                // --- END SUPABASE SAVE ---
-
-                              } else {
-                                output = { status: "success", message: `Preference (${preference_type}: ${detail}) already recorded.` };
-                                console.log('[API Chat Builder] Duplicate learned preference ignored:', newPreference);
-                              }
-                            } else {
-                              output = { status: "error", message: "Missing required arguments (preference_type, detail) for update_learned_preferences." };
-                            }
-                            break;
-                          case "suggest_places_of_interest":
-                              // ... (rest of the cases, ensure they are complete as per previous versions)
-                              if (!args.location) {
-                                  const locationContext = updatedDataAccumulator.destination || trip?.destination;
-                                  if (locationContext) {
-                                      args.location = locationContext;
-                                  } else {
-                                      output = { status: "error", message: "Cannot suggest places without a location context." };
-                                      break;
-                                  }
-                              }
-                              output = await suggestPlacesOfInterestApiCall(args.location, args.interests, args.activity_type, args.day_number);
-                              break;
-                          case "get_trip_details":
-                              output = { status: "success", details: await getTripDetailsApiCall(trip), message: "Current trip details retrieved." };
-                    break;
-                          case "find_nearby_service":
-                              if (!args.location) {
-                                   const locationContext = updatedDataAccumulator.destination || trip?.destination;
-                                   if (locationContext) {
-                                      args.location = locationContext;
-                        } else {
-                                      output = { status: "error", message: "Cannot find nearby services without a location context." };
-                                      break;
-                                  }
-                              }
-                              output = await findNearbyServiceApiCall(args.location, args.service_type);
-                              break;
-                          case "save_trip_progress":
-                              const combinedTripStateForSave = { ...trip, ...updatedDataAccumulator };
-                              output = await saveTripProgressApiCall(combinedTripStateForSave);
-                              break;
-                          case "check_travel_regulations":
-                              output = await checkTravelRegulationsApiCall(args.destination_country, args.origin_country, args.pet_type);
-                              break;
-                          case "add_activity_to_day":
-                              // REVISED: Pass the full itinerary object
-                              const currentFullItineraryForAdd = updatedDataAccumulator.itinerary || trip?.itinerary;
-                              const addActivityResult = await addActivityToDayApiCall(args.day_number, args.activity, currentFullItineraryForAdd);
-                              output = addActivityResult;
-                              if (addActivityResult.updatedItinerary) {
-                                  updatedDataAccumulator.itinerary = addActivityResult.updatedItinerary; // Store the full updated itinerary
-                              }
-                              // Also update summary if it was returned and is used by AI/frontend separately
-                              if (addActivityResult.updatedItinerarySummary) {
-                                  updatedDataAccumulator.itinerarySummary = addActivityResult.updatedItinerarySummary;
+              if (args.budget) {
+                trip.budget = args.budget;
+                updatedDataAccumulator.budget = args.budget;
               }
+              if (args.accommodation !== undefined) {
+                const newAccommodation = Array.isArray(args.accommodation) ? args.accommodation : (typeof args.accommodation === 'string' && args.accommodation.trim() !== '' ? [args.accommodation] : []);
+                trip.accommodation = newAccommodation;
+                updatedDataAccumulator.accommodation = newAccommodation;
+              }
+              if (args.interests !== undefined) {
+                const newInterests = Array.isArray(args.interests) ? args.interests : (typeof args.interests === 'string' && args.interests.trim() !== '' ? [args.interests] : []);
+                trip.interests = newInterests;
+                updatedDataAccumulator.interests = newInterests;
+              }
+              output = { status: "success", message: "Preferences updated." };
               break;
-            case "generate_itinerary":
-              const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
-                    if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
-                  responseData.triggerItineraryGeneration = true;
-                        output = { status: "success", message: "Essential information collected. Itinerary generation process initiated by the frontend." };
+          case "update_learned_preferences":
+            const { preference_type, detail, item_reference } = args;
+            if (preference_type && detail) {
+              const newPreference = { type: preference_type, detail, ...(item_reference && { item_reference }) };
+              
+              trip.learnedPreferences = trip.learnedPreferences || [];
+
+              if (!updatedDataAccumulator.learnedPreferences) {
+                  // Initialize based on trip state or empty array, ensuring it's a new array
+                  updatedDataAccumulator.learnedPreferences = trip.learnedPreferences ? [...trip.learnedPreferences] : [];
+              }
+
+              const existsInTrip = trip.learnedPreferences.some(
+                (p: LearnedPreference) => p.type === preference_type && p.detail === detail
+              );
+              if (!existsInTrip) {
+                trip.learnedPreferences.push(newPreference); // Update main trip object
+                updatedDataAccumulator.learnedPreferences = [...trip.learnedPreferences]; // Reflect in accumulator as new array
+                console.log('[API Chat Builder] Recorded learned preference to trip:', newPreference);
+
+                // --- BEGIN SUPABASE SAVE (using trip.learnedPreferences) ---
+                if (userId) {
+                    const { error: upsertError } = await supabase
+                        .from('user_profiles')
+                        .update({ learned_preferences: trip.learnedPreferences }) // Save the full updated list
+                        .eq('id', userId);
+
+                    if (upsertError) {
+                        console.error('[API Chat Builder] Error saving learned preferences to DB:', upsertError.message);
+                        output = { status: "partial_success", message: `Preference (${preference_type}) recorded locally, but failed to save persistently.` };
+                    } else {
+                        console.log('[API Chat Builder] Successfully saved learned preferences to DB for user:', userId);
+                        output = { status: "success", message: `Learned preference (${preference_type}) recorded.` };
+                    }
+                } else {
+                    output = { status: "success", message: `Learned preference (${preference_type}) recorded (session only).` };
+                }
+                // --- END SUPABASE SAVE ---
               } else {
-                        output = { status: "error", message: "Cannot generate itinerary yet. Please provide destination, country, start date, and end date first." };
-                        responseData.triggerItineraryGeneration = false;
+                output = { status: "success", message: `Preference (${preference_type}: ${detail}) already recorded.` };
+                console.log('[API Chat Builder] Duplicate learned preference ignored:', newPreference);
+              }
+            } else {
+              output = { status: "error", message: "Missing required arguments (preference_type, detail) for update_learned_preferences." };
+            }
+            break;
+          case "suggest_places_of_interest":
+              // ... (rest of the cases, ensure they are complete as per previous versions)
+              if (!args.location) {
+                  const locationContext = updatedDataAccumulator.destination || trip?.destination;
+                  if (locationContext) {
+                      args.location = locationContext;
+                  } else {
+                      output = { status: "error", message: "Cannot suggest places without a location context." };
+                      break;
+                  }
+              }
+              output = await suggestPlacesOfInterestApiCall(args.location, args.interests, args.activity_type, args.day_number);
+              break;
+          case "get_trip_details":
+              output = { status: "success", details: await getTripDetailsApiCall(trip), message: "Current trip details retrieved." };
+        break;
+          case "find_nearby_service":
+              if (!args.location) {
+                   const locationContext = updatedDataAccumulator.destination || trip?.destination;
+                   if (locationContext) {
+                      args.location = locationContext;
+            } else {
+                      output = { status: "error", message: "Cannot find nearby services without a location context." };
+                      break;
+                  }
+              }
+              output = await findNearbyServiceApiCall(args.location, args.service_type);
+              break;
+          case "save_trip_progress":
+              const combinedTripStateForSave = { ...trip, ...updatedDataAccumulator };
+              output = await saveTripProgressApiCall(combinedTripStateForSave);
+              break;
+          case "check_travel_regulations":
+              output = await checkTravelRegulationsApiCall(args.destination_country, args.origin_country, args.pet_type);
+              break;
+          case "add_activity_to_day":
+              const currentFullItineraryForAdd = trip?.itinerary; // Use the main trip object's itinerary
+              const addActivityResult = await addActivityToDayApiCall(args.day_number, args.activity, currentFullItineraryForAdd);
+              output = addActivityResult;
+              if (addActivityResult.updatedItinerary) {
+                  trip.itinerary = addActivityResult.updatedItinerary; // Update main trip object
+                  updatedDataAccumulator.itinerary = addActivityResult.updatedItinerary; 
+              }
+              if (addActivityResult.updatedItinerarySummary) {
+                  trip.itinerarySummary = addActivityResult.updatedItinerarySummary; // Update main trip object
+                  updatedDataAccumulator.itinerarySummary = addActivityResult.updatedItinerarySummary;
               }
               break;
-            default:
-              console.warn(`[API Chat Builder] Unhandled tool call: ${functionName}`);
-                  output = { status: "error", message: `Unknown function: ${functionName}` };
+          case "generate_itinerary":
+            const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
+                  if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
+                responseData.triggerItineraryGeneration = true;
+                      output = { status: "success", message: "Essential information collected. Itinerary generation process initiated by the frontend." };
+            } else {
+                      output = { status: "error", message: "Cannot generate itinerary yet. Please provide destination, country, start date, and end date first." };
+                      responseData.triggerItineraryGeneration = false;
+            }
+            break;
+          default:
+            console.warn(`[API Chat Builder] Unhandled tool call: ${functionName}`);
+                output = { status: "error", message: `Unknown function: ${functionName}` };
           }
           } catch (toolError: any) {
               console.error(`[API Chat Builder] Error processing tool ${functionName} (args: ${call.function.arguments}):`, toolError);
@@ -966,22 +1102,19 @@ export async function POST(req: NextRequest) {
             if (firstContent?.type === 'text') {
                 responseData.reply = firstContent.text.value;
                 console.log('[API Chat Builder] Extracted final reply text.');
-                 // Add accumulated updates ONLY if generation wasn't triggered in this step
-                 // Merge base trip data with updates for the response
                  if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
-                    responseData.updatedTripData = updatedDataAccumulator; // Send only the delta
+                    responseData.updatedTripData = trip; // Send the complete 'trip' object
                  }
             } else {
-                 responseData.reply = "Received a non-text response from the assistant."; // More informative
+                 responseData.reply = "Received a non-text response from the assistant."; 
                  console.warn("[API Chat Builder] Assistant message content was not text:", firstContent);
             }
         } else {
-            // This can happen if the *only* action was triggering generation
             if (responseData.triggerItineraryGeneration) {
                 responseData.reply = "Okay, I have all the details needed. The itinerary generation will start now.";
             } else {
                 console.warn('[API Chat Builder] Run completed but no assistant message content found.');
-                responseData.reply = "Processing complete, but no further message generated."; // More specific default
+                responseData.reply = "Processing complete, but no further message generated."; 
             }
         }
     } else {
@@ -995,15 +1128,14 @@ export async function POST(req: NextRequest) {
             userFriendlyError = `Processing did not complete (Status: ${run.status}). Please try again.`;
       }
        responseData.reply = userFriendlyError;
-       // Still return accumulated data if any, might be useful for debug/retry
-    if (Object.keys(updatedDataAccumulator).length > 0) {
-      responseData.updatedTripData = updatedDataAccumulator;
+       if (Object.keys(updatedDataAccumulator).length > 0) {
+           responseData.updatedTripData = trip; // Send the complete 'trip' object on failure too
        }
-       return NextResponse.json(responseData, { status: run.status === 'failed' ? 500 : 503 }); // Use appropriate error code
+       return NextResponse.json(responseData, { status: run.status === 'failed' ? 500 : 503 }); 
     }
 
-    // 7. Construct Success Response
-    console.log('[API Chat Builder] Final Response Data:', responseData);
+    console.log('[API Chat Builder] Final Response Data (trip object):', trip); // Log the full trip object being considered for response
+    console.log('[API Chat Builder] Final Response Data (responseData):', responseData);
     return NextResponse.json(responseData);
 
   } catch (error: any) {

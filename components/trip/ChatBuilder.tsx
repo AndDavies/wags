@@ -193,7 +193,9 @@ const ChatBuilder = forwardRef<{
       if (updatedTripData) {
         console.log('[ChatBuilder] Received tripData updates:', updatedTripData);
         // Use functional update for store if reading state inside callback is problematic
-        setTripData({ ...(useTripStore.getState().tripData || {}), ...updatedTripData }); // Read fresh state for update
+        // setTripData({ ...(useTripStore.getState().tripData || {}), ...updatedTripData }); // Read fresh state for update
+        // *** NEW: Directly set the state with the complete object from the server ***
+        setTripData(updatedTripData as TripData); 
       }
 
       if (reply) {
