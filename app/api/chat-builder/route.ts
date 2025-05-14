@@ -157,7 +157,7 @@ function parseDate(dateString: string): string {
    now.setHours(0, 0, 0, 0); // Normalize 'now' to the beginning of today for comparisons
 
    // 0. Prevent parsing things like "a week" or "5 days" without context (likely durations)
-   if (cleanString.match(/^(\\d+|a) (day|week|month)s?$/)) {
+   if (cleanString.match(/^(\d+|a) (day|week|month)s?$/)) {
        console.log(`[API Chat Builder - parseDate] Refusing to parse duration-like string: "${cleanString}"`);
        return dateString;
    }
@@ -165,16 +165,25 @@ function parseDate(dateString: string): string {
    console.log(`[API Chat Builder - parseDate] Attempting to parse date: "${dateString}" (cleaned: "${cleanString}")`);
 
    // 1. Check for existing YYYY-MM-DD format
-   const yyyyMmDdRegex = /^\\d{4}-\\d{2}-\\d{2}$/;
+   const yyyyMmDdRegex = /^\d{4}-\d{2}-\d{2}$/;
+   console.log(`[Debug parseDate] Testing cleanString "${cleanString}" with yyyyMmDdRegex. Result: ${yyyyMmDdRegex.test(cleanString)}`); // DEBUG
    if (yyyyMmDdRegex.test(cleanString)) {
        try {
-           // Validate if it's a real date, e.g., not 2023-13-01
-           const d = new Date(cleanString + 'T00:00:00Z'); // Use T00:00:00Z for UTC midnight
-           if (!isNaN(d.getTime()) && formatDateToYYYYMMDD(d) === cleanString) { // Double check format after parsing
+           console.log(`[Debug parseDate] yyyyMmDdRegex passed. Trying new Date with "${cleanString + 'T00:00:00Z'}"`); // DEBUG
+           const d = new Date(cleanString + 'T00:00:00Z'); 
+           const isDValid = !isNaN(d.getTime());
+           const formattedD = isDValid ? formatDateToYYYYMMDD(d) : "INVALID_DATE_OBJECT";
+           console.log(`[Debug parseDate] d.getTime() is valid: ${isDValid}. formatDateToYYYYMMDD(d) is: "${formattedD}". cleanString is: "${cleanString}"`); // DEBUG
+           if (isDValid && formattedD === cleanString) { 
                 console.log(`[API Chat Builder - parseDate] Input is already valid YYYY-MM-DD: "${cleanString}"`);
                 return cleanString;
+           } else {
+                console.log(`[Debug parseDate] Condition (isDValid && formattedD === cleanString) FAILED. isDValid=${isDValid}, formattedD="${formattedD}", cleanString="${cleanString}"`); // DEBUG
            }
-       } catch (e) { /* ignore, will be handled by later parsing attempts */ }
+       } catch (e: any) { 
+           console.log(`[Debug parseDate] Error in YYYY-MM-DD direct parse block: ${e.message}`); // DEBUG
+           /* ignore, will be handled by later parsing attempts */ 
+       }
    }
 
    // 2. Handle specific relative terms
@@ -229,7 +238,7 @@ function parseDate(dateString: string): string {
 
         // Heuristic: Does the input string likely contain an explicit year?
         // Looks for 4 digits (19xx, 20xx) or 'YY or /YY patterns.
-        const inputLikelyHasExplicitYear = /\\b(19[7-9]\\d|20\\d{2})\\b/.test(dateString) || /\\b(['/])\\d{2}\\b/.test(dateString);
+        const inputLikelyHasExplicitYear = /\b(19[7-9]\d|20\d{2})\b/.test(dateString) || /\b(['/])\d{2}\b/.test(dateString);
         
         const currentYear = now.getFullYear();
 
@@ -246,7 +255,7 @@ function parseDate(dateString: string): string {
             } else {
                 year = currentYear; // Stick with current year
             }
-        } else if (inputLikelyHasExplicitYear && year < 1970 && dateString.match(/\\b\\d{1,2}\\s*([a-zA-Z]+)/)) {
+        } else if (inputLikelyHasExplicitYear && year < 1970 && dateString.match(/^\d{1,2}\s*([a-zA-Z]+)/)) {
              // Handles cases like "05 June" where new Date() might parse year as 1901, 1905 etc.
              // If input seems to have day and month but JS produced an old year, assume current/next year.
              console.log(`[API Chat Builder - parseDate] Input "${dateString}" (parsed as ${year}-${month+1}-${dayOfMonth}) had no obvious 4-digit year but JS gave old year. Applying smart year logic.`);
@@ -340,37 +349,7 @@ const parseTimeToMinutes = (timeString?: string): number => {
 };
 
 // --- Placeholder for external function calls (like Google Places) ---
-async function findPointsOfInterestApiCall(query: string, location: string): Promise<any> {
-  console.log(`[API Chat Builder] Finding points of interest for query: "${query}" in location: "${location}"`);
-
-  const fullQuery = `${query} in ${location}`;
-  const places: Place[] = await searchGooglePlaces(fullQuery);
-
-  if (!places || places.length === 0) {
-    console.log(`[API Chat Builder] No points of interest found for "${fullQuery}".`);
-    return {
-      status: "success", // Report success even if no results, to avoid breaking flow
-      message: `No specific points of interest found for "${query}" in ${location}. You can try a broader search or different keywords.`,
-      results: [],
-    };
-  }
-
-  // Format results for the assistant
-  const formattedResults = places.slice(0, 5).map(place => ({
-    name: place.name,
-    type: place.types ? place.types.join(', ') : 'point_of_interest',
-    location: place.vicinity || place.formatted_address || location,
-    // Potentially add more details like rating if needed by assistant later
-    // rating: place.rating,
-    // place_id: place.place_id // Useful for linking or fetching more details
-  }));
-
-  return {
-    status: "success",
-    message: `Found ${formattedResults.length} potential points of interest for "${query}" in ${location}.`,
-    results: formattedResults,
-  };
-}
+// Removed findPointsOfInterestApiCall function
 
 async function getTripDetailsApiCall(currentTrip: Partial<TripData> | null): Promise<Partial<TripData>> {
     console.log(`[API Chat Builder] TODO: Implement API call to get full trip details.`);
@@ -557,10 +536,24 @@ async function addActivityToDayApiCall(
 }
 // --- END REVISED ---
 
-async function suggestPlacesOfInterestApiCall(location: string, interests?: string[], activity_type?: string, day_number?: number): Promise<any> {
+async function suggestPlacesOfInterestApiCall(
+  location: string,
+  currentTripData: Partial<TripData>, // Added currentTripData
+  interests?: string[],
+  activity_type?: string,
+  day_number?: number
+): Promise<any> {
   console.log(`[API Chat Builder] Suggesting places of interest. Location: ${location}, Interests: ${interests?.join(', ')}, Type: ${activity_type}, Day: ${day_number}`);
 
-  let searchQuery = activity_type ? `pet friendly ${activity_type}` : 'pet friendly attractions';
+  let searchQuery = activity_type ? `pet friendly ${activity_type}` : 'pet friendly activities'; // Default query
+
+  // Incorporate learnedPreferences
+  const learnedPreferences = currentTripData.learnedPreferences || [];
+  const preferenceDetails = learnedPreferences.map(p => p.detail).join(' ');
+  if (preferenceDetails) {
+    searchQuery = `${searchQuery} ${preferenceDetails}`; // Append preference details
+  }
+
   if (interests && interests.length > 0) {
     searchQuery += ` related to ${interests.join(' or ')}`;
   }
@@ -608,10 +601,10 @@ export async function POST(req: NextRequest) {
   let responseData: BuilderApiResponse = { reply: null };
   let updatedDataAccumulator: Partial<TripData> = {};
   let currentThreadId: string | null | undefined; // Declare with let
+  const supabase = await createClient(); // Moved Supabase client initialization up
 
   try {
     // --- Supabase User & Preference Loading ---
-    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
     let loadedDbPreferences: any[] = [];
@@ -732,20 +725,25 @@ export async function POST(req: NextRequest) {
             // Other fields like origin, notes, etc., can be added if deemed useful for the Assistant
         };
 
-        // Conditionally include itinerarySummary
-        if (currentTripData.itinerarySummary && currentTripData.itinerarySummary.length > 0) {
-            contextForAssistant.itinerarySummary = currentTripData.itinerarySummary;
-            console.log('[API Chat Builder] itinerarySummary included in CONTEXT UPDATE.');
-        } else {
-            console.log('[API Chat Builder] No itinerarySummary to include in CONTEXT UPDATE.');
-        }
-        
-        // Flag for example trip - useful for the assistant's "Example Trip Handling" instruction
-        if (currentTripData.additionalInfo === 'SYSTEM_FLAG: Example trip loaded.') {
-            contextForAssistant.sourceFlag = 'example_trip_loaded';
+        // Filter out null, undefined, empty strings, and empty arrays from contextForAssistant
+        const optimizedContext: Record<string, any> = {};
+        for (const key in contextForAssistant) {
+            const value = (contextForAssistant as Record<string, any>)[key];
+            if (value !== null && value !== undefined && value !== "" && (!Array.isArray(value) || value.length > 0)) {
+                optimizedContext[key] = value;
+            }
         }
 
-        const systemContextMessageContent = `CONTEXT UPDATE: ${JSON.stringify(contextForAssistant)}`;
+        // Conditionally include itinerarySummary if it has content (already handled by array check)
+        // if (currentTripData.itinerarySummary && currentTripData.itinerarySummary.length > 0) {
+        //     optimizedContext.itinerarySummary = currentTripData.itinerarySummary;
+        // }
+
+        if (currentTripData.additionalInfo === 'SYSTEM_FLAG: Example trip loaded.') {
+            optimizedContext.sourceFlag = 'example_trip_loaded';
+        }
+
+        const systemContextMessageContent = `CONTEXT UPDATE: ${JSON.stringify(optimizedContext)}`;
         
         await openai.beta.threads.messages.create(currentThreadId, {
             role: "user", // Per OpenAI recommendation, context can be sent as user role
@@ -770,371 +768,472 @@ export async function POST(req: NextRequest) {
     // 3. Create and Run (Always create the run, even if no user message was added,
     // as the assistant might respond based on context or just provide a greeting)
     console.log(`[API Chat Builder] Creating run for thread ${currentThreadId} with assistant ${CONVERSATIONAL_ASSISTANT_ID}`);
-    let run = await openai.beta.threads.runs.create(currentThreadId, {
+    
+    // MODIFICATION FOR STREAMING: Create a streaming run
+    const runStream = await openai.beta.threads.runs.create(currentThreadId, {
       assistant_id: CONVERSATIONAL_ASSISTANT_ID,
-      // Instructions are primarily set on the Assistant itself
-      // We could add additional_instructions here if needed per-run
+      stream: true,
     });
-    console.log(`[API Chat Builder] Run created: ${run.id}, Status: ${run.status}`);
+    console.log(`[API Chat Builder] Streaming run initiated.`);
 
-    // 4. Polling Loop
-    const terminalStates = ["completed", "failed", "cancelled", "expired"]; // "requires_action" is handled IN the loop
-    const pollingIntervalMs = 1000;
-    const maxWaitTimeMs = maxDuration * 1000 - 5000; // Max duration minus buffer
-    let elapsedTimeMs = 0;
-    let lastLoggedStatus = run.status;
+    let finalReply = "";
+    let runResult: OpenAI.Beta.Threads.Runs.Run | null = null;
 
-    // Main loop that handles polling and tool calls
-    while (!terminalStates.includes(run.status) && elapsedTimeMs < maxWaitTimeMs) {
-    if (run.status === "requires_action") {
-      const requiredActions = run.required_action?.submit_tool_outputs.tool_calls;
-            if (!requiredActions || requiredActions.length === 0) {
-                console.error("[API Chat Builder] Run requires action, but no tool calls were provided. Breaking loop.");
-                run.status = "failed"; // Force a failed state
-                run.last_error = { code: "server_error", message: "Run entered 'requires_action' but no tool_calls were present." };
-                break; 
-      }
-
-      console.log(`[API Chat Builder] Run requires action. Tool calls: ${requiredActions.length}`);
-      const toolOutputs: OpenAI.Beta.Threads.Runs.RunSubmitToolOutputsParams.ToolOutput[] = [];
-
-      // Process tool calls (can be parallelized if needed)
-      for (const call of requiredActions) {
-          const functionName = call.function.name;
-                let output: any = null; // Ensure output is initialized for each call
-          let args: any = {};
-          try {
-             args = JSON.parse(call.function.arguments || '{}');
-             console.log(`[API Chat Builder] Executing tool: ${functionName}`, args);
-
-                    // --- Existing switch case for tool calls ---
-          switch (functionName) {
-            case "set_destination":
-              if (args.destination) {
-                trip.destination = args.destination;
-                updatedDataAccumulator.destination = args.destination;
-              }
-              if (args.destinationCountry) {
-                trip.destinationCountry = args.destinationCountry;
-                updatedDataAccumulator.destinationCountry = args.destinationCountry;
-              }
-              output = { status: "success", message: `Destination set to ${args.destination}, ${args.destinationCountry}` };
-              break;
-            case "set_travel_dates":
-              let startDateStr = args.startDate;
-              let endDateStr = args.endDate;
-              let startDateUpdated = false;
-              let endDateUpdated = false;
-
-              console.log(`[API Chat Builder] RAW ARGS for set_travel_dates: startDate="${startDateStr}", endDate="${endDateStr}"`);
-
-              const looksLikeQuestion = (str: string | undefined): boolean => str ? (str.includes("?") || str.length < 5 || str.split(' ').length > 5) : false;
-
-              if (startDateStr && !looksLikeQuestion(startDateStr)) {
-                console.log(`[API Chat Builder] Calling parseDate for startDateStr: "${startDateStr}"`);
-                const parsedStartDate = parseDate(startDateStr);
-                console.log(`[API Chat Builder] set_travel_dates: Original startDateStr: "${startDateStr}", Parsed: "${parsedStartDate}"`);
-                if (/^\\d{4}-\\d{2}-\\d{2}$/.test(parsedStartDate)) { 
-                    trip.startDate = parsedStartDate;
-                    updatedDataAccumulator.startDate = parsedStartDate;
-                    startDateUpdated = true;
-                    console.log(`[API Chat Builder] set_travel_dates: Successfully updated trip.startDate to "${parsedStartDate}"`);
-                } else {
-                    console.warn(`[API Chat Builder] set_travel_dates: startDate "${startDateStr}" (parsed as "${parsedStartDate}") NOT updated. It's not YYYY-MM-DD or looked like a question.`);
-                }
-              }
-              if (endDateStr && !looksLikeQuestion(endDateStr)) {
-                console.log(`[API Chat Builder] Calling parseDate for endDateStr: "${endDateStr}"`);
-                const parsedEndDate = parseDate(endDateStr);
-                console.log(`[API Chat Builder] set_travel_dates: Original endDateStr: "${endDateStr}", Parsed: "${parsedEndDate}"`);
-                if (/^\\d{4}-\\d{2}-\\d{2}$/.test(parsedEndDate)) { 
-                    trip.endDate = parsedEndDate;
-                    updatedDataAccumulator.endDate = parsedEndDate;
-                    endDateUpdated = true;
-                    console.log(`[API Chat Builder] set_travel_dates: Successfully updated trip.endDate to "${parsedEndDate}"`);
-                } else {
-                     console.warn(`[API Chat Builder] set_travel_dates: endDate "${endDateStr}" (parsed as "${parsedEndDate}") NOT updated. It's not YYYY-MM-DD or looked like a question.`);
-                }
-              }
-              
-              let dateMessage = "Travel dates processed.";
-              if (startDateUpdated && endDateUpdated) {
-                dateMessage = `Dates set: ${trip.startDate} to ${trip.endDate}.`;
-                console.log(`[API Chat Builder] set_travel_dates CONFIRMED: Start=${trip.startDate}, End=${trip.endDate}`);
-              } else if (startDateUpdated) {
-                dateMessage = `Start date set to ${trip.startDate}. End date needs clarification.`;
-                console.log(`[API Chat Builder] set_travel_dates PARTIAL: Start=${trip.startDate}, End needs clarification.`);
-              } else if (endDateUpdated) {
-                dateMessage = `End date set to ${trip.endDate}. Start date needs clarification.`;
-                console.log(`[API Chat Builder] set_travel_dates PARTIAL: End=${trip.endDate}, Start needs clarification.`);
-              } else {
-                dateMessage = "Could not reliably set travel dates. Please clarify.";
-                console.warn(`[API Chat Builder] set_travel_dates FAILED to set any dates reliably.`);
-              }
-              
-              output = { status: "success", message: dateMessage };
-              break;
-            case "set_travelers":
-              if (args.adults !== undefined) {
-                trip.adults = args.adults;
-                updatedDataAccumulator.adults = args.adults;
-              }
-              trip.children = args.children !== undefined ? args.children : (trip.children || 0); // Preserve existing if undefined, else default to 0
-              updatedDataAccumulator.children = trip.children;
-
-              if (args.pets !== undefined) {
-                trip.pets = args.pets;
-                updatedDataAccumulator.pets = args.pets;
-              }
-              output = { status: "success", message: `Travelers set: ${trip.adults ?? '?'} adults, ${trip.children} children, ${trip.pets ?? '?'} pets` };
-              break;
-            case "set_preferences":
-              if (args.budget) {
-                trip.budget = args.budget;
-                updatedDataAccumulator.budget = args.budget;
-              }
-              if (args.accommodation !== undefined) {
-                const newAccommodation = Array.isArray(args.accommodation) ? args.accommodation : (typeof args.accommodation === 'string' && args.accommodation.trim() !== '' ? [args.accommodation] : []);
-                trip.accommodation = newAccommodation;
-                updatedDataAccumulator.accommodation = newAccommodation;
-              }
-              if (args.interests !== undefined) {
-                const newInterests = Array.isArray(args.interests) ? args.interests : (typeof args.interests === 'string' && args.interests.trim() !== '' ? [args.interests] : []);
-                trip.interests = newInterests;
-                updatedDataAccumulator.interests = newInterests;
-              }
-              output = { status: "success", message: "Preferences updated." };
-              break;
-          case "update_learned_preferences":
-            const { preference_type, detail, item_reference } = args;
-            if (preference_type && detail) {
-              const newPreference = { type: preference_type, detail, ...(item_reference && { item_reference }) };
-              
-              trip.learnedPreferences = trip.learnedPreferences || [];
-
-              if (!updatedDataAccumulator.learnedPreferences) {
-                  // Initialize based on trip state or empty array, ensuring it's a new array
-                  updatedDataAccumulator.learnedPreferences = trip.learnedPreferences ? [...trip.learnedPreferences] : [];
-              }
-
-              const existsInTrip = trip.learnedPreferences.some(
-                (p: LearnedPreference) => p.type === preference_type && p.detail === detail
-              );
-              if (!existsInTrip) {
-                trip.learnedPreferences.push(newPreference); // Update main trip object
-                updatedDataAccumulator.learnedPreferences = [...trip.learnedPreferences]; // Reflect in accumulator as new array
-                console.log('[API Chat Builder] Recorded learned preference to trip:', newPreference);
-
-                // --- BEGIN SUPABASE SAVE (using trip.learnedPreferences) ---
-                if (userId) {
-                    const { error: upsertError } = await supabase
-                        .from('user_profiles')
-                        .update({ learned_preferences: trip.learnedPreferences }) // Save the full updated list
-                        .eq('id', userId);
-
-                    if (upsertError) {
-                        console.error('[API Chat Builder] Error saving learned preferences to DB:', upsertError.message);
-                        output = { status: "partial_success", message: `Preference (${preference_type}) recorded locally, but failed to save persistently.` };
-                    } else {
-                        console.log('[API Chat Builder] Successfully saved learned preferences to DB for user:', userId);
-                        output = { status: "success", message: `Learned preference (${preference_type}) recorded.` };
-                    }
-                } else {
-                    output = { status: "success", message: `Learned preference (${preference_type}) recorded (session only).` };
-                }
-                // --- END SUPABASE SAVE ---
-              } else {
-                output = { status: "success", message: `Preference (${preference_type}: ${detail}) already recorded.` };
-                console.log('[API Chat Builder] Duplicate learned preference ignored:', newPreference);
-              }
-            } else {
-              output = { status: "error", message: "Missing required arguments (preference_type, detail) for update_learned_preferences." };
-            }
-            break;
-          case "suggest_places_of_interest":
-              // ... (rest of the cases, ensure they are complete as per previous versions)
-              if (!args.location) {
-                  const locationContext = updatedDataAccumulator.destination || trip?.destination;
-                  if (locationContext) {
-                      args.location = locationContext;
-                  } else {
-                      output = { status: "error", message: "Cannot suggest places without a location context." };
-                      break;
-                  }
-              }
-              output = await suggestPlacesOfInterestApiCall(args.location, args.interests, args.activity_type, args.day_number);
-              break;
-          case "get_trip_details":
-              output = { status: "success", details: await getTripDetailsApiCall(trip), message: "Current trip details retrieved." };
-        break;
-          case "find_nearby_service":
-              if (!args.location) {
-                   const locationContext = updatedDataAccumulator.destination || trip?.destination;
-                   if (locationContext) {
-                      args.location = locationContext;
-            } else {
-                      output = { status: "error", message: "Cannot find nearby services without a location context." };
-                      break;
-                  }
-              }
-              output = await findNearbyServiceApiCall(args.location, args.service_type);
-              break;
-          case "save_trip_progress":
-              const combinedTripStateForSave = { ...trip, ...updatedDataAccumulator };
-              output = await saveTripProgressApiCall(combinedTripStateForSave);
-              break;
-          case "check_travel_regulations":
-              output = await checkTravelRegulationsApiCall(args.destination_country, args.origin_country, args.pet_type);
-              break;
-          case "add_activity_to_day":
-              const currentFullItineraryForAdd = trip?.itinerary; // Use the main trip object's itinerary
-              const addActivityResult = await addActivityToDayApiCall(args.day_number, args.activity, currentFullItineraryForAdd);
-              output = addActivityResult;
-              if (addActivityResult.updatedItinerary) {
-                  trip.itinerary = addActivityResult.updatedItinerary; // Update main trip object
-                  updatedDataAccumulator.itinerary = addActivityResult.updatedItinerary; 
-              }
-              if (addActivityResult.updatedItinerarySummary) {
-                  trip.itinerarySummary = addActivityResult.updatedItinerarySummary; // Update main trip object
-                  updatedDataAccumulator.itinerarySummary = addActivityResult.updatedItinerarySummary;
-              }
-              break;
-          case "generate_itinerary":
-            const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
-                  if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
-                responseData.triggerItineraryGeneration = true;
-                      output = { status: "success", message: "Essential information collected. Itinerary generation process initiated by the frontend." };
-            } else {
-                      output = { status: "error", message: "Cannot generate itinerary yet. Please provide destination, country, start date, and end date first." };
-                      responseData.triggerItineraryGeneration = false;
-            }
+    // Helper function for polling
+    async function waitForRunCompletion(threadId: string, runId: string, maxAttempts = 60, pollIntervalMs = 1000): Promise<OpenAI.Beta.Threads.Runs.Run> {
+      for (let attempts = 0; attempts < maxAttempts; attempts++) {
+        const run = await openai.beta.threads.runs.retrieve(threadId, runId);
+        console.log(`[Polling] Run status: ${run.status}, attempt ${attempts + 1}`);
+        switch (run.status) {
+          case 'completed':
+            return run;
+          case 'requires_action':
+            console.error(`[Polling] Run ${runId} entered 'requires_action' during completion polling. This may indicate a need for iterative tool calls if not handled by the main loop.`);
+            // Returning the run here, the caller must decide how to proceed if it's still requires_action after polling for completion.
+            // For the current design, this is an unexpected state if we were *only* waiting for final completion.
+            // However, if the main loop is prepared to re-enter tool processing, this is fine.
+            // Given the refined logic, we expect the main loop to break and re-poll or re-evaluate.
+            // Let's make it an error if this specific polling function is called expecting a *terminal* state.
+            throw new Error(`Run ${runId} requires further action unexpectedly during terminal polling phase.`);
+          case 'failed':
+            console.error('[Polling] Run failed:', run.last_error);
+            throw new Error(`Run failed: ${run.last_error?.message || 'Unknown error'}`);
+          case 'cancelled':
+          case 'expired':
+            throw new Error(`Run ${runId}`);
+          case 'queued':
+          case 'in_progress':
+            // Continue polling
             break;
           default:
-            console.warn(`[API Chat Builder] Unhandled tool call: ${functionName}`);
-                output = { status: "error", message: `Unknown function: ${functionName}` };
-          }
-          } catch (toolError: any) {
-              console.error(`[API Chat Builder] Error processing tool ${functionName} (args: ${call.function.arguments}):`, toolError);
-              output = { status: "error", message: `Failed to execute ${functionName}. Error: ${toolError.message}` };
-          }
-
-          toolOutputs.push({
-            tool_call_id: call.id,
-                  output: JSON.stringify(output), 
-          });
-            } // End for loop for tool calls
-
-      if (toolOutputs.length > 0) {
-          console.log('[API Chat Builder] Submitting tool outputs...');
-          try {
-               run = await openai.beta.threads.runs.submitToolOutputs(currentThreadId, run.id, {
-                  tool_outputs: toolOutputs,
-              });
-              console.log(`[API Chat Builder] Tool outputs submitted. New Run Status: ${run.status}`);
-                    lastLoggedStatus = run.status; // Update lastLoggedStatus immediately
-                    // Loop will continue, and next iteration will poll or handle new status.
-                } catch (submitError: any) {
-                    console.error(`[API Chat Builder] Error submitting tool outputs for run ${run.id}:`, submitError);
-                    run.status = "failed"; 
-                    run.last_error = { code: "server_error", message: `Failed to submit tool outputs: ${submitError.message}` };
-                    break; // Exit loop on submission error
-                }
-            } else {
-                // This case should ideally not be reached if requiredActions was populated and tools were processed.
-                console.warn("[API Chat Builder] No tool outputs generated despite 'requires_action'. This might indicate an issue. Continuing poll.");
-                // To prevent potential infinite loops if the state doesn't change, force a poll delay.
-                await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
-                elapsedTimeMs += pollingIntervalMs;
-            }
-        } // End if (run.status === "requires_action")
-
-        // Standard polling logic if not 'requires_action' or after tools submitted and status is not yet terminal
-        if (!terminalStates.includes(run.status) && run.status !== "requires_action") { // Don't poll if we just handled requires_action and it might become terminal
-                  await new Promise(resolve => setTimeout(resolve, pollingIntervalMs));
-                  elapsedTimeMs += pollingIntervalMs;
-            try {
-                  run = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
-            } catch (retrieveError: any) {
-                console.error(`[API Chat Builder] Error retrieving run status for run ${run.id}:`, retrieveError);
-                run.status = "failed"; 
-                run.last_error = { code: "server_error", message: `Failed to retrieve run status: ${retrieveError.message}` };
-                break; // Exit loop on retrieval error
-            }
-
-                  if (run.status !== lastLoggedStatus) {
-                console.log(`[API Chat Builder] Run ${run.id} Status: ${run.status}`);
-                     lastLoggedStatus = run.status;
-            } else if (elapsedTimeMs % 10000 === 0) { // Log progress every 10s if status hasn't changed
-                console.log(`[API Chat Builder] Run ${run.id} still '${run.status}'... (${elapsedTimeMs / 1000}s)`);
-            }
+            throw new Error(`Unknown run status: ${run.status}`);
         }
-        // If run.status became 'requires_action' from polling, the next loop iteration will handle it.
-        // If tools were submitted, and run.status is now e.g. 'queued' or 'in_progress', polling will continue.
-    } // End while loop
-
-     // Check for timeout or if loop exited due to an internal break (e.g. tool submission error)
-              if (!terminalStates.includes(run.status)) {
-        // If it's requires_action here, it means the loop timed out while in requires_action,
-        // or an error occurred during its processing that didn't set it to 'failed'.
-        // This case should ideally be caught by the 'failed' status set on errors within the loop.
-        if (run.status === "requires_action") {
-             console.error(`[API Chat Builder] Run ${run.id} timed out or errored while in 'requires_action' state.`);
-             // Attempt to cancel, as it might be stuck
-             try { await openai.beta.threads.runs.cancel(currentThreadId, run.id); } catch (cancelError) { console.error("Error cancelling run:", cancelError); }
-             responseData.reply = 'Sorry, the assistant got stuck processing a required step. Please try again.';
-             return NextResponse.json(responseData, { status: 500 });
-        } else { // General timeout for other non-terminal states
-            console.error(`[API Chat Builder] Run polling timed out after ${elapsedTimeMs / 1000}s for run ${run.id}. Status: ${run.status}`);
-            try { await openai.beta.threads.runs.cancel(currentThreadId, run.id); } catch (cancelError) { console.error("Error cancelling run:", cancelError); }
-            responseData.reply = 'Sorry, the request took too long to process. Please try again.';
-            return NextResponse.json(responseData, { status: 504 }); // Gateway Timeout
-        }
-    }
-
-    // 6. Handle Final Run Status
-    if (run.status === "completed") {
-        console.log(`[API Chat Builder] Run ${run.id} completed. Fetching messages...`);
-        const messages = await openai.beta.threads.messages.list(currentThreadId, { order: 'desc', limit: 1 });
-        const assistantMessage = messages.data.find(m => m.role === 'assistant');
-
-        if (assistantMessage && assistantMessage.content.length > 0) {
-            const firstContent = assistantMessage.content[0];
-            if (firstContent?.type === 'text') {
-                responseData.reply = firstContent.text.value;
-                console.log('[API Chat Builder] Extracted final reply text.');
-                 if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
-                    responseData.updatedTripData = trip; // Send the complete 'trip' object
-                 }
-            } else {
-                 responseData.reply = "Received a non-text response from the assistant."; 
-                 console.warn("[API Chat Builder] Assistant message content was not text:", firstContent);
-            }
-        } else {
-            if (responseData.triggerItineraryGeneration) {
-                responseData.reply = "Okay, I have all the details needed. The itinerary generation will start now.";
-            } else {
-                console.warn('[API Chat Builder] Run completed but no assistant message content found.');
-                responseData.reply = "Processing complete, but no further message generated."; 
-            }
-        }
-    } else {
-       // Handle ALL non-completed final states (failed, cancelled, expired, etc.)
-       console.error(`[API Chat Builder] Run ${run.id} did not complete successfully. Final status: ${run.status}`);
-       let userFriendlyError = "Sorry, I encountered an issue processing your request.";
-       if (run.last_error) {
-           console.error(`[API Chat Builder] Run ${run.id} failed detail: ${run.last_error.code} - ${run.last_error.message}`);
-           userFriendlyError = `Processing failed (${run.last_error.code}). Please try again.`;
-       } else {
-            userFriendlyError = `Processing did not complete (Status: ${run.status}). Please try again.`;
+        await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
       }
-       responseData.reply = userFriendlyError;
-       if (Object.keys(updatedDataAccumulator).length > 0) {
-           responseData.updatedTripData = trip; // Send the complete 'trip' object on failure too
-       }
-       return NextResponse.json(responseData, { status: run.status === 'failed' ? 500 : 503 }); 
+      throw new Error('Run timed out after multiple polling attempts');
     }
 
-    console.log('[API Chat Builder] Final Response Data (trip object):', trip); // Log the full trip object being considered for response
+    let streamedToolSubmission = false; // Flag to indicate if we've gone through tool submission
+
+    for await (const event of runStream) {
+      if (event.event === 'thread.message.delta' && event.data.delta.content) {
+        const delta = event.data.delta.content[0];
+        if (delta?.type === 'text' && delta.text) {
+          finalReply += delta.text.value;
+          // console.log(`[STREAM] Delta: ${delta.text.value}`); // Log delta if needed
+        }
+      } else if (event.event === 'thread.run.requires_action' && event.data.status === 'requires_action') {
+        console.log('[STREAM] Run requires action. Tool calls:', event.data.required_action?.submit_tool_outputs.tool_calls.length);
+        runResult = event.data; // Capture the run state that requires action
+        const requiredActions = event.data.required_action?.submit_tool_outputs.tool_calls;
+
+        if (!requiredActions || requiredActions.length === 0) {
+          console.error("[STREAM] Run requires action, but no tool calls were provided.");
+          // This state should ideally not happen if the assistant is configured correctly.
+          // We might need to abort or send an error if this occurs.
+          // For now, we let it potentially timeout or resolve differently.
+          continue;
+        }
+
+        const toolOutputs: OpenAI.Beta.Threads.Runs.RunSubmitToolOutputsParams.ToolOutput[] = [];
+
+        for (const call of requiredActions) {
+          const functionName = call.function.name;
+          let output: any = null;
+          let args: any = {};
+          try {
+            args = JSON.parse(call.function.arguments || '{}');
+            console.log(`[STREAM] Executing tool: ${functionName}`, args);
+
+            // --- Tool call switch statement (existing logic) ---
+            switch (functionName) {
+              case "set_destination":
+                if (args.destination) {
+                  trip.destination = args.destination;
+                  updatedDataAccumulator.destination = args.destination;
+                }
+                if (args.destinationCountry) {
+                  trip.destinationCountry = args.destinationCountry;
+                  updatedDataAccumulator.destinationCountry = args.destinationCountry;
+                }
+                output = { status: "success", message: `Destination set to ${args.destination}, ${args.destinationCountry}` };
+                break;
+              case "set_travel_dates":
+                let startDateStr = args.startDate;
+                let endDateStr = args.endDate;
+                let startDateUpdated = false;
+                let endDateUpdated = false;
+
+                console.log(`[STREAM] RAW ARGS for set_travel_dates: startDate="${startDateStr}", endDate="${endDateStr}"`);
+
+                const looksLikeQuestion = (str: string | undefined): boolean => str ? (str.includes("?") || str.length < 5 || str.split(' ').length > 5) : false;
+
+                if (startDateStr && !looksLikeQuestion(startDateStr)) {
+                  console.log(`[STREAM] Calling parseDate for startDateStr: "${startDateStr}"`);
+                  const parsedStartDate = parseDate(startDateStr);
+                  console.log(`[STREAM] set_travel_dates: Original startDateStr: "${startDateStr}", Parsed: "${parsedStartDate}"`);
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(parsedStartDate)) { 
+                      trip.startDate = parsedStartDate;
+                      updatedDataAccumulator.startDate = parsedStartDate;
+                      startDateUpdated = true;
+                      console.log(`[STREAM] set_travel_dates: Successfully updated trip.startDate to "${parsedStartDate}"`);
+                  } else {
+                      console.warn(`[STREAM] set_travel_dates: startDate "${startDateStr}" (parsed as "${parsedStartDate}") NOT updated. It's not YYYY-MM-DD or looked like a question.`);
+                  }
+                }
+                if (endDateStr && !looksLikeQuestion(endDateStr)) {
+                  console.log(`[STREAM] Calling parseDate for endDateStr: "${endDateStr}"`);
+                  const parsedEndDate = parseDate(endDateStr);
+                  console.log(`[STREAM] set_travel_dates: Original endDateStr: "${endDateStr}", Parsed: "${parsedEndDate}"`);
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(parsedEndDate)) { 
+                      trip.endDate = parsedEndDate;
+                      updatedDataAccumulator.endDate = parsedEndDate;
+                      endDateUpdated = true;
+                      console.log(`[STREAM] set_travel_dates: Successfully updated trip.endDate to "${parsedEndDate}"`);
+                  } else {
+                       console.warn(`[STREAM] set_travel_dates: endDate "${endDateStr}" (parsed as "${parsedEndDate}") NOT updated. It's not YYYY-MM-DD or looked like a question.`);
+                  }
+                }
+                
+                let dateMessage = "Travel dates processed.";
+                if (startDateUpdated && endDateUpdated) {
+                  dateMessage = `Dates set: ${trip.startDate} to ${trip.endDate}.`;
+                  console.log(`[STREAM] set_travel_dates CONFIRMED: Start=${trip.startDate}, End=${trip.endDate}`);
+                } else if (startDateUpdated) {
+                  dateMessage = `Start date set to ${trip.startDate}. End date needs clarification.`;
+                  console.log(`[STREAM] set_travel_dates PARTIAL: Start=${trip.startDate}, End needs clarification.`);
+                } else if (endDateUpdated) {
+                  dateMessage = `End date set to ${trip.endDate}. Start date needs clarification.`;
+                  console.log(`[STREAM] set_travel_dates PARTIAL: End=${trip.endDate}, Start needs clarification.`);
+                } else {
+                  dateMessage = "Could not reliably set travel dates. Please clarify.";
+                  console.warn(`[STREAM] set_travel_dates FAILED to set any dates reliably.`);
+                }
+                
+                output = { status: "success", message: dateMessage };
+                break;
+              case "set_travelers":
+                if (args.adults !== undefined) {
+                  trip.adults = args.adults;
+                  updatedDataAccumulator.adults = args.adults;
+                }
+                trip.children = args.children !== undefined ? args.children : (trip.children || 0); // Preserve existing if undefined, else default to 0
+                updatedDataAccumulator.children = trip.children;
+
+                if (args.pets !== undefined) {
+                  trip.pets = args.pets;
+                  updatedDataAccumulator.pets = args.pets;
+                }
+                output = { status: "success", message: `Travelers set: ${trip.adults ?? '?'} adults, ${trip.children} children, ${trip.pets ?? '?'} pets` };
+                break;
+              case "set_preferences":
+                if (args.budget) {
+                  trip.budget = args.budget;
+                  updatedDataAccumulator.budget = args.budget;
+                }
+                if (args.accommodation !== undefined) {
+                  const newAccommodation = Array.isArray(args.accommodation) ? args.accommodation : (typeof args.accommodation === 'string' && args.accommodation.trim() !== '' ? [args.accommodation] : []);
+                  trip.accommodation = newAccommodation;
+                  updatedDataAccumulator.accommodation = newAccommodation;
+                }
+                if (args.interests !== undefined) {
+                  const newInterests = Array.isArray(args.interests) ? args.interests : (typeof args.interests === 'string' && args.interests.trim() !== '' ? [args.interests] : []);
+                  trip.interests = newInterests;
+                  updatedDataAccumulator.interests = newInterests;
+                }
+                output = { status: "success", message: "Preferences updated." };
+                break;
+              case "update_learned_preferences":
+                const { preference_type, detail, item_reference } = args;
+                if (preference_type && detail) {
+                  const newPreference = { type: preference_type, detail, ...(item_reference && { item_reference }) };
+                  
+                  trip.learnedPreferences = trip.learnedPreferences || [];
+
+                  if (!updatedDataAccumulator.learnedPreferences) {
+                      updatedDataAccumulator.learnedPreferences = trip.learnedPreferences ? [...trip.learnedPreferences] : [];
+                  }
+
+                  const existsInTrip = trip.learnedPreferences.some(
+                    (p: LearnedPreference) => p.type === preference_type && p.detail === detail
+                  );
+                  if (!existsInTrip) {
+                    trip.learnedPreferences.push(newPreference);
+                    updatedDataAccumulator.learnedPreferences = [...trip.learnedPreferences];
+                    console.log('[STREAM] Recorded learned preference to trip:', newPreference);
+
+                    if (userId) {
+                      const { error: upsertError } = await supabase
+                        .from('user_profiles')
+                        .update({ learned_preferences: trip.learnedPreferences })
+                        .eq('id', userId);
+
+                      if (upsertError) {
+                        console.error('[STREAM] Error saving learned preferences to DB:', upsertError.message);
+                        output = { status: "partial_success", message: `Preference (${preference_type}) recorded locally, but failed to save persistently.` };
+                      } else {
+                        console.log('[STREAM] Successfully saved learned preferences to DB for user:', userId);
+                        output = { status: "success", message: `Learned preference (${preference_type}) recorded.` };
+                      }
+                    } else {
+                      output = { status: "success", message: `Learned preference (${preference_type}) recorded (session only).` };
+                    }
+                  } else {
+                    output = { status: "success", message: `Preference (${preference_type}: ${detail}) already recorded.` };
+                    console.log('[STREAM] Duplicate learned preference ignored:', newPreference);
+                  }
+                } else {
+                  output = { status: "error", message: "Missing required arguments (preference_type, detail) for update_learned_preferences." };
+                }
+                break;
+              case "suggest_places_of_interest":
+                if (!args.location) {
+                    const locationContext = updatedDataAccumulator.destination || trip?.destination;
+                    if (locationContext) {
+                        args.location = locationContext;
+                    } else {
+                        output = { status: "error", message: "Cannot suggest places without a location context." };
+                        break;
+                    }
+                }
+                output = await suggestPlacesOfInterestApiCall(args.location, trip, args.interests, args.activity_type, args.day_number);
+                break;
+              case "get_trip_details":
+                output = { status: "success", details: await getTripDetailsApiCall(trip), message: "Current trip details retrieved." };
+                break;
+              case "find_nearby_service":
+                if (!args.location) {
+                     const locationContext = updatedDataAccumulator.destination || trip?.destination;
+                     if (locationContext) {
+                        args.location = locationContext;
+                     } else {
+                        output = { status: "error", message: "Cannot find nearby services without a location context." };
+                        break;
+                     }
+                }
+                output = await findNearbyServiceApiCall(args.location, args.service_type);
+                break;
+              case "save_trip_progress":
+                const combinedTripStateForSave = { ...trip, ...updatedDataAccumulator };
+                output = await saveTripProgressApiCall(combinedTripStateForSave);
+                break;
+              case "check_travel_regulations":
+                output = await checkTravelRegulationsApiCall(args.destination_country, args.origin_country, args.pet_type);
+                break;
+              case "add_activity_to_day":
+                const currentFullItineraryForAdd = trip?.itinerary;
+                const addActivityResult = await addActivityToDayApiCall(args.day_number, args.activity, currentFullItineraryForAdd);
+                output = addActivityResult;
+                if (addActivityResult.updatedItinerary) {
+                    trip.itinerary = addActivityResult.updatedItinerary;
+                    updatedDataAccumulator.itinerary = addActivityResult.updatedItinerary; 
+                }
+                if (addActivityResult.updatedItinerarySummary) {
+                    trip.itinerarySummary = addActivityResult.updatedItinerarySummary;
+                    updatedDataAccumulator.itinerarySummary = addActivityResult.updatedItinerarySummary;
+                }
+                break;
+              case "generate_itinerary":
+                const finalTripStateForGenCheck = { ...trip, ...updatedDataAccumulator };
+                if (finalTripStateForGenCheck.destination && finalTripStateForGenCheck.destinationCountry && finalTripStateForGenCheck.startDate && finalTripStateForGenCheck.endDate) {
+                  responseData.triggerItineraryGeneration = true;
+                  output = { status: "success", message: "Essential information collected. Itinerary generation process initiated by the frontend." };
+                } else {
+                  output = { status: "error", message: "Cannot generate itinerary yet. Please provide destination, country, start date, and end date first." };
+                  responseData.triggerItineraryGeneration = false;
+                }
+                break;
+              default:
+                console.warn(`[STREAM] Unhandled tool call: ${functionName}`);
+                output = { status: "error", message: `Unknown function: ${functionName}` };
+            }
+            // --- End Tool call switch statement ---
+          } catch (toolError: any) {
+            console.error(`[STREAM] Error processing tool ${functionName} (args: ${call.function.arguments}):`, toolError);
+            // User-friendly error for the assistant
+            output = { status: "error", message: `I encountered an issue trying to use the ${functionName} tool. Please try rephrasing your request or try again later.` };
+          }
+          toolOutputs.push({ tool_call_id: call.id, output: JSON.stringify(output) });
+        } // End for loop for tool calls
+
+        if (toolOutputs.length > 0 && runResult) {
+          console.log('[STREAM] Submitting tool outputs...');
+          try {
+            // Submit tool outputs and DO NOT continue streaming from this call directly.
+            await openai.beta.threads.runs.submitToolOutputs(runResult.thread_id, runResult.id, {
+              tool_outputs: toolOutputs,
+            });
+            console.log('[STREAM] Tool outputs submitted. Transitioning to polling for run completion.');
+            streamedToolSubmission = true; // Set flag
+            break; // Exit the stream loop to start polling
+          } catch (submitError: any) {
+            console.error(`[STREAM] Error submitting tool outputs for run ${runResult.id}:`, submitError);
+            runResult.status = "failed"; 
+            runResult.last_error = { code: "server_error", message: `Failed to submit tool outputs: ${submitError.message}` };
+            // This error will be handled when the 'thread.run.failed' event is processed or at the end.
+          }
+        }
+      } else if (event.event === 'thread.run.completed') {
+        console.log('[STREAM] Run completed.');
+        runResult = event.data; // Capture final run state
+        responseData.reply = finalReply.trim() || null;
+        if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
+          responseData.updatedTripData = trip;
+        }
+        // If no reply but generation triggered, set a confirmation
+        if (!responseData.reply && responseData.triggerItineraryGeneration) {
+            responseData.reply = "Okay, I have all the details needed. The itinerary generation will start now.";
+        }
+        //MODIFICATION: DATE VALIDATION - Final check before successful response
+        if (trip.startDate && trip.endDate) {
+            try {
+                const startDateObj = new Date(trip.startDate);
+                const endDateObj = new Date(trip.endDate);
+                if (endDateObj < startDateObj) {
+                    console.warn("[API Chat Builder] Date validation failed on completion: End date is before start date.");
+                    const dateValidationError = "Error: The end date cannot be before the start date. Please clarify your travel dates.";
+                    responseData.reply = responseData.reply ? `${dateValidationError} ${responseData.reply}` : dateValidationError;
+                    if(responseData.updatedTripData) {
+                        delete responseData.updatedTripData.startDate;
+                        delete responseData.updatedTripData.endDate;
+                    }
+                     if(trip) {
+                        delete trip.startDate;
+                        delete trip.endDate;
+                    }
+                    // For a 200 response, we modify the reply and data rather than changing status code here.
+                    // The client will receive the corrected data and the AI's message will indicate the issue.
+                }
+            } catch (dateParseError) {
+                console.error("[API Chat Builder] Error parsing dates for final validation:", dateParseError);
+            }
+        }
+        break; // Exit the loop as the run is complete
+      } else if (event.event === 'thread.run.failed') {
+        console.error('[STREAM] Run failed.', event.data.last_error);
+        runResult = event.data; // Capture final run state
+        responseData.reply = responseData.reply || `Sorry, a processing error occurred (${event.data.last_error?.code || 'SERVER_ERROR'}). Please try again.`;
+        if (Object.keys(updatedDataAccumulator).length > 0) {
+          responseData.updatedTripData = trip;
+        }
+        return NextResponse.json(responseData, { status: 500 });
+      } else if (event.event === 'thread.run.cancelled' || event.event === 'thread.run.expired') {
+        console.warn(`[STREAM] Run ${event.event}.`);
+        runResult = event.data;
+        responseData.reply = responseData.reply || `The process was ${event.event}. Please try again.`;
+        if (Object.keys(updatedDataAccumulator).length > 0) {
+          responseData.updatedTripData = trip;
+        }
+        return NextResponse.json(responseData, { status: event.event === 'thread.run.expired' ? 504 : 503 });
+      } else if (event.event === 'thread.run.step.created' || event.event === 'thread.run.step.in_progress' || event.event === 'thread.run.step.completed') {
+        // console.log(`[STREAM] Run step event: ${event.event}, Step ID: ${event.data.id}`);
+      } else if (event.event === 'thread.message.created' || event.event === 'thread.message.in_progress' || event.event === 'thread.message.completed') {
+        // console.log(`[STREAM] Message event: ${event.event}, Message ID: ${event.data.id}`);
+      }
+    } // End of for await (const event of runStream)
+
+    // If we broke from the stream loop due to tool submission, start polling
+    if (streamedToolSubmission && runResult) {
+      try {
+        console.log(`[Polling] Starting polling for run completion: ${runResult.id}`);
+        runResult = await waitForRunCompletion(runResult.thread_id, runResult.id);
+        console.log(`[Polling] Run ${runResult.id} completed with status: ${runResult.status}`);
+
+        if (runResult.status === 'completed') {
+          // Fetch the latest messages to get the assistant's response post-tool use
+          const messages = await openai.beta.threads.messages.list(runResult.thread_id, { order: 'desc', limit: 10 });
+          const assistantMessages = messages.data.filter(m => m.run_id === runResult?.id && m.role === 'assistant');
+          
+          if (assistantMessages.length > 0 && assistantMessages[0].content.length > 0) {
+            const firstContent = assistantMessages[0].content[0];
+            if (firstContent?.type === 'text') {
+              finalReply = firstContent.text.value; // Overwrite finalReply with the complete message
+            }
+          }
+          responseData.reply = finalReply.trim() || null; // Use the fetched complete reply
+          if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
+            responseData.updatedTripData = trip;
+          }
+          if (!responseData.reply && responseData.triggerItineraryGeneration) {
+            responseData.reply = "Okay, I have all the details needed. The itinerary generation will start now.";
+          }
+        } 
+        // This 'else if' for requires_action should ideally not be hit if waitForRunCompletion throws an error for it.
+        // However, if waitForRunCompletion were to return it, this would be the handling.
+        // For now, the throw in waitForRunCompletion is the primary gate.
+        /* else if (runResult.status === 'requires_action') {
+            console.warn("[Polling] Run completed polling but ended in 'requires_action' state again.");
+            responseData.reply = "It seems I need more information or another action right away. Could you clarify your last point or command?";
+        }*/ else {
+          // Handle other terminal states if necessary (e.g. failed, though waitForRunCompletion throws for failed)
+          console.error(`[Polling] Run ${runResult.id} ended with unexpected status after polling: ${runResult.status}`);
+          responseData.reply = responseData.reply || `The process ended with status: ${runResult.status}. Please try again.`;
+        }
+      } catch (pollingError: any) {
+        console.error('[POST Handler] Error during run processing (polling or tool submission issue):', pollingError);
+        responseData.reply = responseData.reply || `Sorry, there was an issue processing your request: ${pollingError.message}. Please try again.`;
+        
+        let statusCode = 500;
+        if (pollingError.message.includes("timed out")) statusCode = 504;
+        // Check for the specific error thrown by our modified waitForRunCompletion
+        if (pollingError.message.includes("requires further action unexpectedly")) statusCode = 500; // Internal server error, as our loop isn't handling it yet
+        
+        // If the error is the 400 "Can't add messages while run is active", it's a state management issue.
+        // This usually means the client tried to send a new message before the previous run was fully resolved from the API's perspective.
+        // This specific catch block is *after* polling, so direct 400s from message creation are caught earlier.
+
+        return NextResponse.json(responseData, { status: statusCode });
+      }
+    }
+
+    // Fallback if loop finishes without a clear "completed" or "failed" event handled (e.g., initial direct completion)
+    // This part now mainly handles cases where the run completes *without* ever requiring tool action.
+    else if (!runResult || (runResult.status !== 'completed' && runResult.status !== 'failed' && runResult.status !== 'cancelled' && runResult.status !== 'expired')) {
+      console.warn('[API Chat Builder] Stream ended (or never started tool actions) without a definitive run completion state. Current run state:', runResult?.status);
+      let lastKnownStatus = runResult?.status || "unknown";
+      try {
+        if(currentThreadId && runResult?.id) {
+            const finalRunState = await openai.beta.threads.runs.retrieve(currentThreadId, runResult.id);
+            lastKnownStatus = finalRunState.status;
+            if(finalRunState.status === 'completed') {
+                // If it actually completed, try to fetch messages again
+                const messages = await openai.beta.threads.messages.list(currentThreadId, { order: 'desc', limit: 1 });
+                const assistantMessage = messages.data.find(m => m.role === 'assistant');
+                if (assistantMessage && assistantMessage.content.length > 0) {
+                    const firstContent = assistantMessage.content[0];
+                    if (firstContent?.type === 'text') {
+                        responseData.reply = firstContent.text.value;
+                    }
+                }
+                if (Object.keys(updatedDataAccumulator).length > 0 && !responseData.triggerItineraryGeneration) {
+                    responseData.updatedTripData = trip;
+                }
+                if (!responseData.reply && responseData.triggerItineraryGeneration) {
+                    responseData.reply = "Okay, I have all the details needed. The itinerary generation will start now.";
+                }
+                console.log('[API Chat Builder] Fallback check found run completed. Response prepared.');
+                return NextResponse.json(responseData);
+            }
+        }
+      } catch (retrieveError) {
+          console.error('[API Chat Builder] Error retrieving final run state in fallback:', retrieveError);
+      }
+
+      responseData.reply = responseData.reply || `Sorry, the request seems to have timed out or ended unexpectedly (last known status: ${lastKnownStatus}). Please try again.`;
+      if (Object.keys(updatedDataAccumulator).length > 0) {
+          responseData.updatedTripData = trip;
+      }
+      return NextResponse.json(responseData, { status: 504 }); // Gateway Timeout
+    }
+    
+    // If run completed successfully, responseData.reply and responseData.updatedTripData should be set.
+    // If responseData.reply is still null here after a successful completion, it means no text was generated.
+    if (runResult && runResult.status === 'completed' && responseData.reply === null && !responseData.triggerItineraryGeneration) {
+        console.warn('[API Chat Builder] Run completed but no assistant message content found');
+        responseData.reply = "Processing complete, but no further message generated."; 
+    }
+
+    console.log('[API Chat Builder] Final Response Data (trip object):', trip);
     console.log('[API Chat Builder] Final Response Data (responseData):', responseData);
     return NextResponse.json(responseData);
 
@@ -1142,7 +1241,7 @@ export async function POST(req: NextRequest) {
     console.error('[API Chat Builder] Unhandled Error in POST handler:', error);
     // Ensure responseData has threadId if available
     if (currentThreadId) responseData.threadId = currentThreadId;
-    responseData.reply = `Sorry, a critical server error occurred: ${error.message || 'Unknown error'}`;
+    responseData.reply = responseData.reply || `Sorry, a critical server error occurred. Please try again. Details: ${error.message || 'Unknown error'}`;
     return NextResponse.json(responseData, { status: 500 });
   }
 }

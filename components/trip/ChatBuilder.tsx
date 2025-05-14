@@ -164,6 +164,7 @@ const ChatBuilder = forwardRef<{
     setError(null);
 
     const currentTripData = useTripStore.getState().tripData; // Read latest state here
+    console.log('[ChatBuilder] Sending currentTripData to API:', JSON.stringify(currentTripData)); // DEBUG LOG
 
     try {
       console.log(`[ChatBuilder] Sending ${isSystemMessage ? 'SYSTEM' : 'USER'} message to API. Thread ID: ${currentThreadId}`);
