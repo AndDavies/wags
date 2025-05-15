@@ -149,9 +149,11 @@ function PolicyRequirementsSteps({ steps }: { steps: PolicyRequirementStep[] | u
           {steps.sort((a, b) => a.step - b.step).map((item) => (
             <li key={item.step} className="flex items-start">
               <span className="flex items-center justify-center h-5 w-5 rounded-full bg-teal-500 text-white font-bold text-xs mr-3 mt-0.5 flex-shrink-0">{item.step}</span>
-              <div>
-                <h4 className="font-semibold text-teal-700 text-sm">{item.label}</h4>
-                <p className="text-gray-700 text-xs" dangerouslySetInnerHTML={{ __html: item.text.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
+              <div className="prose prose-sm max-w-none text-gray-700 prose-a:text-teal-600 hover:prose-a:text-teal-700 prose-p:my-0.5">
+                <h4 className="font-semibold text-teal-700 text-sm !my-0">{item.label}</h4>
+                <ReactMarkdown components={{ a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}>
+                  {item.text}
+                </ReactMarkdown>
               </div>
             </li>
           ))}
@@ -1145,19 +1147,19 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
             <TabsList className="text-foreground h-auto gap-2 rounded-none border-b bg-transparent px-0 py-1 mb-4">
               <TabsTrigger
                 value="itinerary"
-                className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-teal-500 data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
+                className="hover:text-gray-900 data-[state=active]:after:bg-teal-500 data-[state=active]:hover:text-teal-700 relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
               >
                 Itinerary
               </TabsTrigger>
               <TabsTrigger
                 value="pre-departure"
-                className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-teal-500 data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
+                className="hover:text-gray-900 data-[state=active]:after:bg-teal-500 data-[state=active]:hover:text-teal-700 relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
               >
                 Pre-Departure Checklist
               </TabsTrigger>
               <TabsTrigger
                 value="regulations"
-                className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-teal-500 data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
+                className="hover:text-gray-900 data-[state=active]:after:bg-teal-500 data-[state=active]:hover:text-teal-700 relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
               >
                 Travel Regulations
               </TabsTrigger>
@@ -1212,13 +1214,14 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
             </TabsContent>
 
             <TabsContent value="regulations">
-              <Card className="mb-6 overflow-hidden shadow-sm"> 
+              <Card className="mb-6 overflow-hidden shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center text-gray-700 text-lg font-semibold">
                     <AlertTriangle className="h-5 w-5 mr-2 text-amber-600" /> Pet Travel Regulations
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
+                  {/* Section 1: Veterinary Information */}
                   <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
                     <CardHeader className="p-3 pb-1.5">
                       <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
@@ -1229,7 +1232,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
                       <p>
                           It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
                       </p>
-                      <a 
+                      <a
                         href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -1239,22 +1242,39 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
                       </a>
                     </CardContent>
                   </Card>
+
+                  {/* Section 2: Key Requirement Steps */}
+                  {(policyRequirements && policyRequirements.length > 0) && (
+                    <h4 className="text-md font-semibold text-gray-800 mb-2 mt-3">Key Requirement Steps:</h4>
+                  )}
                   <PolicyRequirementsSteps steps={policyRequirements} />
-                  <GeneralPreparationInfo items={generalPreparation} />
+
+                  {/* Section 3: General Preparation Advice */}
+                  {generalPreparation && generalPreparation.length > 0 && (
+                    <>
+                      <h4 className="text-md font-semibold text-gray-800 mb-2 mt-4">General Preparation Advice:</h4>
+                      <GeneralPreparationInfo items={generalPreparation} />
+                    </>
+                  )}
+
+                  {/* Section 4: Link to Full Destination Policy via destinationSlug */}
                   {tripData?.destinationSlug && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="mt-4 pt-3 border-t border-gray-200 text-sm">
                       <Link
                         href={`/directory/policies/${tripData.destinationSlug}`}
-                        className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
+                        className="text-teal-600 hover:text-teal-700 hover:underline font-medium flex items-center"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        View Full Destination Policy Details
-                        <ExternalLink className="h-4 w-4 ml-1.5" />
+                        View Full Destination Policy Details <ExternalLink className="h-4 w-4 ml-1.5" />
                       </Link>
                     </div>
                   )}
-                   {!policyRequirements && !generalPreparation && !tripData?.destinationSlug && (
+
+                  {/* Fallback message if no data is available for regulations */}
+                  {(!policyRequirements || policyRequirements.length === 0) &&
+                   (!generalPreparation || generalPreparation.length === 0) &&
+                   !tripData?.destinationSlug && (
                     <p className="text-gray-500 text-sm italic p-4 text-center">No specific travel regulation details available for this destination yet.</p>
                   )}
                 </CardContent>
