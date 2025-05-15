@@ -75,6 +75,12 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 // --- Interfaces (matching store/API) ---
 interface ItineraryViewProps {
@@ -229,13 +235,13 @@ function ItineraryDayAccordion({
   };
 
   return (
-    <div className="mb-2 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      <button onClick={onToggle} className={cn("w-full text-left p-3 flex justify-between items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
+    <div className="mb-2 overflow-hidden rounded-lg bg-white shadow-sm">
+      <button onClick={onToggle} className={cn("w-full text-left p-3 flex items-center hover:bg-gray-50 transition-colors", isExpanded ? "border-b border-gray-200" : "")}>
+        <ChevronDown className={cn("h-5 w-5 transition-transform text-gray-500 mr-3", isExpanded && "transform rotate-180")} />
         <div>
-          <h3 className="text-lg font-bold text-teal-700">Day {day.day}: {day.date}</h3>
+          <h3 className="text-lg font-bold text-gray-800">Day {day.day}: {day.date}</h3>
           <p className="text-sm text-gray-600 mt-0.5">{day.city?.split(',')[0] || 'Unknown City'}</p> 
         </div>
-        <ChevronDown className={cn("h-5 w-5 transition-transform text-gray-500", isExpanded && "transform rotate-180")} />
       </button>
       
       {isExpanded && (
@@ -632,7 +638,9 @@ function ItineraryMap({ activities }: { activities: Array<Activity> }) {
 }
 
 export default function ItineraryView({ session, onBackToPlanning, onTriggerSave }: ItineraryViewProps) {
-  const { tripData, isSaving, error, clearTrip, addActivity, deleteActivity, setIsSaving, setError, setTripData } = useTripStore();
+  const {
+    tripData, isSaving, error, clearTrip, addActivity, deleteActivity, setIsSaving, setError, setTripData
+  } = useTripStore();
 
   // Scroll to top when the component mounts
   useEffect(() => {
@@ -708,7 +716,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
     } else {
         console.log('[ItineraryView] User not logged in, skipping restore check.');
     }
-  }, [session]); 
+  }, [session, setTripData, setError]); 
   
   useEffect(() => {
     if (itinerary?.days) {
@@ -722,7 +730,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
   const handleToggleDay = (day: number) => {
     setExpandedDays((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]);
   };
-  const toggleMapView = () => setShowMap(prev => !prev);
+  const toggleMapView = () => setShowMap((prev) => !prev);
 
   const handleAddActivityClick = async (day: number) => {
     const currentDayData = itinerary?.days.find(d => d.day === day);
@@ -1102,7 +1110,7 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Planning
               </Button>
             )}
-            <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">Your Pet-Friendly Trip</h1>
+            <h1 className="text-2xl font-bold text-black tracking-tight hidden md:block">{tripData?.destination || "Your Pet-Friendly Trip"}</h1>
           </div>
           <div className="flex gap-2 flex-wrap flex-shrink-0">
             <Button onClick={handleSaveTrip} disabled={isSaving} size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
@@ -1133,83 +1141,127 @@ export default function ItineraryView({ session, onBackToPlanning, onTriggerSave
         {error && ( <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded m-4 flex-shrink-0" role="alert"><p className="font-bold">Error</p><p>{error}</p></div> )}
 
         <div className="flex-grow overflow-y-auto p-3 md:p-4 space-y-3">
-          {preDeparturePreparation && preDeparturePreparation.length > 0 && (
-              <CollapsibleCard title="Pre-Departure Checklist" icon={ClipboardCheck} startExpanded={false}>
-                  <div className="space-y-1.5 mt-1">
-                      {preDeparturePreparation.map((activity, idx) => (
-                          <div key={`prep-${idx}`} className="flex items-start p-2.5 bg-yellow-50/50 rounded-md border border-yellow-100">
-                              <div className="mr-2 mt-0.5 flex-shrink-0">{getActivityIcon(activity)}</div>
-                              <div>
-                                  <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
-                                  <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
-                                  {activity.cost && <p className="text-gray-500 text-xs mt-1">Est. Cost: ${activity.cost}</p>}
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              </CollapsibleCard>
-          )}
+          <Tabs defaultValue="itinerary" className="w-full items-start">
+            <TabsList className="text-foreground h-auto gap-2 rounded-none border-b bg-transparent px-0 py-1 mb-4">
+              <TabsTrigger
+                value="itinerary"
+                className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-teal-500 data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
+              >
+                Itinerary
+              </TabsTrigger>
+              <TabsTrigger
+                value="pre-departure"
+                className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-teal-500 data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
+              >
+                Pre-Departure Checklist
+              </TabsTrigger>
+              <TabsTrigger
+                value="regulations"
+                className="hover:bg-accent hover:text-foreground data-[state=active]:after:bg-teal-500 data-[state=active]:hover:bg-accent relative after:absolute after:inset-x-0 after:bottom-0 after:-mb-1 after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-teal-600"
+              >
+                Travel Regulations
+              </TabsTrigger>
+            </TabsList>
 
-          <CollapsibleCard title="Pet Travel Regulations" icon={ClipboardCheck} startExpanded={false}>
-          <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
-            <CardHeader className="p-3 pb-1.5">
-              <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
-                <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 text-sm text-amber-900 space-y-1.5">
-               <p>
-                  It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
-               </p>
-               <a 
-                  href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-teal-700 hover:text-teal-800 hover:underline text-xs font-medium"
-                >
-                   Find Vets Near {tripData?.destination?.split(',')[0] || 'Destination'} <ExternalLink className="h-3 w-3 ml-1" />
-               </a>
-            </CardContent>
-          </Card>
-            <PolicyRequirementsSteps steps={policyRequirements} />
-            <GeneralPreparationInfo items={generalPreparation} />
-            {tripData?.destinationSlug && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <Link
-                  href={`/directory/policies/${tripData.destinationSlug}`}
-                  className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Full Destination Policy Details
-                  <ExternalLink className="h-4 w-4 ml-1.5" />
-                </Link>
-              </div>
-            )}
-          </CollapsibleCard>
+            <TabsContent value="itinerary">
+              <h2 className="text-xl font-bold text-black tracking-tight mb-3">Daily Breakdown</h2>
+              {itinerary?.days?.map((day: ItineraryDay) => (
+                <ItineraryDayAccordion
+                  key={day.day}
+                  day={day}
+                  index={day.day}
+                  isExpanded={expandedDays.includes(day.day)}
+                  onToggle={() => handleToggleDay(day.day)}
+                  onAddActivityClick={() => handleAddActivityClick(day.day)}
+                  onDeleteActivity={(activityIndex) => handleDeleteActivity(day.day, activityIndex)}
+                  onOpenBookingModal={handleOpenBookingModal}
+                  tripData={tripData}
+                />
+              ))}
+              {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (
+                  <p className="text-gray-500 italic text-sm p-4 text-center">Itinerary data is not available.</p>
+              )}
+            </TabsContent>
 
-          
+            <TabsContent value="pre-departure">
+              <Card className="mb-6 overflow-hidden shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-gray-700 text-lg font-semibold">
+                    <ClipboardCheck className="h-5 w-5 mr-2 text-teal-600" /> Pre-Departure Checklist
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {preDeparturePreparation && preDeparturePreparation.length > 0 ? (
+                    <div className="space-y-1.5 mt-1">
+                        {preDeparturePreparation.map((activity, idx) => (
+                            <div key={`prep-${idx}`} className="flex items-start p-2.5 bg-yellow-50/50 rounded-md border border-yellow-100">
+                                <div className="mr-2 mt-0.5 flex-shrink-0">{getActivityIcon(activity)}</div>
+                                <div>
+                                    <p className="font-semibold text-gray-800 text-sm leading-snug">{activity.name}</p>
+                                    <p className="text-gray-600 text-sm mt-0.5" dangerouslySetInnerHTML={{ __html: activity.description.replace(/\\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline">$1</a>') }}></p>
+                                    {activity.cost && <p className="text-gray-500 text-xs mt-1">Est. Cost: ${activity.cost}</p>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm italic p-4 text-center">No pre-departure checklist items available.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <div>
-            <h2 className="text-xl font-bold text-black tracking-tight mb-3">Daily Breakdown</h2>
-            {itinerary?.days?.map((day: ItineraryDay) => (
-              <ItineraryDayAccordion
-                key={day.day}
-                day={day}
-                index={day.day}
-                isExpanded={expandedDays.includes(day.day)}
-                onToggle={() => handleToggleDay(day.day)}
-                onAddActivityClick={() => handleAddActivityClick(day.day)}
-                onDeleteActivity={(actIndex) => handleDeleteActivity(day.day, actIndex)}
-                onOpenBookingModal={handleOpenBookingModal}
-                tripData={tripData}
-              />
-            ))}
-            {(!itinerary || !itinerary.days || itinerary.days.length === 0) && (
-                <p className="text-gray-500 italic text-sm p-4 text-center">Itinerary data is not available.</p>
-            )}
+            <TabsContent value="regulations">
+              <Card className="mb-6 overflow-hidden shadow-sm"> 
+                <CardHeader>
+                  <CardTitle className="flex items-center text-gray-700 text-lg font-semibold">
+                    <AlertTriangle className="h-5 w-5 mr-2 text-amber-600" /> Pet Travel Regulations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <Card className="mb-4 shadow-sm border border-amber-200 bg-amber-50/50">
+                    <CardHeader className="p-3 pb-1.5">
+                      <CardTitle className="flex items-center text-amber-800 text-base font-semibold">
+                        <Stethoscope className="h-5 w-5 mr-2 text-amber-700" /> Veterinary Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 pt-0 text-sm text-amber-900 space-y-1.5">
+                      <p>
+                          It's always wise to know where local veterinary clinics are, especially during longer trips (over 10-14 days) where a health certificate might be needed for return travel. Keep your pet's records handy.
+                      </p>
+                      <a 
+                        href={`https://www.google.com/maps/search/veterinarian+near+${encodeURIComponent(tripData?.destination?.split(',')[0] || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-teal-700 hover:text-teal-800 hover:underline text-xs font-medium"
+                      >
+                          Find Vets Near {tripData?.destination?.split(',')[0] || 'Destination'} <ExternalLink className="h-3 w-3 ml-1" />
+                      </a>
+                    </CardContent>
+                  </Card>
+                  <PolicyRequirementsSteps steps={policyRequirements} />
+                  <GeneralPreparationInfo items={generalPreparation} />
+                  {tripData?.destinationSlug && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <Link
+                        href={`/directory/policies/${tripData.destinationSlug}`}
+                        className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View Full Destination Policy Details
+                        <ExternalLink className="h-4 w-4 ml-1.5" />
+                      </Link>
+                    </div>
+                  )}
+                   {!policyRequirements && !generalPreparation && !tripData?.destinationSlug && (
+                    <p className="text-gray-500 text-sm italic p-4 text-center">No specific travel regulation details available for this destination yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
-      </div>
 
       <Drawer open={showMap} onOpenChange={setShowMap} direction="right">
         <DrawerContent className="h-screen top-0 right-0 left-auto mt-0 w-[700px] max-w-[90vw] rounded-none flex flex-col">
